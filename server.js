@@ -7,44 +7,33 @@ import Sequelize from 'sequelize'
 import JPush from 'jpush-sdk'
 const jpush = JPush.buildClient(Config.Jpush_Appkey, Config.Jpush_Secret)
 var sequelize = new Sequelize(Config.mysqlconn)
-var Notify = sequelize.define('wf_securities_remind', {
-    RemindId: Sequelize.BIGINT,
-    MemberCode: Sequelize.STRING,
-    SmallType: Sequelize.STRING,
-    SecuritiesNo: Sequelize.STRING,
-    LowerLimit: Sequelize.DECIMAL,
-    IsOpenLower: Sequelize.BOOLEAN,
-    UpperLimit: Sequelize.DECIMAL,
-    IsOpenUpper: Sequelize.BOOLEAN,
-    RiseFall: Sequelize.DECIMAL,
-    IsOpenRiseFall: Sequelize.BOOLEAN,
-    CreateTime: Sequelize.DATE
-})
-var WfJPush = sequelize.define('wf_im_jpush', {
-    JpushID: Sequelize.BIGINT,
-    MemberCode: Sequelize.STRING,
-    JpushRegID: Sequelize.STRING,
-    JpushIMEI: Sequelize.STRING,
-    JpushDeviceID: Sequelize.STRING,
-    JpushVersion: Sequelize.STRING,
-    JpushPlatform: Sequelize.STRING,
-    JpushLastLoginTime: Sequelize.DATE,
-    CreateTime: Sequelize.DATE
-})
+
+let sql = "select a.*,b.JpushRegID from wf_securities_remind a LEFT JOIN wf_im_jpush b on a.MemberCode = b.MemberCode WHERE a.IsOpenLower=1 or a.IsOpenUpper=1 or a.IsOpenRiseFall=1 "
+
 var stocks = {}
 var stocksRef = {}
 var stocks_name = ""
 var notifies = {}
-Notify.findAll({ where: { $or: { IsOpenLower: true, IsOpenUpper: true, IsOpenRiseFall: true } }, include: [{ model: WfJPush, as: 'Jpush', where: { MemberCode: Sequelize.col('wf_securities_remind.MemberCode') }, order: "JpushLastLoginTime DESC" }] }).then(ns => {
-    for (let n of ns) {
+sequelize.query(sql).then(ns => {
+    for (let n of ns[0]) {
+        n.IsOpenLower = n.IsOpenLower[0] == 1
+        n.IsOpenUpper = n.IsOpenUpper[0] == 1
+        n.IsOpenRiseFall = n.IsOpenRiseFall[0] == 1
         notifies[n.RemindId] = n
+        let name = Config.sina_qmap[n.SmallType] + n.SecuritiesNo
+        if (!stocksRef[name]) {
+            stocksRef[name] = 1
+            if (!stocks_name) stocks_name = name
+            else stocks_name += "," + name
+        } else stocksRef[name]++
+            //console.log(n)
     }
 })
 const app = express();
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use('/', (req, res) => {
-        res.json({ notifies })
+        res.json({ notifies, stocks_name, stocks })
     })
     //添加提醒
 app.use('/addNotify', (req, res) => {
@@ -66,8 +55,20 @@ app.use('/modifyNotify', (req, res) => {
 })
 
 function sendNotify(type, nofity, price) {
-    jpush.push().setPlatform(JPush.ALL).setAudience(JPush.ALL)
-        .setNotification('Hi, JPush', JPush.ios('ios alert', 'sound', 0, false, {}), JPush.android('android alert', 'title', 1, {}))
+    let msg = "沃夫街股价提醒:" + nofity.SecuritiesNo
+    switch (type) {
+        case 0:
+            msg += ` 当前价格 ${price} 已经向下击穿 ${nofity.LowerLimit}`
+            break
+        case 1:
+            msg += ` 当前价格 ${price} 已经向下突破 ${nofity.IsOpenUpper}`
+            break
+        case 2:
+            msg += ` 当前振幅 ${price} 已经超过 ${nofity.RiseFall}`
+            break
+    }
+    jpush.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(nofity.JpushRegID))
+        .setNotification('股价提醒', JPush.ios(msg, 'sound', 0, false, { AlertType: Config.jpushType, SmallType: nofity.SmallType, SecuritiesNo: nofity.SecuritiesNo }), JPush.android(msg, '沃夫街股价提醒', 1, { AlertType: Config.jpushType, SmallType: nofity.SmallType, SecuritiesNo: nofity.SecuritiesNo }))
         .send((err, res) => {
             if (err) {
                 if (err instanceof JPush.APIConnectionError) {
@@ -91,11 +92,11 @@ setInterval(() => {
                 return
             }
             let rawData = Iconv.decode(Buffer.concat(arrBuf), 'gb2312')
-
-            eval(rawData + '  for (let stockName in stocksRef)let q = Config.stockPatten.exec(stockName).$1;stocks[stockName] = eval("hq_str_" + stockName).split(",").map(x=>[x[Config.lastPriceIndexMap[q]],Config.chgFunc[q](x)])')
+            let config = Config
+            eval(rawData + '  for (let stockName in stocksRef){let q = config.stockPatten.exec(stockName)[1];stocks[stockName] = eval("hq_str_" + stockName).split(",").map(x=>[x[config.lastPriceIndexMap[q]],config.chgFunc[q](x)])}')
             for (let nid in notifies) {
                 let notify = notifies[nid]
-                let name = Config.sina_qmap[SmallType] + SecuritiesNo
+                let name = Config.sina_qmap[notify.SmallType] + notify.SecuritiesNo
                 let price = stocks[name][0]
                 let chg = Math.abs(stocks[name][1])
                 if (notify.IsOpenLower) {
