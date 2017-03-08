@@ -26,7 +26,7 @@ sequelize.query(sql).then(ns => {
             if (!stocks_name) stocks_name = name
             else stocks_name += "," + name
         } else stocksRef[name]++
-            //console.log(n)
+            console.log(n)
     }
 })
 const app = express();
@@ -45,13 +45,20 @@ app.use('/addNotify', (req, res) => {
         if (!stocks_name) stocks_name = name
         else stocks_name += "," + name
     } else stocksRef[name]++
-        res.json({ status: 0 })
+        res.json({ Status: 0, Explain: "" })
         //res.cookie('user', 'value', { signed: true })
 })
 app.use('/modifyNotify', (req, res) => {
     let { SmallType, SecuritiesNo, RemindId } = req.body
     let name = Config.sina_qmap[SmallType] + SecuritiesNo
     notifies[RemindId] = req.body
+})
+app.use('/updateJpushRegID', (req, res) => {
+    let { MemberCode, JpushRegID } = req.body
+    for (let nid in notifies) {
+        let notify = notifies[nid]
+        if (notify.MemberCode == MemberCode) notify.JpushRegID = JpushRegID
+    }
 })
 
 function sendNotify(type, nofity, price) {
