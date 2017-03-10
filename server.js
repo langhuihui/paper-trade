@@ -5,6 +5,16 @@ import Config from './config'
 import http from 'http'
 import Sequelize from 'sequelize'
 import JPush from 'jpush-sdk'
+import amqp from 'amqplib'
+var amqpConnection = amqp.connect(Config.amqpConn)
+amqpConnection.then(conn => conn.createChannel()).then(ch => {
+    console.log('amqp ready!')
+    return ch.assertQueue('priceNotify').then(ok => ch.consume('priceNotify', msg => {
+        console.log(msg.content);
+        ch.ack(msg)
+    }))
+}).catch(console.warn);
+
 const jpush = JPush.buildClient(Config.Jpush_Appkey, Config.Jpush_Secret)
 var sequelize = new Sequelize(Config.mysqlconn)
 
@@ -26,7 +36,7 @@ sequelize.query(sql).then(ns => {
             if (!stocks_name) stocks_name = name
             else stocks_name += "," + name
         } else stocksRef[name]++
-            console.log(n)
+            //console.log(n)
     }
 })
 const app = express();
