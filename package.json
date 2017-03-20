@@ -1,39 +1,40 @@
 {
-  "name": "price-notify",
-  "version": "1.0.0",
-  "description": "股价提醒系统",
-  "main": "index.js",
-  "scripts": {
-    "babel-node": "babel-node --presets=es2015",
-    "start": "nodemon --exec npm run babel-node server.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "http://git.wolfstreet.tv/PriceNotify.git"
-  },
-  "author": "dexter",
-  "license": "ISC",
-  "dependencies": {
-    "amqplib": "^0.5.1",
-    "axios": "^0.15.3",
-    "babel-preset-es2015": "^6.18.0",
-    "babel-register": "^6.18.0",
-    "body-parser": "^1.15.2",
-    "cookie-parser": "^1.4.3",
-    "express": "^4.13.4",
-    "express-graphql": "^0.5.3",
-    "express-session": "^1.14.2",
-    "graphql": "^0.6.0",
-    "iconv-lite": "^0.4.15",
-    "jpush-sdk": "^3.3.7",
-    "multer": "^1.2.1",
-    "mysql": "^2.12.0",
-    "rxjs": "^5.0.2",
-    "sequelize": "^3.28.0"
-  },
-  "devDependencies": {
-    "babel-cli": "^6.9.0",
-    "babel-preset-es2015": "^6.9.0",
-    "nodemon": "^1.9.2"
-  }
+    "name": "price-notify",
+    "version": "1.0.0",
+    "description": "股价提醒系统",
+    "main": "index.js",
+    "scripts": {
+        "babel-node": "babel-node --presets=es2015",
+        "priceNotify": "nodemon --exec npm run babel-node priceNotify.js",
+        "homePageGen": "nodemon --exec npm run babel-node homePageGenerator.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "http://git.wolfstreet.tv/PriceNotify.git"
+    },
+    "author": "dexter",
+    "license": "ISC",
+    "dependencies": {
+        "amqplib": "^0.5.1",
+        "axios": "^0.15.3",
+        "babel-preset-es2015": "^6.18.0",
+        "babel-register": "^6.18.0",
+        "body-parser": "^1.15.2",
+        "cookie-parser": "^1.4.3",
+        "express": "^4.13.4",
+        "express-graphql": "^0.5.3",
+        "express-session": "^1.14.2",
+        "graphql": "^0.6.0",
+        "iconv-lite": "^0.4.15",
+        "jpush-sdk": "^3.3.7",
+        "multer": "^1.2.1",
+        "mysql": "^2.12.0",
+        "rxjs": "^5.0.2",
+        "sequelize": "^3.28.0"
+    },
+    "devDependencies": {
+        "babel-cli": "^6.9.0",
+        "babel-preset-es2015": "^6.9.0",
+        "nodemon": "^1.9.2"
+    }
 }

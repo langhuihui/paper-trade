@@ -6,14 +6,26 @@ import http from 'http'
 import Sequelize from 'sequelize'
 import JPush from 'jpush-sdk'
 import amqp from 'amqplib'
-var amqpConnection = amqp.connect(Config.amqpConn)
-amqpConnection.then(conn => conn.createChannel()).then(ch => {
-    console.log('amqp ready!')
-    return ch.assertQueue('priceNotify').then(ok => ch.consume('priceNotify', msg => {
-        console.log(msg.content);
-        ch.ack(msg)
-    }))
-}).catch(console.warn);
+// var amqpConnection = amqp.connect(Config.amqpConn)
+// amqpConnection.then(conn => conn.createChannel()).then(ch => {
+//     console.log('amqp ready!')
+//     return ch.assertQueue('priceNotify').then(ok => ch.consume('priceNotify', msg => {
+//         console.log(msg.content);
+//         ch.ack(msg)
+//     }))
+// }).catch(console.warn);
+
+async function start() {
+    var amqpConnection = await amqp.connect(Config.amqpConn)
+    let channel = await amqpConnection.createChannel()
+    let ok = await channel.assertQueue('priceNotify')
+    channel.consume('priceNotify', msg => {
+        var data = JSON.parse(Iconv.decode(msg.content, 'utf-8'))
+
+        channel.ack(msg)
+    })
+}
+start()
 
 const jpush = JPush.buildClient(Config.Jpush_Appkey, Config.Jpush_Secret)
 var sequelize = new Sequelize(Config.mysqlconn)

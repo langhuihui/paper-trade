@@ -8,7 +8,16 @@ export default {
     sina_qmap: { us: "gb_", hk: "hk", sh: "sh", sz: "sz" },
     stockPatten: /(gb_|hk|sh|sz).+/,
     jpushType: "jpush108",
-    amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001"
+    amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001",
+    picBaseURL: "http://apitest.wolfstreet.tv",
+    //  mysqlconn: "mysql://wfadmin:123456@192.168.2.205:3306/wolfstreet_test",
+    sqls: [
+        "select * from (select `Code`,id Id,Title,SelectPicture Pic,SecuritiesNo,ShowTime from wf_news news where  IsStartNews = 0 and type = 9 and ColumnNo = '' union select `Code`,id,Title,SelectPicture,SecuritiesNo,ShowTime from wf_news news,wf_news_column ncolumn where news.ColumnNo = ncolumn.ColumnNo and (ncolumn.State = 0 or ncolumn.Type = 0)) tp order by ShowTime desc",
+        "select a.ColumnId Id,a.ColumnNo,a.`Name` ColumnTitle,a.HomePage_Image,a.Description ColumnDes,b.`Code`,b.id Id,b.Title,b.SelectPicture Pic from wf_news_column a,wf_news b where a.ColumnNo = b.ColumnNo and a.State = 1 and a.Type = 1",
+        "select 2 Type,`Code`,id Id,Thumbnail Pic,Details,CreateTime from wf_imagetext where State = 1 and `Status` = 1 order by CreateTime",
+        "select 3 Type,HomePage_Image Pic,`Code`,id Id from wf_dissertation_type where State = 1 and `Status` = 1",
+        "select 4 Type,`Code`,id Id,HomePage_Image Pic from wf_books where `Status` = 1"
+    ]
 }
 /*
 沪深股示例：
