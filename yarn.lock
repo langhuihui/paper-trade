@@ -1204,6 +1204,10 @@ http-signature@~1.1.0:
     jsprim "^1.2.2"
     sshpk "^1.7.0"
 
+iconv-lite@0.2.5:
+  version "0.2.5"
+  resolved "https://registry.yarnpkg.com/iconv-lite/-/iconv-lite-0.2.5.tgz#e9f2155037f4afd000c095b1d5ad8831c4c5eacc"
+
 iconv-lite@0.4.15, iconv-lite@^0.4.15:
   version "0.4.15"
   resolved "https://registry.yarnpkg.com/iconv-lite/-/iconv-lite-0.4.15.tgz#fe265a218ac6a57cfe854927e9d04c19825eddeb"
@@ -1659,6 +1663,12 @@ node-pre-gyp@^0.6.29:
     semver "~5.3.0"
     tar "~2.2.1"
     tar-pack "~3.3.0"
+
+nodegrass@^0.0.3:
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/nodegrass/-/nodegrass-0.0.3.tgz#18c599933204a3e120ce6c20cd594bf368ca0482"
+  dependencies:
+    iconv-lite "0.2.5"
 
 nodemon@^1.9.2:
   version "1.11.0"

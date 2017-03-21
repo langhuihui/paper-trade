@@ -30,13 +30,11 @@ start()
 const jpush = JPush.buildClient(Config.Jpush_Appkey, Config.Jpush_Secret)
 var sequelize = new Sequelize(Config.mysqlconn)
 
-let sql = "select a.*,b.JpushRegID from wf_securities_remind a LEFT JOIN wf_im_jpush b on a.MemberCode = b.MemberCode WHERE a.IsOpenLower=1 or a.IsOpenUpper=1 or a.IsOpenRiseFall=1 "
-
 var stocks = {}
 var stocksRef = {}
 var stocks_name = ""
 var notifies = {}
-sequelize.query(sql).then(ns => {
+sequelize.query(Config.jpushRegIDSql).then(ns => {
     for (let n of ns[0]) {
         n.IsOpenLower = n.IsOpenLower[0] == 1
         n.IsOpenUpper = n.IsOpenUpper[0] == 1

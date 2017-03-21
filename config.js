@@ -10,6 +10,7 @@ export default {
     jpushType: "jpush108",
     amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001",
     picBaseURL: "http://apitest.wolfstreet.tv",
+    tokenTime: 14400000,
     //  mysqlconn: "mysql://wfadmin:123456@192.168.2.205:3306/wolfstreet_test",
     homePageSqls: [
         "select * from (select `Code`,id Id,Title,SelectPicture Pic,SecuritiesNo,ShowTime from wf_news news where  IsStartNews = 0 and type = 9 and ColumnNo = '' union select `Code`,id,Title,SelectPicture,SecuritiesNo,ShowTime from wf_news news,wf_news_column ncolumn where news.ColumnNo = ncolumn.ColumnNo and (ncolumn.State = 0 or ncolumn.Type = 0)) tp order by ShowTime desc",
@@ -17,7 +18,11 @@ export default {
         "select 2 Type,`Code`,id Id,Thumbnail Pic,Details,CreateTime from wf_imagetext where State = 1 and `Status` = 1 order by CreateTime",
         "select 3 Type,HomePage_Image Pic,`Code`,id Id from wf_dissertation_type where State = 1 and `Status` = 1",
         "select 4 Type,`Code`,id Id,HomePage_Image Pic from wf_books where `Status` = 1"
-    ]
+    ],
+    jpushRegIDSql: "select a.*,b.JpushRegID from wf_securities_remind a LEFT JOIN wf_im_jpush b on a.MemberCode = b.MemberCode WHERE a.IsOpenLower=1 or a.IsOpenUpper=1 or a.IsOpenRiseFall=1 ",
+    tokenSql: "SELECT wf_token.TokenID,wf_token.ClientType,wf_token.MemberCode,wf_token.TokenValue,wf_token.ValidityTime,wf_member.Status from wf_token LEFT JOIN wf_member ON wf_member.MemberCode=wf_token.MemberCode where wf_token.TokenValue=@TokenValue",
+    updateTokenSql: "update wf_token set ValidityTime=@ValidityTime where TokenID=@TokenID"
+
 }
 /*
 沪深股示例：

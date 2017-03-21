@@ -15,7 +15,7 @@ async function start() {
     })
 }
 start()
-    //GenerateHomePage()
+GenerateHomePage()
     // amqpConnection.then(conn => conn.createChannel()).then(ch => {
     //     console.log('amqp ready!')
     //     return ch.assertQueue('homepageGenerate').then(ok => ch.consume('homepageGenerate', msg => {

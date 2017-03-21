@@ -17,7 +17,6 @@
     "dependencies": {
         "amqplib": "^0.5.1",
         "axios": "^0.15.3",
-        "babel-preset-es2015": "^6.18.0",
         "babel-register": "^6.18.0",
         "body-parser": "^1.15.2",
         "cookie-parser": "^1.4.3",
@@ -29,12 +28,13 @@
         "jpush-sdk": "^3.3.7",
         "multer": "^1.2.1",
         "mysql": "^2.12.0",
+        "nodegrass": "^0.0.3",
         "rxjs": "^5.0.2",
         "sequelize": "^3.28.0"
     },
     "devDependencies": {
         "babel-cli": "^6.9.0",
-        "babel-preset-es2015": "^6.9.0",
+        "babel-preset-es2015": "^6.18.0",
         "nodemon": "^1.9.2"
     }
 }
