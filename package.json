@@ -4,9 +4,9 @@
     "description": "股价提醒系统",
     "main": "index.js",
     "scripts": {
-        "babel-node": "babel-node --presets=es2015",
-        "priceNotify": "nodemon --exec npm run babel-node priceNotify.js",
-        "homePageGen": "nodemon --exec npm run babel-node homePageGenerator.js"
+        "babel-node": "babel-node --plugins=transform-es2015-modules-commonjs",
+        "priceNotify": "nodemon --exec npm run babel-node priceNotify/index.js",
+        "homePageGen": "nodemon --exec npm run babel-node homePageGenerator/index.js"
     },
     "repository": {
         "type": "git",
