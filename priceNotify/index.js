@@ -14,7 +14,7 @@ import amqp from 'amqplib'
 //         ch.ack(msg)
 //     }))
 // }).catch(console.warn);
-
+//rabitmq 通讯
 async function start() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
@@ -31,9 +31,11 @@ const jpush = JPush.buildClient(Config.Jpush_Appkey, Config.Jpush_Secret)
 var sequelize = new Sequelize(Config.mysqlconn)
 
 var stocks = {}
+    //股票引用次数
 var stocksRef = {}
 var stocks_name = ""
 var notifies = {}
+    //获取jpushregid和所有提醒数据
 sequelize.query(Config.jpushRegIDSql).then(ns => {
     for (let n of ns[0]) {
         n.IsOpenLower = n.IsOpenLower[0] == 1
@@ -48,38 +50,38 @@ sequelize.query(Config.jpushRegIDSql).then(ns => {
         } else stocksRef[name]++
             //console.log(n)
     }
-})
-const app = express();
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: true }))
-app.use('/', (req, res) => {
-        res.json({ notifies, stocks_name, stocks })
-    })
-    //添加提醒
-app.use('/addNotify', (req, res) => {
-    let { SmallType, SecuritiesNo, RemindId } = req.body
-    let name = Config.sina_qmap[SmallType] + SecuritiesNo
-    notifies[RemindId] = req.body
-    if (!stocksRef[name]) {
-        stocksRef[name] = 1
-        if (!stocks_name) stocks_name = name
-        else stocks_name += "," + name
-    } else stocksRef[name]++
-        res.json({ Status: 0, Explain: "" })
-        //res.cookie('user', 'value', { signed: true })
-})
-app.use('/modifyNotify', (req, res) => {
-    let { SmallType, SecuritiesNo, RemindId } = req.body
-    let name = Config.sina_qmap[SmallType] + SecuritiesNo
-    notifies[RemindId] = req.body
-})
-app.use('/updateJpushRegID', (req, res) => {
-    let { MemberCode, JpushRegID } = req.body
-    for (let nid in notifies) {
-        let notify = notifies[nid]
-        if (notify.MemberCode == MemberCode) notify.JpushRegID = JpushRegID
-    }
-})
+});
+// const app = express();
+// app.use(bodyParser.json())
+// app.use(bodyParser.urlencoded({ extended: true }))
+// app.use('/', (req, res) => {
+//         res.json({ notifies, stocks_name, stocks })
+//     })
+//     //添加提醒
+// app.use('/addNotify', (req, res) => {
+//     let { SmallType, SecuritiesNo, RemindId } = req.body
+//     let name = Config.sina_qmap[SmallType] + SecuritiesNo
+//     notifies[RemindId] = req.body
+//     if (!stocksRef[name]) {
+//         stocksRef[name] = 1
+//         if (!stocks_name) stocks_name = name
+//         else stocks_name += "," + name
+//     } else stocksRef[name]++
+//         res.json({ Status: 0, Explain: "" })
+//         //res.cookie('user', 'value', { signed: true })
+// })
+// app.use('/modifyNotify', (req, res) => {
+//     let { SmallType, SecuritiesNo, RemindId } = req.body
+//     let name = Config.sina_qmap[SmallType] + SecuritiesNo
+//     notifies[RemindId] = req.body
+// })
+// app.use('/updateJpushRegID', (req, res) => {
+//     let { MemberCode, JpushRegID } = req.body
+//     for (let nid in notifies) {
+//         let notify = notifies[nid]
+//         if (notify.MemberCode == MemberCode) notify.JpushRegID = JpushRegID
+//     }
+// })
 
 function sendNotify(type, nofity, price) {
     let msg = "沃夫街股价提醒:" + nofity.SecuritiesNo

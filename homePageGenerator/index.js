@@ -15,7 +15,7 @@ async function start() {
     })
 }
 start()
-GenerateHomePage()
+    //GenerateHomePage()
     // amqpConnection.then(conn => conn.createChannel()).then(ch => {
     //     console.log('amqp ready!')
     //     return ch.assertQueue('homepageGenerate').then(ok => ch.consume('homepageGenerate', msg => {
@@ -80,7 +80,8 @@ class NewsGenerator {
             this.empty = true
             if (!randNo) return null
         }
-        let result = { Type: 0, News: this.news.slice(this.newsPos, this.newsPos + randNo) }
+        //let result = { Type: 0, News: this.news.slice(this.newsPos, this.newsPos + randNo) }
+        let result = this.news.slice(this.newsPos, this.newsPos + randNo)
         this.newsPos += randNo
         return result
     }
@@ -117,18 +118,18 @@ async function GenerateHomePage() {
     let pageData = []
     let page = 0
     let news = newsG.getOne()
-    pageData.push(news)
+    pageData.push(...news)
     let temp = [columns, allData[2], allData[3], allData[4]]
+    let now = new Date()
     while (true) {
         for (let t of temp) {
             pageData.push(t[0])
             t.push(t.shift())
             news = newsG.getOne()
-            if (news) pageData.push(news)
+            if (news) pageData.push(...news)
             else break
         }
         if (!news) break
-        var now = new Date()
         let content = JSON.stringify(pageData, (key, value) => {
             switch (key) {
                 case "ShowTime":
@@ -136,11 +137,13 @@ async function GenerateHomePage() {
                     return new Date(value).toLocaleString()
                 case "Pic":
                     return Config.picBaseURL + value
+                case "Details":
+                    return value.length > 100 ? value.substr(0, 100) : value
                 default:
                     return value
             }
         })
-        content = content.substr(1, content.length - 2)
+        content = content.substr(1, content.length - 2).replace(/\\r\\n/g, "")
         await sequelize.query(`insert into wf_homepage(Versions,Page,Content,CreateTime) values(${version},${page},'${content}','${now.toLocaleString()}')`)
         pageData.length = 0
         page++
