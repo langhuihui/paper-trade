@@ -3,7 +3,7 @@ import Iconv from 'iconv-lite'
 import Sequelize from 'sequelize'
 import amqp from 'amqplib'
 import Rx from 'rxjs'
-var sequelize = new Sequelize(Config.mysqlconn);
+var sequelize = new Sequelize(Config.mysqlconn, { timezone: '+08:00' });
 (async() => {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()

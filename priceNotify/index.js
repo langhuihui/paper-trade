@@ -28,7 +28,7 @@ async function start() {
 start()
 
 const jpush = JPush.buildClient(Config.Jpush_Appkey, Config.Jpush_Secret)
-var sequelize = new Sequelize(Config.mysqlconn)
+var sequelize = new Sequelize(Config.mysqlconn, { timezone: '+08:00' })
 
 var stocks = {}
     //股票引用次数

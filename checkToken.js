@@ -1,6 +1,6 @@
 import Sequelize from 'sequelize'
 import Config from './config'
-var sequelize = new Sequelize(Config.mysqlconn)
+var sequelize = new Sequelize(Config.mysqlconn, { timezone: '+08:00' })
 
 function updateToken(tokenId) {
     sequelize.query({ query: Config.updateTokenSql, values: [new Date(), tokenId] })
