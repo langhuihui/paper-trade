@@ -3,29 +3,23 @@ import Iconv from 'iconv-lite'
 import Sequelize from 'sequelize'
 import amqp from 'amqplib'
 import Rx from 'rxjs'
-var sequelize = new Sequelize(Config.mysqlconn)
-async function start() {
+var sequelize = new Sequelize(Config.mysqlconn);
+(async() => {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
     let ok = await channel.assertQueue('homepageGenerate')
+    console.log(ok)
     channel.consume('homepageGenerate', msg => {
-        var data = JSON.parse(Iconv.decode(msg.content, 'utf-8'))
+        //var data = JSON.parse(Iconv.decode(msg.content, 'utf-8'))
         GenerateHomePage()
         channel.ack(msg)
     })
-}
-start()
-    //GenerateHomePage()
-    // amqpConnection.then(conn => conn.createChannel()).then(ch => {
-    //     console.log('amqp ready!')
-    //     return ch.assertQueue('homepageGenerate').then(ok => ch.consume('homepageGenerate', msg => {
-    //         var data = JSON.parse(Iconv.decode(chunkAll, 'utf-8'))
-    //         GenerateHomePage()
-    //         ch.ack(msg)
-    //     }))
-    // }).catch(console.warn);
+})();
+/**
+ * 专栏生成器
+ * @constructor
+ * @param {Object} allColumns - 所有专栏 */
 class ColumnGenerator {
-
     constructor(allColumns) {
         this.currentIndex = 0
         this.allColumns = allColumns
@@ -33,7 +27,8 @@ class ColumnGenerator {
     }
     get currentColumn() {
         return this.allColumns[this.currentIndex]
-    }
+    };
+    /**下一轮 */
     gotoNext() {
         if (this.allColumns.length) {
             //if (!this.currentColumn.News.length) {
@@ -43,13 +38,16 @@ class ColumnGenerator {
                     this.empty = true
                     return
                 }
-            } else
-                this.currentIndex++
-                if (this.currentIndex >= this.allColumns.length) {
-                    this.currentIndex = 0
-                }
+            } else {
+                this.currentIndex++;
+            }
+            //循环获取
+            if (this.currentIndex >= this.allColumns.length) {
+                this.currentIndex = 0
+            }
         } else this.empty = true
-    }
+    };
+    /**获取一个专栏 */
     getOne() {
         if (this.empty) return null
         let l = this.currentColumn.News.length
@@ -66,6 +64,7 @@ class ColumnGenerator {
         return this.getOne()
     }
 }
+/**普通资讯生成器 */
 class NewsGenerator {
     constructor(news) {
         this.news = news
@@ -86,10 +85,11 @@ class NewsGenerator {
         return result
     }
 }
-
+/**随机数生成，2~3 */
 function getRandomNumber() {
     return (Math.random() * 2 + 2) >> 0
 }
+/**首页生成主程序 */
 async function GenerateHomePage() {
     let version = (await sequelize.query("select max(Versions)+1 from wf_homepage"))[0]
     version = version[0]['max(Versions)+1']
@@ -134,7 +134,7 @@ async function GenerateHomePage() {
             switch (key) {
                 case "ShowTime":
                 case "CreateTime":
-                    return new Date(value).toLocaleString()
+                    return new Date(value).format()
                 case "Pic":
                     return Config.picBaseURL + value
                 case "Details":
@@ -144,9 +144,10 @@ async function GenerateHomePage() {
             }
         })
         content = content.substr(1, content.length - 2).replace(/\\r\\n/g, "")
-        await sequelize.query(`insert into wf_homepage(Versions,Page,Content,CreateTime) values(${version},${page},'${content}','${now.toLocaleString()}')`)
+        await sequelize.query(`insert into wf_homepage(Versions,Page,Content,CreateTime) values(${version},${page},'${content}','${now.format()}')`)
         pageData.length = 0
         page++
     }
     console.log("生成首页完成,共" + page + "页");
 }
+//GenerateHomePage()

@@ -5,7 +5,7 @@ var sequelize = new Sequelize(Config.mysqlconn)
 function updateToken(tokenId) {
     sequelize.query({ query: Config.updateTokenSql, values: [new Date(), tokenId] })
 }
-export default async function(token, isLogin) {
+async function checkToken(token, isLogin) {
     let result = 0
     let memberCode = ""
     let tokenModel = (await sequelize.query({ query: Config.tokenSql, values: [token] }))[0][0]
@@ -28,3 +28,14 @@ export default async function(token, isLogin) {
     }
     return { result, memberCode }
 }
+//token验证中间件
+
+function checkLogin(isLogin) {
+    return async function(req, res, next) {
+        let result = await checkToken(req.header('Token'), isLogin)
+        req.memberCode = result.memberCode
+        if (result === 0) next()
+        else res.json(result)
+    }
+}
+export default checkLogin

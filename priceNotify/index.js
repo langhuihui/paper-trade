@@ -173,10 +173,10 @@ setInterval(() => {
             }
         });
     })
-}, 5000)
-let server = app.listen(process.env.PORT, function() {
-    let host = server.address().address;
-    let port = server.address().port;
+}, 5000);
+// let server = app.listen(process.env.PORT, function() {
+//     let host = server.address().address;
+//     let port = server.address().port;
 
-    console.log('server listening at %s %d', host, port);
-});
+//     console.log('server listening at %s %d', host, port);
+// });

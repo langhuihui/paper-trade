@@ -1,4 +1,19 @@
-export default {
+Date.prototype.format = function(fmt = "yyyy-MM-dd hh:mm:ss") { //author: meizz 
+    var o = {
+        "M+": this.getMonth() + 1, //月份 
+        "d+": this.getDate(), //日 
+        "h+": this.getHours(), //小时 
+        "m+": this.getMinutes(), //分 
+        "s+": this.getSeconds(), //秒 
+        "q+": Math.floor((this.getMonth() + 3) / 3), //季度 
+        "S": this.getMilliseconds() //毫秒 
+    };
+    if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+    for (var k in o)
+        if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+    return fmt;
+}
+let config = {
     Jpush_Appkey: "2857872dca17b28541cde5f0",
     Jpush_Secret: "3a521e1803c5ce64fb226c74",
     sina_realjs: "http://hq.sinajs.cn/list=",
@@ -25,6 +40,10 @@ export default {
     updateTokenSql: "UPDATE wf_token set ValidityTime=@ValidityTime WHERE TokenID=@TokenID"
 
 }
+if (process.env.NODE_ENV === "production") {
+    Object.assign(config, require('./pconfig.js'))
+}
+export default config
 /*
 沪深股示例：
 浦发银行（名称）,16.520(今开),16.480（昨收）,16.510（最新）,16.550（最高）,16.500（最低）,16.510（买入）,16.520（卖出）,1072269（成交量）,17717924.000（成交额）,78694（买一手数）,16.510（买一价）,129637（买二手数）,16.500（买二价）,419400（买三手数）,16.490（买三价）,326300（买四手数）,16.480（买四价）,188800（买五手数）,16.470（买五价）,151545（卖一手数）,16.520（卖一价）,69357（卖二手数）,16.530（卖二价）,193950（卖三手数）,16.540（卖三价）,242522（卖四手数）,16.550（卖四价）,113570（卖五手数）,16.560（卖五价）,2016-09-29（日期）,10:03:33,00(时间)
