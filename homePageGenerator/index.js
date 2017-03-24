@@ -3,7 +3,7 @@ import Iconv from 'iconv-lite'
 import Sequelize from 'sequelize'
 import amqp from 'amqplib'
 import Rx from 'rxjs'
-var sequelize = new Sequelize(Config.mysqlconn, { timezone: '+08:00' });
+var sequelize = Config.CreateSequelize();
 (async() => {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
@@ -15,6 +15,7 @@ var sequelize = new Sequelize(Config.mysqlconn, { timezone: '+08:00' });
         channel.ack(msg)
     })
 })();
+
 /**
  * 专栏生成器
  * @constructor
@@ -74,6 +75,7 @@ class NewsGenerator {
     getOne() {
         if (this.empty) return null
         let randNo = getRandomNumber()
+        console.log(randNo)
         if (this.news.length < this.newsPos + randNo) {
             randNo = this.news.length - this.newsPos
             this.empty = true
@@ -85,12 +87,13 @@ class NewsGenerator {
         return result
     }
 }
-/**随机数生成，2~3 */
+/**随机数生成，3~5 */
 function getRandomNumber() {
-    return (Math.random() * 2 + 2) >> 0
+    return (Math.random() * 2 + 3).toFixed(0)
 }
 /**首页生成主程序 */
 async function GenerateHomePage() {
+    //获取最大版本号
     let version = (await sequelize.query("select max(Versions)+1 from wf_homepage"))[0]
     version = version[0]['max(Versions)+1']
     if (!version) version = 1
@@ -109,6 +112,7 @@ async function GenerateHomePage() {
     }
     columnsMap = new ColumnGenerator(columns)
     columns = []
+        //把专栏全部生成好
     while (true) {
         let column = columnsMap.getOne()
         if (column) columns.push(column)
@@ -130,24 +134,24 @@ async function GenerateHomePage() {
             else break
         }
         if (!news) break
+            //生成的json进行一些格式处理
         let content = JSON.stringify(pageData, (key, value) => {
             switch (key) {
                 case "ShowTime":
-                case "CreateTime":
+                case "CreateTime": //时间格式
                     return new Date(value).format()
-                case "Pic":
+                case "Pic": //加入图片的路径前缀
                     return Config.picBaseURL + value
-                case "Details":
+                case "Details": //截取前100个字符
                     return value.length > 100 ? value.substr(0, 100) : value
                 default:
                     return value
             }
         })
-        content = content.substr(1, content.length - 2).replace(/\\r\\n/g, "")
+        content = content.substr(1, content.length - 2).replace(/\\r\\n/g, "") //去掉回车换行和前后中括号
         await sequelize.query(`insert into wf_homepage(Versions,Page,Content,CreateTime) values(${version},${page},'${content}','${now.format()}')`)
         pageData.length = 0
         page++
     }
     console.log("生成首页完成,共" + page + "页");
 }
-//GenerateHomePage()

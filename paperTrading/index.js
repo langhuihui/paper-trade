@@ -3,7 +3,6 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import Config from '../config'
 import Sequelize from 'sequelize'
-import grass from 'nodegrass'
 
 const app = express();
 app.use(bodyParser.json())
