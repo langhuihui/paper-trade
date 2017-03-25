@@ -69,13 +69,14 @@ class ColumnGenerator {
 class NewsGenerator {
     constructor(news) {
         this.news = news
+        console.log("total news:", news.length)
         this.newsPos = 0
         this.empty = false
     }
     getOne() {
         if (this.empty) return null
         let randNo = getRandomNumber()
-        console.log(randNo)
+
         if (this.news.length < this.newsPos + randNo) {
             randNo = this.news.length - this.newsPos
             this.empty = true
@@ -89,7 +90,7 @@ class NewsGenerator {
 }
 /**随机数生成，3~5 */
 function getRandomNumber() {
-    return (Math.random() * 2 + 3).toFixed(0)
+    return Math.round(Math.random() * 2 + 3)
 }
 /**首页生成主程序 */
 async function GenerateHomePage() {
