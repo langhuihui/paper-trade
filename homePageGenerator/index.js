@@ -85,6 +85,7 @@ class NewsGenerator {
         //let result = { Type: 0, News: this.news.slice(this.newsPos, this.newsPos + randNo) }
         let result = this.news.slice(this.newsPos, this.newsPos + randNo)
         this.newsPos += randNo
+        console.log("剩余：", this.news.length - this.newsPos)
         return result
     }
 }
@@ -155,4 +156,8 @@ async function GenerateHomePage() {
         page++
     }
     console.log("生成首页完成,共" + page + "页");
+    version = (await sequelize.query("select max(Versions) from wf_homepage where CreateTime < CURDATE()"))[0]
+    version = version[0]['max(Versions)']
+    let delResult = await sequelize.query("delete from wf_homepage where Versions < " + version)
+    console.log("已删除旧数据：", delResult[0].affectedRows)
 }
