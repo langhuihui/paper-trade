@@ -127,13 +127,16 @@ async function GenerateHomePage() {
     pageData.push(...news)
     let temp = [columns, allData[2], allData[3], allData[4]]
     let now = new Date()
+    news = null
     while (true) {
         for (let t of temp) {
-            pageData.push(t[0])
-            t.push(t.shift())
-            news = newsG.getOne()
-            if (news) pageData.push(...news)
-            else break
+            if (t.length) {
+                pageData.push(t[0])
+                t.push(t.shift())
+                news = newsG.getOne()
+                if (news) pageData.push(...news)
+                else break
+            }
         }
         if (!news) break
             //生成的json进行一些格式处理
