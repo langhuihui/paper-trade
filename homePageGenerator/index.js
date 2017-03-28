@@ -161,3 +161,4 @@ async function GenerateHomePage() {
     let delResult = await sequelize.query("delete from wf_homepage where Versions < " + version)
     console.log("已删除旧数据：", delResult[0].affectedRows)
 }
+//GenerateHomePage()
