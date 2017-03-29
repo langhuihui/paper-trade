@@ -6,23 +6,16 @@ let config = {
     netease_realjs: "http://api.money.126.net/data/feed/",
     mysqlconn: "mysql://wftest:WfTestonlytest_20170222@rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com:3306/wolfstreet_test",
     lastPriceIndexMap: { hk: 6, sz: 3, sh: 3, gb_: 1 },
+    pricesIndexMap: { hk: [2, 4, 5, 6, 3], sz: [1, 4, 5, 3, 2], sh: [1, 4, 5, 3, 2], gb_: [5, 6, 7, 1, 25] }, //开，高，低，新,昨收
     chgFunc: { gb_: x => x[2], hk: x => x[8], sh: x => (x[3] - x[2]) / x[2], sz: x => (x[3] - x[2]) / x[2] },
     sina_qmap: { us: "gb_", hk: "hk", sh: "sh", sz: "sz" },
     stockPatten: /(gb_|hk|sh|sz).+/,
     jpushType: "jpush108",
     amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001/test",
     picBaseURL: "http://apitest.wolfstreet.tv",
+    redisConfig: { host: "api.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC" },
     tokenTime: 14400000,
     //  mysqlconn: "mysql://wfadmin:123456@192.168.2.205:3306/wolfstreet_test",
-    homePageSqls: [
-        //"SELECT *,0 Type FROM (SELECT `Code`,id Id,Title,SelectPicture Pic,SecuritiesNo,ShowTime FROM wf_news news WHERE  IsStartNews = 0 AND type = 9 AND ColumnNo = '' UNION SELECT `Code`,id,Title,SelectPicture,SecuritiesNo,ShowTime FROM wf_news news,wf_news_column ncolumn WHERE news.ColumnNo = ncolumn.ColumnNo AND (ncolumn.State = 0 OR ncolumn.Type = 0) AND news.Type=9) tp ORDER BY ShowTime desc",
-        "select 0 Type,id Id,`Code`,Title,SelectPicture Pic,SecuritiesNo,ShowTime from wf_news news where  IsStartNews = 0 and type = 9 ORDER BY ShowTime desc",
-        "SELECT a.ColumnId Id,a.ColumnNo,a.`Name` ColumnTitle,a.HomePage_Image,a.Description ColumnDes,b.`Code`,b.id Id,b.Title,b.SelectPicture Pic FROM wf_news_column a,wf_news b WHERE a.ColumnNo = b.ColumnNo AND a.State = 1 AND a.Type = 1 AND b.Type=9 ORDER BY b.ShowTime desc",
-        "SELECT 2 Type,`Code`,id Id,Thumbnail Pic,Details,CreateTime FROM wf_imagetext WHERE State = 1 AND `Status` = 1 ORDER BY id DESC",
-        "SELECT 3 Type,Cover_Image Pic,`Code`,id Id FROM wf_dissertation_type WHERE State = 1 AND `Status` = 1 ORDER BY id DESC",
-        "SELECT 4 Type,`Code`,id Id,HomePage_Image Pic FROM wf_books WHERE `Status` = 1 ORDER BY id DESC"
-    ],
-
     jpushRegIDSql: "SELECT a.*,b.JpushRegID FROM wf_securities_remind a LEFT JOIN wf_im_jpush b ON a.MemberCode = b.MemberCode WHERE a.IsOpenLower=1 OR a.IsOpenUpper=1 OR a.IsOpenRiseFall=1 ",
     tokenSql: "SELECT wf_token.TokenID,wf_token.ClientType,wf_token.MemberCode,wf_token.TokenValue,wf_token.ValidityTime,wf_member.Status FROM wf_token LEFT JOIN wf_member ON wf_member.MemberCode=wf_token.MemberCode WHERE wf_token.TokenValue=@TokenValue",
     updateTokenSql: "UPDATE wf_token set ValidityTime=@ValidityTime WHERE TokenID=@TokenID",

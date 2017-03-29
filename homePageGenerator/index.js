@@ -4,6 +4,16 @@ import Sequelize from 'sequelize'
 import amqp from 'amqplib'
 import Rx from 'rxjs'
 var sequelize = Config.CreateSequelize();
+
+const homePageSql = [
+    //"SELECT *,0 Type FROM (SELECT `Code`,id Id,Title,SelectPicture Pic,SecuritiesNo,ShowTime FROM wf_news news WHERE  IsStartNews = 0 AND type = 9 AND ColumnNo = '' UNION SELECT `Code`,id,Title,SelectPicture,SecuritiesNo,ShowTime FROM wf_news news,wf_news_column ncolumn WHERE news.ColumnNo = ncolumn.ColumnNo AND (ncolumn.State = 0 OR ncolumn.Type = 0) AND news.Type=9) tp ORDER BY ShowTime desc",
+    "select 0 Type,id Id,`Code`,Title,SelectPicture Pic,SecuritiesNo,ShowTime from wf_news news where  IsStartNews = 0 and type = 9 ORDER BY ShowTime desc",
+    "SELECT a.ColumnId Id,a.ColumnNo,a.`Name` ColumnTitle,a.HomePage_Image,a.Description ColumnDes,b.`Code`,b.id Id,b.Title,b.SelectPicture Pic FROM wf_news_column a,wf_news b WHERE a.ColumnNo = b.ColumnNo AND a.State = 1 AND a.Type = 1 AND b.Type=9 ORDER BY b.ShowTime desc",
+    "SELECT 2 Type,`Code`,id Id,Thumbnail Pic,Details,CreateTime FROM wf_imagetext WHERE State = 1 AND `Status` = 1 ORDER BY id DESC",
+    "SELECT 3 Type,Cover_Image Pic,`Code`,id Id FROM wf_dissertation_type WHERE State = 1 AND `Status` = 1 ORDER BY id DESC",
+    "SELECT 4 Type,`Code`,id Id,HomePage_Image Pic FROM wf_books WHERE `Status` = 1 ORDER BY id DESC"
+]
+
 (async() => {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
@@ -101,9 +111,9 @@ async function GenerateHomePage() {
     if (!version) version = 1
     let allData = []
     for (let i = 0; i < 5; i++) {
-        allData[i] = (await sequelize.query(Config.homePageSqls[i]))[0]
+        allData[i] = (await sequelize.query(homePageSqls[i]))[0]
     }
-    let columnsMap = {}
+    let columnsMap = {} //按专栏id分组专栏数据
     let columns = []
     for (var data1 of allData[1]) {
         if (!columnsMap[data1.ColumnNo]) {
@@ -124,21 +134,21 @@ async function GenerateHomePage() {
     let pageData = []
     let page = 0
     let news = newsG.getOne()
-    pageData.push(...news)
-    let temp = [columns, allData[2], allData[3], allData[4]]
+    pageData.push(...news) //首页先生成几个资讯
+    let temp = [columns, allData[2], allData[3], allData[4]] //专栏、图说、专题、书籍
     let now = new Date()
     news = null
     while (true) {
         for (let t of temp) {
             if (t.length) {
                 pageData.push(t[0])
-                t.push(t.shift())
+                t.push(t.shift()) //循环
                 news = newsG.getOne()
                 if (news) pageData.push(...news)
                 else break
             }
         }
-        if (!news) break
+        if (!news) break //资讯用完则跳出循环
             //生成的json进行一些格式处理
         let content = JSON.stringify(pageData, (key, value) => {
             switch (key) {
@@ -159,7 +169,7 @@ async function GenerateHomePage() {
         page++
     }
     console.log("生成首页完成,共" + page + "页");
-    version = (await sequelize.query("select max(Versions) from wf_homepage where CreateTime < CURDATE()"))[0]
+    version = (await sequelize.query("select max(Versions) from wf_homepage where CreateTime < CURDATE()"))[0] //选出今天之前的最大版本号
     version = version[0]['max(Versions)']
     let delResult = await sequelize.query("delete from wf_homepage where Versions < " + version)
     console.log("已删除旧数据：", delResult[0].affectedRows)

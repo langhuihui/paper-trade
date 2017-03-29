@@ -24,11 +24,21 @@ async function start() {
 
         channel.ack(msg)
     })
+    console.log(ok)
+    await channel.assertExchange("broadcast", "fanout")
+    ok = await channel.assertQueue('sinaData')
+    console.log(ok)
+    ok = await channel.bindQueue('sinaData', 'broadcast', 'fanout')
+    console.log(ok)
+    channel.consume('sinaData', msg => {
+        console.log("侦测到重启消息")
+        channel.ack(msg)
+    })
 }
 start()
 
 const jpush = JPush.buildClient(Config.Jpush_Appkey, Config.Jpush_Secret)
-var sequelize = new Sequelize(Config.mysqlconn, { timezone: '+08:00' })
+var sequelize = Config.CreateSequelize();
 
 var stocks = {}
     //股票引用次数
