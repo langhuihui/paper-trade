@@ -3,18 +3,24 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import Config from '../config'
 import Sequelize from 'sequelize'
-
+import bluebird from 'bluebird'
+bluebird.promisifyAll(redis.RedisClient.prototype);
+bluebird.promisifyAll(redis.Multi.prototype);
+var sequelize = Config.CreateSequelize();
+var redisClient = redis.createClient(Config.redisConfig);
 const app = express();
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
-app.get('/Choiceness/ChoicenessBannerList', (req, res) => {
+app.get('/Choiceness/ChoicenessBannerList', async(req, res) => {
+    return res.send(200, await redisClient.getAsync("cacheResult:bannerChoice"))
     let page = req.param("page", 0)
     let size = req.param("size", 10)
     console.log(page, size)
     return res.json({ page, size })
 })
 app.get('/Choiceness/ChoicenessList', (req, res) => {
+    return res.send(200, await redisClient.getAsync("cacheResult:normalChoice"))
     let page = req.param("page", 0)
     let size = req.param("size", 10)
     let maxId = req.param("maxId")

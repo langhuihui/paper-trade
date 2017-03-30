@@ -7,11 +7,12 @@ var sequelize = Config.CreateSequelize();
 
 const homePageSqls = [
     //"SELECT *,0 Type FROM (SELECT `Code`,id Id,Title,SelectPicture Pic,SecuritiesNo,ShowTime FROM wf_news news WHERE  IsStartNews = 0 AND type = 9 AND ColumnNo = '' UNION SELECT `Code`,id,Title,SelectPicture,SecuritiesNo,ShowTime FROM wf_news news,wf_news_column ncolumn WHERE news.ColumnNo = ncolumn.ColumnNo AND (ncolumn.State = 0 OR ncolumn.Type = 0) AND news.Type=9) tp ORDER BY ShowTime desc",
-    "select 0 Type,id Id,`Code`,Title,SelectPicture Pic,SecuritiesNo,ShowTime from wf_news news where  IsStartNews = 0 and type = 9 ORDER BY ShowTime desc",
-    "SELECT a.ColumnId Id,a.ColumnNo,a.`Name` ColumnTitle,a.HomePage_Image,a.Description ColumnDes,b.`Code`,b.id Id,b.Title,b.SelectPicture Pic FROM wf_news_column a,wf_news b WHERE a.ColumnNo = b.ColumnNo AND a.State = 1 AND a.Type = 1 AND b.Type=9 ORDER BY b.ShowTime desc",
-    "SELECT 2 Type,`Code`,id Id,Thumbnail Pic,Details,CreateTime FROM wf_imagetext WHERE State = 1 AND `Status` = 1 ORDER BY id DESC",
-    "SELECT 3 Type,Cover_Image Pic,`Code`,id Id FROM wf_dissertation_type WHERE State = 1 AND `Status` = 1 ORDER BY id DESC",
-    "SELECT 4 Type,`Code`,id Id,HomePage_Image Pic FROM wf_books WHERE `Status` = 1 ORDER BY id DESC"
+    "select 0 Type,id Id,`Code`,Title,SelectPicture Pic,SecuritiesNo,ShowTime from wf_news news where  IsStartNews = 0 and type = 9 ORDER BY ShowTime desc", //普通资讯
+    "SELECT a.ColumnId Id,a.ColumnNo,a.`Name` ColumnTitle,a.HomePage_Image,a.Description ColumnDes,b.`Code`,b.id Id,b.Title,b.SelectPicture Pic FROM wf_news_column a,wf_news b WHERE a.ColumnNo = b.ColumnNo AND a.State = 1 AND a.Type = 1 AND b.Type=9 ORDER BY b.ShowTime desc", //专栏
+    "SELECT 2 Type,`Code`,id Id,Thumbnail Pic,Details,CreateTime FROM wf_imagetext WHERE State = 1 AND `Status` = 1 ORDER BY id DESC", //图说
+    "SELECT 3 Type,Cover_Image Pic,`Code`,id Id FROM wf_dissertation_type WHERE State = 1 AND `Status` = 1 ORDER BY id DESC", //专题
+    "SELECT 4 Type,`Code`,id Id,HomePage_Image Pic FROM wf_books WHERE `Status` = 1 ORDER BY id DESC", //书籍
+    "select 5 Type,VoteId Id,VoteCode `Code`,Title,Description Des,HomePageImage Pic,CreateTime,VoteCount from wf_vote where IsDelete = 0 order by CreateTime desc" //投票
 ];
 
 (async() => {
@@ -110,7 +111,7 @@ async function GenerateHomePage() {
     version = version[0]['max(Versions)+1']
     if (!version) version = 1
     let allData = []
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
         allData[i] = (await sequelize.query(homePageSqls[i]))[0]
     }
     let columnsMap = {} //按专栏id分组专栏数据
@@ -135,7 +136,7 @@ async function GenerateHomePage() {
     let page = 0
     let news = newsG.getOne()
     pageData.push(...news) //首页先生成几个资讯
-    let temp = [columns, allData[2], allData[3], allData[4]] //专栏、图说、专题、书籍
+    let temp = [columns, allData[2], allData[3], allData[4], allData[5]] //专栏、图说、专题、书籍、投票
     let now = new Date()
     news = null
     while (true) {
@@ -174,4 +175,4 @@ async function GenerateHomePage() {
     let delResult = await sequelize.query("delete from wf_homepage where Versions < " + version)
     console.log("已删除旧数据：", delResult[0].affectedRows)
 }
-//GenerateHomePage()
+GenerateHomePage()
