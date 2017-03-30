@@ -15,7 +15,7 @@ app.use(bodyParser.urlencoded({ extended: true }))
 
 app.get('/Choiceness/ChoicenessBannerList', async(req, res) => {
     let result = await redisClient.getAsync("cacheResult:bannerChoice")
-    return res.send(200, result)
+    return res.status(200).send('{"Status":"0","Explain":"ok","Data":' + result + '}')
         // let page = req.param("page", 0)
         // let size = req.param("size", 10)
         // console.log(page, size)
@@ -23,7 +23,7 @@ app.get('/Choiceness/ChoicenessBannerList', async(req, res) => {
 })
 app.get('/Choiceness/ChoicenessList', async(req, res) => {
     let result = await redisClient.getAsync("cacheResult:normalChoice")
-    return res.send(200, result)
+    return res.status(200).send('{"Status":"0","Explain":"ok","Data":' + result + '}')
         // let page = req.param("page", 0)
         // let size = req.param("size", 10)
         // let maxId = req.param("maxId")
