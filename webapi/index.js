@@ -7,9 +7,7 @@ import Sequelize from 'sequelize'
 const app = express();
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
-app.use('/', (req, res) => {
-    return req.url;
-})
+
 app.get('/Choiceness/ChoicenessBannerList', (req, res) => {
     let page = req.param("page", 0)
     let size = req.param("size", 10)
