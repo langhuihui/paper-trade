@@ -6,7 +6,7 @@ import Iconv from 'iconv-lite'
 var client = redis.createClient(Config.redisConfig);
 var listenerSymbol = {} //订阅者关注的股票
 var stocksRef = {} //所有股票引用次数
-var stocks_name = "" //股票逗号隔开的字符串
+var stocks = []
     /**rabbitmq 通讯 */
 async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
@@ -75,10 +75,7 @@ function removeSymbols(symbols) {
         if (stocksRef[symbol]) {
             stocksRef[symbol]--;
             if (stocksRef[symbol] == 0) {
-                if (stocks_name) {
-                    if (stocks_name == symbol) stocks_name = ""
-                    else stocks_name = stocks_name.replace("," + symbol, "")
-                }
+                stocks.remove(symbol)
             }
         }
     }
@@ -88,9 +85,7 @@ function addSymbols(symbols) {
     for (let symbol of symbols) {
         if (!stocksRef[symbol]) {
             stocksRef[symbol] = 1
-            if (stocks_name)
-                stocks_name += "," + symbol
-            else stocks_name = symbol
+            stocks.push(symbol)
         } else stocksRef[symbol]++;
     }
 }
@@ -98,13 +93,27 @@ var intervalId;
 
 function start() {
     intervalId = setInterval(() => {
-        if (stocks_name && client.connected)
-            request.get({ encoding: null, url: Config.sina_realjs + stocks_name }, (error, response, body) => {
-                let rawData = Iconv.decode(body, 'gb2312')
-                let config = Config
-                let redisClient = client
-                eval(rawData + '  for (let stockName in stocksRef){let q = config.stockPatten.exec(stockName)[1];let x=eval("hq_str_" + stockName).split(",");redisClient.set("lastPrice:"+stockName,x[config.pricesIndexMap[q][0]]+","+x[config.pricesIndexMap[q][1]]+","+x[config.pricesIndexMap[q][2]]+","+x[config.pricesIndexMap[q][3]]+","+x[config.pricesIndexMap[q][4]])}')
-            })
+        if (stocks.length && client.connected) {
+            let l = stocks.length;
+            let i = 0
+            let stocks_name = ""
+            while (l) {
+                if (l > 1000) {
+                    stocks_name = stocks.slice(i, i + 1000).join(",")
+                    l -= 1000
+                    i += 1000
+                } else {
+                    stocks_name = stocks.slice(i, i + l).join(",")
+                    l = 0
+                }
+                request.get({ encoding: null, url: Config.sina_realjs + stocks_name }, (error, response, body) => {
+                    let rawData = Iconv.decode(body, 'gb2312')
+                    let config = Config
+                    let redisClient = client
+                    eval(rawData + '  for (let stockName in stocksRef){let q = config.stockPatten.exec(stockName)[1];let x=eval("hq_str_" + stockName).split(",");redisClient.set("lastPrice:"+stockName,x[config.pricesIndexMap[q][0]]+","+x[config.pricesIndexMap[q][1]]+","+x[config.pricesIndexMap[q][2]]+","+x[config.pricesIndexMap[q][3]]+","+x[config.pricesIndexMap[q][4]])}')
+                })
+            }
+        }
     }, 5000)
 }
 
