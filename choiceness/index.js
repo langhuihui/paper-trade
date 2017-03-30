@@ -66,7 +66,7 @@ async function caculateAvgDelta(target) {
                 //console.log(sp, s)
             sp = JSON.parse("[" + sp + "]")
             if (sp[4]) {
-                let delta = (sp[3] - sp[4]) / sp[4]; //涨跌额=（最新价-昨收）/昨收
+                let delta = (sp[3] - sp[4]) * 100 / sp[4]; //涨跌额=（最新价-昨收）/昨收
                 allDelta += delta
             } else if (sp[4] !== 0) {
                 console.log(sp, s)
