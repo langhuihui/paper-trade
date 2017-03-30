@@ -12,7 +12,7 @@ const homePageSqls = [
     "SELECT 2 Type,`Code`,id Id,Thumbnail Pic,Details,CreateTime FROM wf_imagetext WHERE State = 1 AND `Status` = 1 ORDER BY id DESC",
     "SELECT 3 Type,Cover_Image Pic,`Code`,id Id FROM wf_dissertation_type WHERE State = 1 AND `Status` = 1 ORDER BY id DESC",
     "SELECT 4 Type,`Code`,id Id,HomePage_Image Pic FROM wf_books WHERE `Status` = 1 ORDER BY id DESC"
-]
+];
 
 (async() => {
     var amqpConnection = await amqp.connect(Config.amqpConn)
