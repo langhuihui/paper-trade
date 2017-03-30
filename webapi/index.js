@@ -7,13 +7,16 @@ import Sequelize from 'sequelize'
 const app = express();
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
-app.get('/api/v2.5/Choiceness/ChoicenessBannerList', (req, res) => {
+app.use('/', (req, res) => {
+    return req.url;
+})
+app.get('/Choiceness/ChoicenessBannerList', (req, res) => {
     let page = req.param("page", 0)
     let size = req.param("size", 10)
     console.log(page, size)
     return res.json({ page, size })
 })
-app.get('/api/v2.5/Choiceness/ChoicenessList', (req, res) => {
+app.get('/Choiceness/ChoicenessList', (req, res) => {
     let page = req.param("page", 0)
     let size = req.param("size", 10)
     let maxId = req.param("maxId")
