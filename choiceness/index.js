@@ -3,7 +3,6 @@ import request from 'request'
 import Config from '../config'
 import amqp from 'amqplib'
 import bluebird from 'bluebird'
-import redis from 'redis'
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 var sequelize = Config.CreateSequelize();
