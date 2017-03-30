@@ -13,8 +13,6 @@ async function startMQ() {
     let channel = await amqpConnection.createChannel()
     await channel.assertExchange("broadcast", "fanout")
     let ok = await channel.assertQueue('sinaData')
-    ok = await channel.bindQueue('sinaData', 'broadcast', 'fanout')
-    console.log(ok, channel.sendToQueue('sinaData', new Buffer("restart")))
     ok = await channel.assertQueue("getSinaData")
     channel.consume('getSinaData', msg => {
         var { symbols, listener, type } = JSON.parse(msg.content.toString())
@@ -25,7 +23,7 @@ async function startMQ() {
         let needRemove = [] //需要删除的股票
         switch (type) {
             case "reset": //重置该订阅者所有股票
-
+                console.log(listener, type)
                 if (oldSymbols) {
                     needRemove = oldSymbols.concat() //复制一份
                     for (let s of symbols) { //查找已有的和没有的
@@ -68,6 +66,8 @@ async function startMQ() {
         if (needAdd.length) addSymbols(needAdd)
         channel.ack(msg)
     })
+    ok = await channel.bindQueue('sinaData', 'broadcast', 'fanout')
+    console.log(ok, channel.sendToQueue('sinaData', new Buffer("restart")))
 }
 
 function removeSymbols(symbols) {
@@ -103,7 +103,7 @@ function start() {
                 let rawData = Iconv.decode(body, 'gb2312')
                 let config = Config
                 let redisClient = client
-                eval(rawData + '  for (let stockName in stocksRef){let q = config.stockPatten.exec(stockName)[1];let x=eval("hq_str_" + stockName).split(",");redisClient.set("lastPrice:"+stockName,x[config.pricesIndexMap[q][0]]+","+x[config.pricesIndexMap[q][1]]+","+x[config.pricesIndexMap[q][2]]+","+x[config.pricesIndexMap[q][3]+","+x[config.pricesIndexMap[q][4]])}')
+                eval(rawData + '  for (let stockName in stocksRef){let q = config.stockPatten.exec(stockName)[1];let x=eval("hq_str_" + stockName).split(",");redisClient.set("lastPrice:"+stockName,x[config.pricesIndexMap[q][0]]+","+x[config.pricesIndexMap[q][1]]+","+x[config.pricesIndexMap[q][2]]+","+x[config.pricesIndexMap[q][3]]+","+x[config.pricesIndexMap[q][4]])}')
             })
     }, 5000)
 }

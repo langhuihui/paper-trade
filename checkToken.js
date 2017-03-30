@@ -1,14 +1,16 @@
 import Sequelize from 'sequelize'
 import Config from './config'
-var sequelize = new Sequelize(Config.mysqlconn, { timezone: '+08:00' })
+var sequelize = Config.CreateSequelize()
+const tokenSql = "SELECT wf_token.TokenID,wf_token.ClientType,wf_token.MemberCode,wf_token.TokenValue,wf_token.ValidityTime,wf_member.Status FROM wf_token LEFT JOIN wf_member ON wf_member.MemberCode=wf_token.MemberCode WHERE wf_token.TokenValue=@TokenValue";
+const updateTokenSql = "UPDATE wf_token set ValidityTime=@ValidityTime WHERE TokenID=@TokenID";
 
 function updateToken(tokenId) {
-    sequelize.query({ query: Config.updateTokenSql, values: [new Date(), tokenId] })
+    sequelize.query({ query: updateTokenSql, values: [new Date(), tokenId] })
 }
 async function checkToken(token, isLogin) {
     let result = 0
     let memberCode = ""
-    let tokenModel = (await sequelize.query({ query: Config.tokenSql, values: [token] }))[0][0]
+    let tokenModel = (await sequelize.query({ query: tokenSql, values: [token] }))[0][0]
     if (isLogin) {
         if (tokenModel) {
             memberCode = tokenModel.memberCode

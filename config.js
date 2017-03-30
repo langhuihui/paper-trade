@@ -1,4 +1,5 @@
 import Sequelize from 'sequelize'
+
 let config = {
     Jpush_Appkey: "2857872dca17b28541cde5f0",
     Jpush_Secret: "3a521e1803c5ce64fb226c74",
@@ -6,19 +7,17 @@ let config = {
     netease_realjs: "http://api.money.126.net/data/feed/",
     mysqlconn: "mysql://wftest:WfTestonlytest_20170222@rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com:3306/wolfstreet_test",
     lastPriceIndexMap: { hk: 6, sz: 3, sh: 3, gb_: 1 },
-    pricesIndexMap: { hk: [2, 4, 5, 6, 3], sz: [1, 4, 5, 3, 2], sh: [1, 4, 5, 3, 2], gb_: [5, 6, 7, 1, 25] }, //开，高，低，新,昨收
+    pricesIndexMap: { hk: [2, 4, 5, 6, 3], sz: [1, 4, 5, 3, 2], sh: [1, 4, 5, 3, 2], gb_: [5, 6, 7, 1, 26] }, //开，高，低，新,昨收
     chgFunc: { gb_: x => x[2], hk: x => x[8], sh: x => (x[3] - x[2]) / x[2], sz: x => (x[3] - x[2]) / x[2] },
     sina_qmap: { us: "gb_", hk: "hk", sh: "sh", sz: "sz" },
     stockPatten: /(gb_|hk|sh|sz).+/,
     jpushType: "jpush108",
     amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001/test",
     picBaseURL: "http://apitest.wolfstreet.tv",
-    redisConfig: { host: "api.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC" },
+    redisConfig: { host: "api.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC", db: 1 },
     tokenTime: 14400000,
+    webapiPort: 10002,
     //  mysqlconn: "mysql://wfadmin:123456@192.168.2.205:3306/wolfstreet_test",
-    jpushRegIDSql: "SELECT a.*,b.JpushRegID FROM wf_securities_remind a LEFT JOIN wf_im_jpush b ON a.MemberCode = b.MemberCode WHERE a.IsOpenLower=1 OR a.IsOpenUpper=1 OR a.IsOpenRiseFall=1 ",
-    tokenSql: "SELECT wf_token.TokenID,wf_token.ClientType,wf_token.MemberCode,wf_token.TokenValue,wf_token.ValidityTime,wf_member.Status FROM wf_token LEFT JOIN wf_member ON wf_member.MemberCode=wf_token.MemberCode WHERE wf_token.TokenValue=@TokenValue",
-    updateTokenSql: "UPDATE wf_token set ValidityTime=@ValidityTime WHERE TokenID=@TokenID",
     CreateSequelize() {
         return new Sequelize(this.mysqlconn, { timezone: '+08:00' });
     }

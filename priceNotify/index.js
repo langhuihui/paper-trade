@@ -6,6 +6,8 @@ import http from 'http'
 import Sequelize from 'sequelize'
 import JPush from 'jpush-sdk'
 import amqp from 'amqplib'
+const jpushRegIDSql = "SELECT a.*,b.JpushRegID FROM wf_securities_remind a LEFT JOIN wf_im_jpush b ON a.MemberCode = b.MemberCode WHERE a.IsOpenLower=1 OR a.IsOpenUpper=1 OR a.IsOpenRiseFall=1 ";
+
 // var amqpConnection = amqp.connect(Config.amqpConn)
 // amqpConnection.then(conn => conn.createChannel()).then(ch => {
 //     console.log('amqp ready!')
