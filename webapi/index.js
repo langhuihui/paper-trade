@@ -5,6 +5,7 @@ import Config from '../config'
 import Sequelize from 'sequelize'
 import redis from 'redis'
 import bluebird from 'bluebird'
+import appConfigs from './appConfigs'
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 var sequelize = Config.CreateSequelize();
@@ -15,17 +16,11 @@ app.use(bodyParser.urlencoded({ extended: true }))
 app.get('/System/GetConfig', async(req, res) => {
     let { version } = req.query
     if (!version) res.status(200).send({ Status: 40002, Explain: "没有提供版本号" })
-    try {
-        let config = await sequelize.query("select * from wf_system_appconfig where AppVersion = '" + version + "'")
-        config = config[0]
-        let setting = {}
-        for (let c of config) {
-            setting[c.AppKey] = c.AppVersion
-        }
+    if (appConfigs[version]) {
+        let setting = Object.assign({ forceUpdate: "2.4" }, appConfigs[version])
         res.status(200).send({ Status: 0, Explain: "", Config: setting })
-    } catch (ex) {
-        res.status(200).send({ Status: 500, Explain: ex })
-    }
+    } else
+        res.status(200).send({ Status: 500, Explain: "无该版本配置" })
 })
 app.get('/v2.5/Choiceness/ChoicenessBannerList', async(req, res) => {
     try {
