@@ -14,6 +14,7 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 app.get('/System/GetConfig', async(req, res) => {
     let { version } = req.params
+    if (!version) res.status(200).send({ Status: 40002, Explain: "没有提供版本号" })
     let config = await sequelize.query("select * from wf_system_appconfig where AppVersion = '" + version + "'")
     config = config[0]
     let setting = {}
