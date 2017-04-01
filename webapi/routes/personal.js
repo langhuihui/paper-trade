@@ -3,9 +3,9 @@ const myMainListSql = `
 SELECT * FROM 
 	(SELECT
 		'video' AS Type,
-		wf_live_video.VideoCode AS PCode,
-		wf_live_video.VideoName AS PName,
-		wf_live_video.VideoImage AS PImage,
+		wf_live_video.VideoCode AS Code,
+		wf_live_video.VideoName AS Title,
+		wf_live_video.VideoImage AS SelectPicture,
 		wf_live_video.TimeLong AS TimeLog,
 		wf_live_video.ShowTime AS ShowTime,
 		'' SecuritiesNo,
@@ -19,9 +19,9 @@ SELECT * FROM
 	UNION
 	SELECT
 		'news' AS Type,
-		wf_News.\`Code\` AS PCode,
-		wf_News.Title AS PName,
-		wf_News.SelectPicture AS PImage,
+		wf_News.\`Code\`,
+		wf_News.Title,
+		wf_News.SelectPicture,
 		'0' AS TimeLong,
 		wf_News.ShowTime AS ShowTime,
 		wf_News.SecuritiesNo,
@@ -37,9 +37,9 @@ SELECT * FROM
 	UNION
 	SELECT
 		'imageTalk' AS Type,
-		wf_imagetext.\`Code\` AS PCode,
-		wf_imagetext.Details AS PName,
-		wf_imagetext.Thumbnail AS PImage,
+		wf_imagetext.\`Code\`,
+		wf_imagetext.Details AS Title,
+		wf_imagetext.Thumbnail AS SelectPicture,
 		'0' AS TimeLong,
 		wf_imagetext.CreateTime AS ShowTime,
 		'' SecuritiesNo,
