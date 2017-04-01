@@ -1,5 +1,4 @@
 import Sequelize from 'sequelize'
-
 let config = {
     Jpush_Appkey: "2857872dca17b28541cde5f0",
     Jpush_Secret: "3a521e1803c5ce64fb226c74",
@@ -15,12 +14,11 @@ let config = {
     amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001/test",
     picBaseURL: "http://apitest.wolfstreet.tv",
     redisConfig: { host: "api.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC", db: 1 },
-    tokenTime: 14400000,
-    webapiPort: 10002,
+
     //  mysqlconn: "mysql://wfadmin:123456@192.168.2.205:3306/wolfstreet_test",
     CreateSequelize() {
         return new Sequelize(this.mysqlconn, { timezone: '+08:00' });
-    }
+    },
 }
 if (process.env.NODE_ENV === "production") {
     Object.assign(config, require('./pconfig.js'))

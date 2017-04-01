@@ -1,10 +1,10 @@
 import Config from '../config'
 import Iconv from 'iconv-lite'
-import Sequelize from 'sequelize'
 import amqp from 'amqplib'
 import Rx from 'rxjs'
-var sequelize = Config.CreateSequelize();
-
+import PublishOnTime from './PublishOnTime'
+const sequelize = Config.CreateSequelize();
+const publishOnTime = new PublishOnTime(() => { GenerateHomePage() })
 const homePageSqls = [
     //"SELECT *,0 Type FROM (SELECT `Code`,id Id,Title,SelectPicture Pic,SecuritiesNo,ShowTime FROM wf_news news WHERE  IsStartNews = 0 AND type = 9 AND ColumnNo = '' UNION SELECT `Code`,id,Title,SelectPicture,SecuritiesNo,ShowTime FROM wf_news news,wf_news_column ncolumn WHERE news.ColumnNo = ncolumn.ColumnNo AND (ncolumn.State = 0 OR ncolumn.Type = 0) AND news.Type=9) tp ORDER BY ShowTime desc",
     "select 0 Type,id Id,`Code`,Title,SelectPicture Pic,SecuritiesNo,ShowTime from wf_news news where  IsStartNews = 0 and type = 9 ORDER BY ShowTime desc", //普通资讯
@@ -104,6 +104,7 @@ class NewsGenerator {
 function getRandomNumber() {
     return Math.round(Math.random() * 2 + 3)
 }
+
 /**首页生成主程序 */
 async function GenerateHomePage() {
     //获取最大版本号
@@ -131,7 +132,7 @@ async function GenerateHomePage() {
         if (column) columns.push(column)
         else break
     }
-    let newsG = new NewsGenerator(allData[0])
+    let newsG = new NewsGenerator(publishOnTime.reset(allData[0]))
     let pageData = []
     let page = 0
     let news = newsG.getOne()

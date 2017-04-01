@@ -1,27 +1,27 @@
-import checkLogin from '../checkToken'
+import checkToken from './checkToken'
 import express from 'express'
 import bodyParser from 'body-parser'
 import Config from '../config'
-import Sequelize from 'sequelize'
 import redis from 'redis'
 import bluebird from 'bluebird'
-import appConfigs from './appConfigs'
+import config from './config'
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 var sequelize = Config.CreateSequelize();
 var redisClient = redis.createClient(Config.redisConfig);
 const app = express();
 app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: true }))
+app.use(bodyParser.urlencoded({ extended: true }));
+let shareData = { sequelize, checkToken }
+app.use('/v2.5/Personal', require('./routes/personal')(shareData))
+app.use('/v2.5/ImageTalk', require('./routes/imageTalk')(shareData))
+    /**客户端初始化配置 */
 app.get('/System/GetConfig', async(req, res) => {
     let { version } = req.query
-    if (!version) res.status(200).send({ Status: 40002, Explain: "没有提供版本号" })
-    if (appConfigs[version]) {
-        let setting = Object.assign({ forceUpdate: "2.4" }, appConfigs[version])
-        res.status(200).send({ Status: 0, Explain: "", Config: setting })
-    } else
-        res.status(200).send({ Status: 500, Explain: "无该版本配置" })
-})
+    let setting = version && config.clientInit[version] ? config.clientInit[version] : config.clientInitDefault
+    res.status(200).send({ Status: 0, Explain: "", Config: setting })
+});
+/**获取精选头部列表 */
 app.get('/v2.5/Choiceness/ChoicenessBannerList', async(req, res) => {
     try {
         let result = await redisClient.getAsync("cacheResult:bannerChoice")
@@ -33,7 +33,8 @@ app.get('/v2.5/Choiceness/ChoicenessBannerList', async(req, res) => {
     // let size = req.param("size", 10)
     // console.log(page, size)
     // return res.json({ page, size })
-})
+});
+/**获取精选列 */
 app.get('/v2.5/Choiceness/ChoicenessList', async(req, res) => {
     try {
         let result = await redisClient.getAsync("cacheResult:normalChoice")
@@ -47,13 +48,8 @@ app.get('/v2.5/Choiceness/ChoicenessList', async(req, res) => {
     // console.log(page, size)
     // return res.json({ page, size, maxId })
 })
-app.get('/orders', [checkLogin(true)], async(req, res) => {
 
-})
-app.delete('/orders', [checkLogin(true)], (req, res) => {
-
-})
-let server = app.listen(Config.webapiPort, () => {
+let server = app.listen(config.port, () => {
     let host = server.address().address;
     let port = server.address().port;
     console.log('server listening at %s %d', host, port);
