@@ -58,20 +58,29 @@ let mainListCache = {}
 module.exports = function(shareData) {
     const router = express.Router();
     let { sequelize, ctt } = shareData
+    /**个人主页我的发布或者他人主页中的发布列表 */
     router.get('/GetMyMainList', [ctt], async(req, res) => {
-        let { pageNum = 0, pageSize = 10 } = req.query
+        let { pageNum = 0, pageSize = 10, memberCode } = req.query
+        if (!memberCode) memberCode = req.memberCode
         pageNum = Number(pageNum)
         pageSize = Number(pageSize)
         if (Number.isNaN(pageNum) || Number.isNaN(pageSize)) {
             res.status(200).send({ Status: "40003", Explain: "参数类型应该是整数，您传的是：" + JSON.stringify(req.query) })
         } else {
-            if (pageNum == 0 || !mainListCache[req.memberCode]) {
-                let [result] = await sequelize.query(myMainListSql, { replacements: { memberCode: req.memberCode } })
-                mainListCache[req.memberCode] = result
+            if (pageNum == 0 || !mainListCache[memberCode]) {
+                let [result] = await sequelize.query(myMainListSql, { replacements: { memberCode } })
+                mainListCache[memberCode] = result
             }
-            res.status(200).send(mainListCache[req.memberCode].slice(pageNum, pageNum + pageSize))
+            let result = mainListCache[memberCode].slice(pageNum, pageNum + pageSize)
+            for (let x of result) {
+                if (x.Type == "video") {
+                    x.VideoCode = video.Code
+                    x.VideoName = video.Title
+                    x.VideoImage = video.SelectPicture
+                }
+            }
+            res.status(200).send(result)
         }
-
     })
     return router
 }
