@@ -1,6 +1,6 @@
 import Config from '../config'
 import config from './config'
-const sequelize = Config.CreateSequelize()
+let sequelize = null
 const tokenSql = "SELECT wf_token.TokenID,wf_token.ClientType,wf_token.MemberCode,wf_token.TokenValue,wf_token.ValidityTime,wf_member.Status FROM wf_token LEFT JOIN wf_member ON wf_member.MemberCode=wf_token.MemberCode WHERE wf_token.TokenValue=?";
 const updateTokenSql = "UPDATE wf_token set ValidityTime=? WHERE TokenID=?";
 
@@ -33,7 +33,8 @@ async function checkToken(token, isLogin) {
 }
 //token验证中间件
 
-function checkLogin(isLogin) {
+function checkLogin(seq, isLogin) {
+    sequelize = seq
     return async function(req, res, next) {
         let result = await checkToken(req.header('Token'), isLogin)
         req.memberCode = result.memberCode

@@ -57,8 +57,8 @@ let mainListCache = {}
 
 module.exports = function(shareData) {
     const router = express.Router();
-    let { sequelize, checkToken } = shareData
-    router.get('/GetMyMainList', [checkToken(true)], async(req, res) => {
+    let { sequelize, ctt } = shareData
+    router.get('/GetMyMainList', [ctt], async(req, res) => {
         let { pageNum = 0, pageSize = 10 } = req.query
         pageNum = Number(pageNum)
         pageSize = Number(pageSize)
