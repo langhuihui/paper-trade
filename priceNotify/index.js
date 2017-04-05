@@ -3,11 +3,11 @@ import Iconv from 'iconv-lite'
 import bodyParser from 'body-parser'
 import Config from '../config'
 import http from 'http'
-import Sequelize from 'sequelize'
 import JPush from 'jpush-sdk'
 import amqp from 'amqplib'
 const jpushRegIDSql = "SELECT a.*,b.JpushRegID FROM wf_securities_remind a LEFT JOIN wf_im_jpush b ON a.MemberCode = b.MemberCode WHERE a.IsOpenLower=1 OR a.IsOpenUpper=1 OR a.IsOpenRiseFall=1 ";
-
+const jpush = Config.CreateJpushClient();
+const sequelize = Config.CreateSequelize();
 // var amqpConnection = amqp.connect(Config.amqpConn)
 // amqpConnection.then(conn => conn.createChannel()).then(ch => {
 //     console.log('amqp ready!')
@@ -26,12 +26,9 @@ async function start() {
 
         channel.ack(msg)
     })
-    console.log(ok)
     await channel.assertExchange("broadcast", "fanout")
     ok = await channel.assertQueue('sinaData')
-    console.log(ok)
     ok = await channel.bindQueue('sinaData', 'broadcast', 'fanout')
-    console.log(ok)
     channel.consume('sinaData', msg => {
         console.log("侦测到重启消息")
         channel.ack(msg)
@@ -39,8 +36,7 @@ async function start() {
 }
 start()
 
-const jpush = JPush.buildClient(Config.Jpush_Appkey, Config.Jpush_Secret)
-var sequelize = Config.CreateSequelize();
+
 
 var stocks = {}
     //股票引用次数

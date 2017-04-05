@@ -1,6 +1,7 @@
 import Sequelize from 'sequelize'
 import redis from 'redis'
 import bluebird from 'bluebird'
+import JPush from 'jpush-sdk'
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 let config = {
@@ -30,6 +31,9 @@ let config = {
     },
     CreateRedisClient() {
         return redis.createClient(this.redisConfig);
+    },
+    CreateJpushClient() {
+        return JPush.buildClient(this.Jpush_Appkey, this.Jpush_Secret)
     }
 }
 if (process.env.NODE_ENV === "production") {

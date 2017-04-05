@@ -2,13 +2,9 @@ import checkToken from './checkToken'
 import express from 'express'
 import bodyParser from 'body-parser'
 import Config from '../config'
-import redis from 'redis'
-import bluebird from 'bluebird'
 import config from './config'
-bluebird.promisifyAll(redis.RedisClient.prototype);
-bluebird.promisifyAll(redis.Multi.prototype);
 var sequelize = Config.CreateSequelize();
-var redisClient = redis.createClient(Config.redisConfig);
+var redisClient = Config.CreateRedisClient();
 const app = express();
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -19,7 +15,7 @@ app.use('/v2.5/ImageTalk', require('./routes/imageTalk')(shareData))
 app.get('/System/GetConfig', async(req, res) => {
     let { version } = req.query
     let setting = version && config.clientInit[version] ? config.clientInit[version] : config.clientInitDefault
-    res.status(200).send({ Status: 0, Explain: "", Config: setting })
+    res.send({ Status: 0, Explain: "", Config: setting })
 });
 /**获取精选头部列表 */
 app.get('/v2.5/Choiceness/ChoicenessBannerList', async(req, res) => {

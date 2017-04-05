@@ -137,8 +137,8 @@ async function GenerateHomePage() {
     let page = 0
     let news = newsG.getOne()
     pageData.push(...news) //首页先生成几个资讯
-        //let temp = [columns, allData[2], allData[3], allData[4], allData[5]] //专栏、图说、专题、书籍、投票
-    let temp = [columns, allData[2], allData[3], allData[4]]
+    let temp = [columns, allData[2], allData[3], allData[4], allData[5]] //专栏、图说、专题、书籍、投票
+        //let temp = [columns, allData[2], allData[3], allData[4]]
     let now = new Date()
     news = null
     while (true) {

@@ -32,6 +32,7 @@
         "pm2": "^2.4.3",
         "redis": "^2.7.1",
         "request": "^2.81.0",
+        "request-promise": "^4.2.0",
         "rxjs": "^5.0.2",
         "sequelize": "^3.28.0"
     },
