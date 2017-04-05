@@ -1,5 +1,8 @@
 import Sequelize from 'sequelize'
 import redis from 'redis'
+import bluebird from 'bluebird'
+bluebird.promisifyAll(redis.RedisClient.prototype);
+bluebird.promisifyAll(redis.Multi.prototype);
 let config = {
     Jpush_Appkey: "2857872dca17b28541cde5f0",
     Jpush_Secret: "3a521e1803c5ce64fb226c74",
