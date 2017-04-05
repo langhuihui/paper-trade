@@ -36,10 +36,10 @@ async function checkToken(token, isLogin) {
 function checkLogin(seq, isLogin) {
     sequelize = seq
     return async function(req, res, next) {
-        let result = await checkToken(req.header('Token'), isLogin)
-        req.memberCode = result.memberCode
-        if (result.result === 0) next()
-        else res.json(result)
+        let { result, memberCode } = await checkToken(req.header('Token'), isLogin)
+        req.memberCode = memberCode
+        if (result === 0) next()
+        res.status(200).send(result)
     }
 }
 export default checkLogin

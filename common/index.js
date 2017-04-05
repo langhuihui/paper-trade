@@ -1,6 +1,7 @@
 import Config from '../config'
 import totalAssets from './everyDays/totalAssets'
 // import amqp from 'amqplib'
+let sequelize = Config.CreateSequelize()
 let redisClient = Config.CreateRedisClient();
 // async function startMQ() {
 //     let amqpConnection = await amqp.connect(Config.amqpConn)
@@ -30,7 +31,7 @@ initEveryDayFuns()
 setInterval(() => {
     let now = new Date()
     for (let f of everyDayFuns) {
-        if (f.checkAndRun(now)) {
+        if (f.checkAndRun(now, { Config, sequelize })) {
             redisClient.set('timeRunFlag:' + f.name, now)
         }
     }
