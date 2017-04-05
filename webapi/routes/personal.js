@@ -78,7 +78,7 @@ module.exports = function(shareData) {
     /**个人主页我的发布或者他人主页中的发布列表 */
     router.get('/GetMyMainList', [ctt], (req, res) => {
         let { pageNum = 0, pageSize = 10 } = req.query
-        memberCode = req.memberCode
+        let memberCode = req.memberCode
         pageNum = Number(pageNum)
         pageSize = Number(pageSize)
         mainList({ memberCode, pageNum, pageSize, res, sequelize })
