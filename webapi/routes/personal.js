@@ -72,7 +72,7 @@ module.exports = function(shareData) {
                 mainListCache[memberCode] = result
             }
             let result = mainListCache[memberCode].slice(pageNum, pageNum + pageSize)
-            res.status(200).send(result)
+            res.status(200).send({ Status: "0", Explain: "", DataList: result })
         }
     })
     return router
