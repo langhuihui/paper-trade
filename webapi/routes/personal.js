@@ -72,13 +72,6 @@ module.exports = function(shareData) {
                 mainListCache[memberCode] = result
             }
             let result = mainListCache[memberCode].slice(pageNum, pageNum + pageSize)
-            for (let x of result) {
-                if (x.Type == "video") {
-                    x.VideoCode = video.Code
-                    x.VideoName = video.Title
-                    x.VideoImage = video.SelectPicture
-                }
-            }
             res.status(200).send(result)
         }
     })

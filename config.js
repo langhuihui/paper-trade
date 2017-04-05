@@ -14,7 +14,11 @@ let config = {
     amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001/test",
     picBaseURL: "http://apitest.wolfstreet.tv",
     redisConfig: { host: "api.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC", db: 1 },
-
+    driveWealthHost: {
+        apiHost: "http://api.drivewealth.io",
+        appsHost: "http://apps.drivewealth.io",
+        reportsHost: "http://reports.drivewealth.io"
+    },
     //  mysqlconn: "mysql://wfadmin:123456@192.168.2.205:3306/wolfstreet_test",
     CreateSequelize() {
         return new Sequelize(this.mysqlconn, { timezone: '+08:00' });
