@@ -2,7 +2,7 @@ import Config from '../config'
 import Iconv from 'iconv-lite'
 import amqp from 'amqplib'
 import Rx from 'rxjs'
-import PublishOnTime from './PublishOnTime'
+import PublishOnTime from './publishOnTime'
 const sequelize = Config.CreateSequelize();
 const publishOnTime = new PublishOnTime(() => { GenerateHomePage() })
 const homePageSqls = [

@@ -64,6 +64,8 @@ async function mainList({ memberCode, pageNum, pageSize, res, sequelize, config 
     if (Number.isNaN(pageNum) || Number.isNaN(pageSize)) {
         res.status(200).send({ Status: "40003", Explain: "参数类型应该是整数，您传的是：" + JSON.stringify(req.query) })
     } else {
+        if (pageSize < 0) pageSize = 10
+        if (pageNum < 0) pageNum = 0
         if (pageNum == 0 || !mainListCache[memberCode]) {
             let [result] = await sequelize.query(myMainListSql, { replacements: { memberCode, picBaseURL: config.picBaseURL } })
             mainListCache[memberCode] = result
@@ -81,13 +83,20 @@ module.exports = function(shareData) {
         let memberCode = req.memberCode
         pageNum = Number(pageNum)
         pageSize = Number(pageSize)
-        mainList({ memberCode, pageNum, pageSize, res, sequelize, config })
+        try { mainList({ memberCode, pageNum, pageSize, res, sequelize, config }) } catch (ex) {
+            res.status(200).send({ Status: "500", Explain: ex })
+        }
     })
     router.get('/GetHeMainList', (req, res) => {
         let { pageNum = 0, pageSize = 10, memberCode } = req.query
         pageNum = Number(pageNum)
         pageSize = Number(pageSize)
-        mainList({ memberCode, pageNum, pageSize, res, sequelize, config })
+        if (!memberCode) {
+            res.json({ Status: "40002", Explain: "memberCode 为空" })
+        } else
+            try { mainList({ memberCode, pageNum, pageSize, res, sequelize, config }) } catch (ex) {
+                res.status(200).send({ Status: "500", Explain: ex })
+            }
     })
     return router
 }
