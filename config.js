@@ -4,6 +4,7 @@ import bluebird from 'bluebird'
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 let config = {
+    debug: true,
     Jpush_Appkey: "2857872dca17b28541cde5f0",
     Jpush_Secret: "3a521e1803c5ce64fb226c74",
     sina_realjs: "http://hq.sinajs.cn/list=",
@@ -32,6 +33,7 @@ let config = {
     }
 }
 if (process.env.NODE_ENV === "production") {
+    config.debug = false
     Object.assign(config, require('./pconfig.js'))
 }
 export default config

@@ -12,7 +12,7 @@ var redisClient = redis.createClient(Config.redisConfig);
 const app = express();
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
-let shareData = { sequelize, ctt: checkToken(sequelize, true), ctf: checkToken(sequelize, false) }
+let shareData = { config: Config, sequelize, ctt: checkToken(sequelize, true), ctf: checkToken(sequelize, false) }
 app.use('/v2.5/Personal', require('./routes/personal')(shareData))
 app.use('/v2.5/ImageTalk', require('./routes/imageTalk')(shareData))
     /**客户端初始化配置 */
