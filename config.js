@@ -1,4 +1,5 @@
 import Sequelize from 'sequelize'
+import redis from 'redis'
 let config = {
     Jpush_Appkey: "2857872dca17b28541cde5f0",
     Jpush_Secret: "3a521e1803c5ce64fb226c74",
@@ -23,6 +24,9 @@ let config = {
     CreateSequelize() {
         return new Sequelize(this.mysqlconn, { timezone: '+08:00' });
     },
+    CreateRedisClient() {
+        return redis.createClient(this.redisConfig);
+    }
 }
 if (process.env.NODE_ENV === "production") {
     Object.assign(config, require('./pconfig.js'))

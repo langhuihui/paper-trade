@@ -3,7 +3,7 @@ import request from 'request'
 import Config from '../config'
 import amqp from 'amqplib'
 import Iconv from 'iconv-lite'
-var client = redis.createClient(Config.redisConfig);
+var client = Config.CreateRedisClient();
 var listenerSymbol = {} //订阅者关注的股票
 var stocksRef = {} //所有股票引用次数
 var stocks = []

@@ -1,12 +1,8 @@
-import redis from 'redis'
 import request from 'request'
 import Config from '../config'
 import amqp from 'amqplib'
-import bluebird from 'bluebird'
-bluebird.promisifyAll(redis.RedisClient.prototype);
-bluebird.promisifyAll(redis.Multi.prototype);
 var sequelize = Config.CreateSequelize();
-var redisClient = redis.createClient(Config.redisConfig);
+var redisClient = Config.CreateRedisClient();
 async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
