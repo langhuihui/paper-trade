@@ -1,30 +1,51 @@
-import EverDay from '../everyDay'
+import EveryDay from '../everyDay'
 import request from 'request-promise'
-import { urls as dwUrls } from '../driveWealth'
-export default new EveryDay('totalAssets', "08:00:00", async({ Config, sequelize }) => {
+import Config from '../../config'
+import driveWealth from '../driveWealth'
+let { urls: dwUrls } = driveWealth
+Object.assign(dwUrls, Config.driveWealthHost)
+export default new EveryDay('totalAssets', "05:00:00", async({ sequelize }) => {
     let [result] = await sequelize.query('select * from wf_drivewealth_practice_account')
-    for (let account of result) {
+    for (let { UserId, MemberCode, username, password, emailAddress1 }
+        of result) {
         try {
-            let session = await request({
-                uri: Config.driveWealthHost.apiHost + dwUrls.createSession,
+            let [todayAssetResult] = await sequelize.query("select * from wf_drivewealth_practice_asset where EndDate=CurDate()")
+            if (todayAssetResult.length) continue
+            let { sessionKey, accounts } = await request({
+                uri: dwUrls.createSession,
                 method: "POST",
                 body: {
                     "appTypeID": "2000",
                     "appVersion": "0.1",
-                    "username": account.username,
-                    "emailAddress": account.emailAddress1,
+                    "username": username,
+                    "emailAddress": emailAddress1,
                     "ipAddress": "1.1.1.1",
                     "languageID": "zh_CN",
                     "osVersion": "iOS 9.1",
                     "osType": "iOS",
                     "scrRes": "1920x1080",
-                    "password": account.password
+                    "password": password
                 },
                 json: true
             })
-            let { sessionKey, accounts } = session
-            let [{ cash, positions }] = accounts
-
+            let [{ cash, accountNo, accountID }] = accounts
+            let { positions } = await request({
+                headers: { 'x-mysolomeo-session-key': sessionKey },
+                qs: {
+                    sessionKey,
+                    ReportName: "PositionRestingOrder",
+                    ReportFormat: "JSON",
+                    AccountNumber: accountNo
+                },
+                uri: dwUrls.position,
+                method: "POST",
+                json: true
+            })
+            if (positions) {
+                let totalmtm = positions.reduce((acc, val) => acc + val.mtm, 0)
+                let replacements = { UserId, MemberCode, accountID, cash, totalmtm, totalAssets: cash + totalmtm }
+                sequelize.query('insert into wf_drivewealth_practice_asset(UserId,MemberCode,AccountID,Balance,Positions,CreateTime,EndDate,TotalAmount) values(:UserId,:MemberCode,:accountID,:cash,:totalmtm,Now(),CurDate(),:totalAssets)', { replacements })
+            }
         } catch (ex) {
             console.error(ex)
             continue;

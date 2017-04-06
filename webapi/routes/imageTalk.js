@@ -1,7 +1,6 @@
-import express from 'express'
 module.exports = function(shareData) {
+    let { sequelize, ctt, express } = shareData;
     const router = express.Router();
-    let { sequelize, ctt } = shareData;
     /**图说详情 */
     router.get('/Detail', async(req, res) => {
         let { code } = req.query
@@ -16,7 +15,7 @@ module.exports = function(shareData) {
         }
     });
     /**删除我发布的图说 */
-    router.delete('/Delete', [ctt], async(req, res) => {
+    router.delete('/Delete', ctt, async(req, res) => {
         let { code } = req.query
         if (!code) {
             res.send({ Status: '40002', Explain: "Code不能为空!" })

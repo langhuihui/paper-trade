@@ -1,4 +1,5 @@
 import checkToken from './checkToken'
+import checkEmpty from './checkEmpty'
 import express from 'express'
 import bodyParser from 'body-parser'
 import Config from '../config'
@@ -8,7 +9,8 @@ var redisClient = Config.CreateRedisClient();
 const app = express();
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
-let shareData = { config: Config, sequelize, ctt: checkToken(sequelize, true), ctf: checkToken(sequelize, false) }
+let shareData = { config: Config, express, checkEmpty, sequelize, ctt: checkToken(sequelize, true), ctf: checkToken(sequelize, false) } //路由中的共享数据
+app.use('/v2.5/Trade', require('./routes/trade')(shareData))
 app.use('/v2.5/Personal', require('./routes/personal')(shareData))
 app.use('/v2.5/ImageTalk', require('./routes/imageTalk')(shareData))
     /**客户端初始化配置 */
@@ -21,9 +23,9 @@ app.get('/System/GetConfig', async(req, res) => {
 app.get('/v2.5/Choiceness/ChoicenessBannerList', async(req, res) => {
     try {
         let result = await redisClient.getAsync("cacheResult:bannerChoice")
-        return res.status(200).send('{"Status":"0","Explain":"ok","Data":' + result + '}')
+        return res.send('{"Status":"0","Explain":"ok","Data":' + result + '}')
     } catch (ex) {
-        res.status(200).send({ Status: 500, Explain: ex })
+        res.send({ Status: 500, Explain: ex })
     }
     // let page = req.param("page", 0)
     // let size = req.param("size", 10)
@@ -34,9 +36,9 @@ app.get('/v2.5/Choiceness/ChoicenessBannerList', async(req, res) => {
 app.get('/v2.5/Choiceness/ChoicenessList', async(req, res) => {
     try {
         let result = await redisClient.getAsync("cacheResult:normalChoice")
-        return res.status(200).send('{"Status":"0","Explain":"ok","Data":' + result + '}')
+        return res.send('{"Status":"0","Explain":"ok","Data":' + result + '}')
     } catch (ex) {
-        res.status(200).send({ Status: 500, Explain: ex })
+        res.send({ Status: 500, Explain: ex })
     }
     // let page = req.param("page", 0)
     // let size = req.param("size", 10)

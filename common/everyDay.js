@@ -14,7 +14,7 @@ class EveryDay {
         }
     }
     checkAndRun(now, context) {
-        checkTodayIsDone(now)
+        this.checkTodayIsDone(now)
         if (!this.todayIsDone && now > new Date(now.format("yyyy-MM-dd") + " " + this.time)) {
             this.callback(context)
             this.lastRun = now

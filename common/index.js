@@ -31,7 +31,7 @@ initEveryDayFuns()
 setInterval(() => {
     let now = new Date()
     for (let f of everyDayFuns) {
-        if (f.checkAndRun(now, { Config, sequelize })) {
+        if (f.checkAndRun(now, { sequelize })) {
             redisClient.set('timeRunFlag:' + f.name, now)
         }
     }
