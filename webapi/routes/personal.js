@@ -1,4 +1,3 @@
-import express from 'express'
 const myMainListSql = `
 SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture FROM 
 	(SELECT
@@ -60,10 +59,9 @@ SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture FROM
 `
 
 let mainListCache = {}
-async function mainList({ memberCode, pageNum, pageSize, res, sequelize, config }) {
-    if (Number.isNaN(pageNum) || Number.isNaN(pageSize)) {
-        res.status(200).send({ Status: "40003", Explain: "参数类型应该是整数，您传的是：" + JSON.stringify(req.query) })
-    } else {
+
+module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNum }) {
+    async function mainList({ memberCode, pageNum, pageSize, res }) {
         if (pageSize < 0) pageSize = 10
         if (pageNum < 0) pageNum = 0
         if (pageNum == 0 || !mainListCache[memberCode]) {
@@ -71,32 +69,39 @@ async function mainList({ memberCode, pageNum, pageSize, res, sequelize, config 
             mainListCache[memberCode] = result
         }
         let result = mainListCache[memberCode].slice(pageNum, pageNum + pageSize)
-        res.status(200).send({ Status: "0", Explain: "", DataList: result })
+        res.send({ Status: "0", Explain: "", DataList: result })
     }
-}
-module.exports = function(shareData) {
+    async function homePage(memberCode, res) {
+        let [result] = await sequelize.query("select TotalAmount,MtmPL from wf_drivewealth_practice_asset where MemberCode=:memberCode order by EndDate desc limit 2", { replacements: { memberCode } })
+        let Data = { TotalAmount: 50000, TodayProfit: 0, MtmPL: 0 }
+        if (result.length) {
+            Object.assign(Data, result[0])
+            if (result.length == 2) {
+                Data.TodayProfit = result[0].TotalAmount - result[1].TotalAmount
+            }
+        }
+        res.send({ Status: 0, Explain: "", Data })
+    }
     const router = express.Router();
-    let { sequelize, ctt, config } = shareData
     /**个人主页我的发布或者他人主页中的发布列表 */
-    router.get('/GetMyMainList', [ctt], (req, res) => {
+    router.get('/GetMyMainList', ctt, checkNum('pageNum', 'pageSize'), (req, res) => {
         let { pageNum = 0, pageSize = 10 } = req.query
         let memberCode = req.memberCode
-        pageNum = Number(pageNum)
-        pageSize = Number(pageSize)
-        try { mainList({ memberCode, pageNum, pageSize, res, sequelize, config }) } catch (ex) {
+        try { mainList({ memberCode, pageNum, pageSize, res }) } catch (ex) {
             res.status(200).send({ Status: "500", Explain: ex })
         }
     })
-    router.get('/GetHeMainList', (req, res) => {
+    router.get('/GetHeMainList', checkEmpty('memberCode'), checkNum('pageNum', 'pageSize'), (req, res) => {
         let { pageNum = 0, pageSize = 10, memberCode } = req.query
-        pageNum = Number(pageNum)
-        pageSize = Number(pageSize)
-        if (!memberCode) {
-            res.json({ Status: "40002", Explain: "memberCode 为空" })
-        } else
-            try { mainList({ memberCode, pageNum, pageSize, res, sequelize, config }) } catch (ex) {
-                res.status(200).send({ Status: "500", Explain: ex })
-            }
+        try { mainList({ memberCode, pageNum, pageSize, res }) } catch (ex) {
+            res.send({ Status: "500", Explain: ex })
+        }
+    })
+    router.get('/GetMyHomePage', ctt, (req, res) => {
+        homePage(req.memberCode, res)
+    })
+    router.get('/GetHeHomePage/:memberCode', (req, res) => {
+        homePage(req.params.memberCode, res)
     })
     return router
 }

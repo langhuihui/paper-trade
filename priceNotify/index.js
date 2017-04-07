@@ -8,6 +8,7 @@ import amqp from 'amqplib'
 const jpushRegIDSql = "SELECT a.*,b.JpushRegID FROM wf_securities_remind a LEFT JOIN wf_im_jpush b ON a.MemberCode = b.MemberCode WHERE a.IsOpenLower=1 OR a.IsOpenUpper=1 OR a.IsOpenRiseFall=1 ";
 const jpush = Config.CreateJpushClient();
 const sequelize = Config.CreateSequelize();
+const redisClient = Config.CreateRedisClient();
 // var amqpConnection = amqp.connect(Config.amqpConn)
 // amqpConnection.then(conn => conn.createChannel()).then(ch => {
 //     console.log('amqp ready!')
@@ -17,12 +18,12 @@ const sequelize = Config.CreateSequelize();
 //     }))
 // }).catch(console.warn);
 //rabitmq 通讯
-async function start() {
+async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
     let ok = await channel.assertQueue('priceNotify')
     channel.consume('priceNotify', msg => {
-        var data = JSON.parse(Iconv.decode(msg.content, 'utf-8'))
+        var data = JSON.parse(msg.content.toString())
 
         channel.ack(msg)
     })
@@ -30,66 +31,67 @@ async function start() {
     ok = await channel.assertQueue('sinaData')
     ok = await channel.bindQueue('sinaData', 'broadcast', 'fanout')
     channel.consume('sinaData', msg => {
-        console.log("侦测到重启消息")
+        switch (msg.content.toString()) {
+            case "restart": //股票引擎重启信号
+                break;
+        }
         channel.ack(msg)
     })
 }
-start()
-
-
+startMQ()
 
 var stocks = {}
     //股票引用次数
 var stocksRef = {}
-var stocks_name = ""
 var notifies = {}
-    //获取jpushregid和所有提醒数据
-sequelize.query(Config.jpushRegIDSql).then(ns => {
-    for (let n of ns[0]) {
+    /**
+     * 获取jpushregid和所有提醒数据
+     */
+async function getAllNotify() {
+    let [ns] = await sequelize.query(Config.jpushRegIDSql)
+    for (let n of ns) {
         n.IsOpenLower = n.IsOpenLower[0] == 1
         n.IsOpenUpper = n.IsOpenUpper[0] == 1
         n.IsOpenRiseFall = n.IsOpenRiseFall[0] == 1
         notifies[n.RemindId] = n
         let name = Config.sina_qmap[n.SmallType] + n.SecuritiesNo
-        if (!stocksRef[name]) {
-            stocksRef[name] = 1
-            if (!stocks_name) stocks_name = name
-            else stocks_name += "," + name
-        } else stocksRef[name]++
+        if (!stocksRef[name]) stocksRef[name] = 1
+        else stocksRef[name]++
             //console.log(n)
     }
-});
-// const app = express();
-// app.use(bodyParser.json())
-// app.use(bodyParser.urlencoded({ extended: true }))
-// app.use('/', (req, res) => {
-//         res.json({ notifies, stocks_name, stocks })
-//     })
-//     //添加提醒
-// app.use('/addNotify', (req, res) => {
-//     let { SmallType, SecuritiesNo, RemindId } = req.body
-//     let name = Config.sina_qmap[SmallType] + SecuritiesNo
-//     notifies[RemindId] = req.body
-//     if (!stocksRef[name]) {
-//         stocksRef[name] = 1
-//         if (!stocks_name) stocks_name = name
-//         else stocks_name += "," + name
-//     } else stocksRef[name]++
-//         res.json({ Status: 0, Explain: "" })
-//         //res.cookie('user', 'value', { signed: true })
-// })
-// app.use('/modifyNotify', (req, res) => {
-//     let { SmallType, SecuritiesNo, RemindId } = req.body
-//     let name = Config.sina_qmap[SmallType] + SecuritiesNo
-//     notifies[RemindId] = req.body
-// })
-// app.use('/updateJpushRegID', (req, res) => {
-//     let { MemberCode, JpushRegID } = req.body
-//     for (let nid in notifies) {
-//         let notify = notifies[nid]
-//         if (notify.MemberCode == MemberCode) notify.JpushRegID = JpushRegID
-//     }
-// })
+}
+getAllNotify()
+    // const app = express();
+    // app.use(bodyParser.json())
+    // app.use(bodyParser.urlencoded({ extended: true }))
+    // app.use('/', (req, res) => {
+    //         res.json({ notifies, stocks_name, stocks })
+    //     })
+    //     //添加提醒
+    // app.use('/addNotify', (req, res) => {
+    //     let { SmallType, SecuritiesNo, RemindId } = req.body
+    //     let name = Config.sina_qmap[SmallType] + SecuritiesNo
+    //     notifies[RemindId] = req.body
+    //     if (!stocksRef[name]) {
+    //         stocksRef[name] = 1
+    //         if (!stocks_name) stocks_name = name
+    //         else stocks_name += "," + name
+    //     } else stocksRef[name]++
+    //         res.json({ Status: 0, Explain: "" })
+    //         //res.cookie('user', 'value', { signed: true })
+    // })
+    // app.use('/modifyNotify', (req, res) => {
+    //     let { SmallType, SecuritiesNo, RemindId } = req.body
+    //     let name = Config.sina_qmap[SmallType] + SecuritiesNo
+    //     notifies[RemindId] = req.body
+    // })
+    // app.use('/updateJpushRegID', (req, res) => {
+    //     let { MemberCode, JpushRegID } = req.body
+    //     for (let nid in notifies) {
+    //         let notify = notifies[nid]
+    //         if (notify.MemberCode == MemberCode) notify.JpushRegID = JpushRegID
+    //     }
+    // })
 
 function sendNotify(type, nofity, price) {
     let msg = "沃夫街股价提醒:" + nofity.SecuritiesNo
@@ -120,67 +122,57 @@ function sendNotify(type, nofity, price) {
         })
 }
 setInterval(() => {
-    if (stocks_name) //调用新浪接口
-        http.get(Config.sina_realjs + stocks_name, res => {
-        var arrBuf = [];
-        res.on('data', chunk => arrBuf.push(chunk));
-        res.on('end', () => {
-            if (!arrBuf.length) {
-                return
-            }
-            let rawData = Iconv.decode(Buffer.concat(arrBuf), 'gb2312')
-            let config = Config
-            eval(rawData + '  for (let stockName in stocksRef){let q = config.stockPatten.exec(stockName)[1];stocks[stockName] = eval("hq_str_" + stockName).split(",").map(x=>[x[config.lastPriceIndexMap[q]],config.chgFunc[q](x)])}')
-            for (let nid in notifies) {
-                let notify = notifies[nid]
-                let name = Config.sina_qmap[notify.SmallType] + notify.SecuritiesNo
-                let price = stocks[name][0]
-                let chg = Math.abs(stocks[name][1])
-                if (notify.IsOpenLower) {
-                    if (notify.isLowSent) {
-                        if (price > notify.LowerLimit) {
-                            //恢复状态
-                            notify.isLowSent = false
-                        }
-                    } else {
-                        if (price < notify.LowerLimit) {
-                            //向下击穿
-                            sendNotify(0, notify, price)
-                            notify.isLowSent = true
-                        }
-                    }
+    //调用新浪接口
+    for (let nid in notifies) {
+        let notify = notifies[nid]
+        let name = Config.sina_qmap[notify.SmallType] + notify.SecuritiesNo
+        let sp = await redisClient.getAsync("lastPrice:" + name)
+        sp = JSON.parse("[" + sp + "]")
+        let price = stocks[name][0]
+        let chg = Math.abs(stocks[name][1])
+        if (notify.IsOpenLower) {
+            if (notify.isLowSent) {
+                if (price > notify.LowerLimit) {
+                    //恢复状态
+                    notify.isLowSent = false
                 }
-                if (notify.IsOpenUpper) {
-                    if (notify.isUpperSent) {
-                        if (price < notify.UpperLimit) {
-                            //恢复状态
-                            notify.isUpperSent = false
-                        }
-                    } else {
-                        if (price > notify.UpperLimit) {
-                            //向上突破
-                            sendNotify(1, notify, price)
-                            notify.isUpperSent = true
-                        }
-                    }
-                }
-                if (notify.IsOpenRiseFall) {
-                    if (notify.isChgSent) {
-                        if (chg < notify.RiseFall) {
-                            //恢复状态
-                            notify.isChgSent = false
-                        }
-                    } else {
-                        if (chg > notify.RiseFall) {
-                            //向上突破
-                            sendNotify(2, notify, chg)
-                            notify.isChgSent = true
-                        }
-                    }
+            } else {
+                if (price < notify.LowerLimit) {
+                    //向下击穿
+                    sendNotify(0, notify, price)
+                    notify.isLowSent = true
                 }
             }
-        });
-    })
+        }
+        if (notify.IsOpenUpper) {
+            if (notify.isUpperSent) {
+                if (price < notify.UpperLimit) {
+                    //恢复状态
+                    notify.isUpperSent = false
+                }
+            } else {
+                if (price > notify.UpperLimit) {
+                    //向上突破
+                    sendNotify(1, notify, price)
+                    notify.isUpperSent = true
+                }
+            }
+        }
+        if (notify.IsOpenRiseFall) {
+            if (notify.isChgSent) {
+                if (chg < notify.RiseFall) {
+                    //恢复状态
+                    notify.isChgSent = false
+                }
+            } else {
+                if (chg > notify.RiseFall) {
+                    //向上突破
+                    sendNotify(2, notify, chg)
+                    notify.isChgSent = true
+                }
+            }
+        }
+    }
 }, 5000);
 // let server = app.listen(process.env.PORT, function() {
 //     let host = server.address().address;

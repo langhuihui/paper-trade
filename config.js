@@ -21,9 +21,9 @@ let config = {
     picBaseURL: "http://apitest.wolfstreet.tv",
     redisConfig: { host: "api.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC", db: 1 },
     driveWealthHost: {
-        apiHost: "http://api.drivewealth.io",
-        appsHost: "http://apps.drivewealth.io",
-        reportsHost: "http://reports.drivewealth.io"
+        apiHost: "https://api.drivewealth.net",
+        appsHost: "https://apps.drivewealth.com",
+        reportsHost: "https://reports.drivewealth.net"
     },
     //  mysqlconn: "mysql://wfadmin:123456@192.168.2.205:3306/wolfstreet_test",
     CreateSequelize() {

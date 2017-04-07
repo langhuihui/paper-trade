@@ -1,5 +1,5 @@
-import Config from '../config'
-import config from './config'
+import Config from '../../config'
+import config from '../config'
 let sequelize = null
 const tokenSql = "SELECT wf_token.TokenID,wf_token.ClientType,wf_token.MemberCode,wf_token.TokenValue,wf_token.ValidityTime,wf_member.Status FROM wf_token LEFT JOIN wf_member ON wf_member.MemberCode=wf_token.MemberCode WHERE wf_token.TokenValue=?";
 const updateTokenSql = "UPDATE wf_token set ValidityTime=? WHERE TokenID=?";

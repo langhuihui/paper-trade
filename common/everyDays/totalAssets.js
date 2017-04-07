@@ -42,9 +42,10 @@ export default new EveryDay('totalAssets', "05:00:00", async({ sequelize }) => {
                 json: true
             })
             if (positions) {
-                let totalmtm = positions.reduce((acc, val) => acc + val.mtm, 0)
-                let replacements = { UserId, MemberCode, accountID, cash, totalmtm, totalAssets: cash + totalmtm }
-                sequelize.query('insert into wf_drivewealth_practice_asset(UserId,MemberCode,AccountID,Balance,Positions,CreateTime,EndDate,TotalAmount) values(:UserId,:MemberCode,:accountID,:cash,:totalmtm,Now(),CurDate(),:totalAssets)', { replacements })
+                let totalmtm = positions.reduce((acc, val) => acc + val.mtm, 0) //总的持仓资产
+                let totalmtmPL = positions.reduce((acc, val) => acc + val.mtmPL, 0) //总的持仓浮动盈亏
+                let replacements = { UserId, MemberCode, accountID, cash, totalmtm, totalAssets: cash + totalmtm, totalmtmPL }
+                sequelize.query('insert into wf_drivewealth_practice_asset(UserId,MemberCode,AccountID,Balance,Positions,CreateTime,EndDate,TotalAmount,MtmPL) values(:UserId,:MemberCode,:accountID,:cash,:totalmtm,Now(),CurDate(),:totalAssets,:totalmtmPL)', { replacements })
             }
         } catch (ex) {
             console.error(ex)

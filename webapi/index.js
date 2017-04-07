@@ -1,5 +1,6 @@
-import checkToken from './checkToken'
-import checkEmpty from './checkEmpty'
+import checkToken from './middles/checkToken'
+import checkEmpty from './middles/checkEmpty'
+import checkNum from './middles/checkNum'
 import express from 'express'
 import bodyParser from 'body-parser'
 import Config from '../config'
@@ -9,7 +10,7 @@ var redisClient = Config.CreateRedisClient();
 const app = express();
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
-let shareData = { config: Config, express, checkEmpty, sequelize, ctt: checkToken(sequelize, true), ctf: checkToken(sequelize, false) } //路由中的共享数据
+let shareData = { config: Config, express, checkEmpty, checkNum, sequelize, ctt: checkToken(sequelize, true), ctf: checkToken(sequelize, false) } //路由中的共享数据
 app.use('/v2.5/Trade', require('./routes/trade')(shareData))
 app.use('/v2.5/Personal', require('./routes/personal')(shareData))
 app.use('/v2.5/ImageTalk', require('./routes/imageTalk')(shareData))

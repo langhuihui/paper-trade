@@ -62,14 +62,14 @@ async function caculateAvgDelta(target) {
                 //console.log(sp, s)
             sp = JSON.parse("[" + sp + "]")
             if (sp[4]) {
-                let delta = (sp[3] - sp[4]) * 100 / sp[4]; //涨跌额=（最新价-昨收）/昨收
+                let delta = (sp[3] - sp[4]) * 100 / sp[4]; //涨跌幅=（最新价-昨收）/昨收
                 allDelta += delta
             } else if (sp[4] !== 0) {
                 console.log(sp, s)
             }
         }
         if (c.Stocks.length)
-            allDelta = allDelta / c.Stocks.length //平均涨跌额
+            allDelta = allDelta / c.Stocks.length //平均涨跌幅
         c.AvgRiseFallRange = allDelta
         let r = Object.assign({}, c)
         r.AvgRiseFallRange = r.AvgRiseFallRange.toFixed(2)
