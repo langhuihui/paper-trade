@@ -1,5 +1,7 @@
+import sqlstr from '../../common/sqlStr'
 module.exports = function({ sequelize, ctt, express, checkEmpty }) {
     const router = express.Router();
+    /**是否开市*/
     router.get('/:type/IsOpen', async(req, res) => {
         let type = req.params.type
         if (type == 'us') {
@@ -23,6 +25,25 @@ module.exports = function({ sequelize, ctt, express, checkEmpty }) {
         startDate = new Date(startDate)
         let [result] = await sequelize.query("select TotalAmount totalAsset,DATE_FORMAT(EndDate,'%Y-%m-%d') as date from wf_drivewealth_practice_asset where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate } })
         res.send({ Status: 0, Explain: "", DataList: result })
+    });
+    /**修改股价提醒 */
+    router.put('/SetPriceNotify', ctt, async(req, res) => {
+        let replacements = req.body
+        replacements.MemberCode = req.memberCode
+        let [result0] = await sequelize.query("select * from wf_securities_remind where MemberCode=:memberCode and SecuritiesNo=:SecuritiesNo and SmallType=:SmallType", { replacements: { memberCode: req.memberCode } })
+        if (result0.length) {
+            let [{ RemindId }] = result0
+            replacements.RemindId = RemindId
+            await sequelize.query(sqlstr.update("wf_securities_remind", replacements, { RemindId: null, MemberCode: null, SecuritiesNo: null, SmallType: null }) + "where RemindId=:RemindId", { replacements })
+        } else {
+            let [result] = await sequelize.query(sqlstr.insert("wf_securities_remind", replacements, { CreateTime: "Now()" }), { replacements })
+            let [result1] = await sequelize.query("select last_insert_id() insertId")
+            let [{ insertId }] = result1
+        }
+    });
+    /**修改全局股价提醒 */
+    router.put('/SetAllPriceNotify', ctt, async(req, res) => {
+
     })
     return router
 }

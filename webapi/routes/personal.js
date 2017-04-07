@@ -1,12 +1,12 @@
 const myMainListSql = `
-SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture FROM 
+SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTime,'%Y-%m-%d %H:%i:%s') AS ShowTime FROM 
 	(SELECT
 		'video' AS Type,
 		wf_live_video.VideoCode AS Code,
 		wf_live_video.VideoName AS Title,
 		wf_live_video.VideoImage AS SelectPicture,
 		wf_live_video.TimeLong,
-		wf_live_video.ShowTime AS ShowTime,
+		wf_live_video.ShowTime,
 		'' SecuritiesNo,
 		'' SecuritiesType,
 		'' LikeCount,
@@ -24,7 +24,7 @@ SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture FROM
 		wf_News.Title,
 		wf_News.SelectPicture AS SelectPicture,
 		'' AS TimeLong,
-		wf_News.ShowTime AS ShowTime,
+		wf_News.ShowTime,
 		wf_News.SecuritiesNo,
 		wf_News.SecuritiesType,
 		'' LikeCount,
@@ -73,7 +73,7 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
     }
     async function homePage(memberCode, res) {
         let [result] = await sequelize.query("select TotalAmount,MtmPL from wf_drivewealth_practice_asset where MemberCode=:memberCode order by EndDate desc limit 2", { replacements: { memberCode } })
-        let Data = { TotalAmount: 50000, TodayProfit: 0, MtmPL: 0 }
+        let Data = { TotalAmount: 50000, TodayProfit: 0, MtmPL: 0, EveryDayURL: "http://h5.wolfstree.tv/" }
         if (result.length) {
             Object.assign(Data, result[0])
             if (result.length == 2) {
@@ -88,7 +88,7 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
         let { pageNum = 0, pageSize = 10 } = req.query
         let memberCode = req.memberCode
         try { mainList({ memberCode, pageNum, pageSize, res }) } catch (ex) {
-            res.status(200).send({ Status: "500", Explain: ex })
+            res.send({ Status: "500", Explain: ex })
         }
     })
     router.get('/GetHeMainList', checkEmpty('memberCode'), checkNum('pageNum', 'pageSize'), (req, res) => {

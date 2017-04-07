@@ -103,7 +103,10 @@ function sendNotify(type, nofity, price) {
             msg += ` 当前价格 ${price} 已经向下突破 ${nofity.IsOpenUpper}`
             break
         case 2:
-            msg += ` 当前振幅 ${price} 已经超过 ${nofity.RiseFall}`
+            msg += ` 当前跌幅 ${price} 已经超过 ${nofity.FallLimit}`
+            break
+        case 3:
+            msg += ` 当前涨幅 ${price} 已经超过 ${nofity.RiseLimit}`
             break
     }
     jpush.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(nofity.JpushRegID))
@@ -128,8 +131,8 @@ setInterval(() => {
         let name = Config.sina_qmap[notify.SmallType] + notify.SecuritiesNo
         let sp = await redisClient.getAsync("lastPrice:" + name)
         sp = JSON.parse("[" + sp + "]")
-        let price = stocks[name][0]
-        let chg = Math.abs(stocks[name][1])
+        let price = sp[3]
+        let chg = (sp[3] - sp[4]) * 100 / sp[4] //涨跌幅
         if (notify.IsOpenLower) {
             if (notify.isLowSent) {
                 if (price > notify.LowerLimit) {
@@ -158,17 +161,21 @@ setInterval(() => {
                 }
             }
         }
-        if (notify.IsOpenRiseFall) {
-            if (notify.isChgSent) {
-                if (chg < notify.RiseFall) {
-                    //恢复状态
-                    notify.isChgSent = false
-                }
-            } else {
-                if (chg > notify.RiseFall) {
-                    //向上突破
-                    sendNotify(2, notify, chg)
-                    notify.isChgSent = true
+        if (chg < 0) {
+
+        } else {
+            if (notify.IsOpenRise) {
+                if (notify.isRiseSent) {
+                    if (chg < notify.RiseLimit) {
+                        //恢复状态
+                        notify.isRiseSent = false
+                    }
+                } else {
+                    if (chg > notify.RiseLimit) {
+                        //向上突破
+                        sendNotify(3, notify, chg)
+                        notify.isRiseSent = true
+                    }
                 }
             }
         }

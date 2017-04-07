@@ -39,7 +39,7 @@ function checkLogin(seq, isLogin) {
         let { result, memberCode } = await checkToken(req.header('Token'), isLogin)
         req.memberCode = memberCode
         if (result === 0) next()
-        else res.status(200).send(result)
+        else res.send(result)
     }
 }
 export default checkLogin
