@@ -3,11 +3,12 @@ import request from 'request'
 import Config from '../config'
 import amqp from 'amqplib'
 import Iconv from 'iconv-lite'
+import StockRef from './stocksRef'
 var client = Config.CreateRedisClient();
-var listenerSymbol = {} //订阅者关注的股票
-var stocksRef = {} //所有股票引用次数
-var stocks = []
-    /**rabbitmq 通讯 */
+var stockRef = new StockRef()
+var listenerSymbol = new Map() //订阅者关注的股票
+
+/**rabbitmq 通讯 */
 async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
@@ -17,8 +18,8 @@ async function startMQ() {
     channel.consume('getSinaData', msg => {
         var { symbols, listener, type } = JSON.parse(msg.content.toString())
         if (!symbols) symbols = []
-        if (!listenerSymbol[listener]) listenerSymbol[listener] = []
-        let oldSymbols = listenerSymbol[listener]
+        if (!listenerSymbol.has(listener)) listenerSymbol.set(listener, [])
+        let oldSymbols = listenerSymbol.get(listener)
         let needAdd = [] //需要增加的股票
         let needRemove = [] //需要删除的股票
         switch (type) {
@@ -36,7 +37,7 @@ async function startMQ() {
                 } else {
                     needAdd = symbols
                 }
-                listenerSymbol[listener] = symbols
+                listenerSymbol.set(listener, symbols)
                 break
             case "add":
                 while (symbols.length) {
@@ -62,37 +63,19 @@ async function startMQ() {
                 }
                 break
         }
-        if (needRemove.length) removeSymbols(needRemove)
-        if (needAdd.length) addSymbols(needAdd)
+        if (needRemove.length) stockRef.removeSymbols(needRemove)
+        if (needAdd.length) stockRef.addSymbols(needAdd)
         channel.ack(msg)
     })
     ok = await channel.bindQueue('sinaData', 'broadcast', 'fanout')
     console.log(ok, channel.sendToQueue('sinaData', new Buffer("restart")))
 }
 
-function removeSymbols(symbols) {
-    for (let symbol of symbols) {
-        if (stocksRef[symbol]) {
-            stocksRef[symbol]--;
-            if (stocksRef[symbol] == 0) {
-                stocks.remove(symbol)
-            }
-        }
-    }
-}
-
-function addSymbols(symbols) {
-    for (let symbol of symbols) {
-        if (!stocksRef[symbol]) {
-            stocksRef[symbol] = 1
-            stocks.push(symbol)
-        } else stocksRef[symbol]++;
-    }
-}
 var intervalId;
 
 function start() {
     intervalId = setInterval(() => {
+        let stocks = stockRef.array
         if (stocks.length && client.connected) {
             let l = stocks.length;
             let i = 0

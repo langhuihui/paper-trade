@@ -5,16 +5,31 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import Config from '../config'
 import config from './config'
+import amqp from 'amqplib'
+
 var sequelize = Config.CreateSequelize();
 var redisClient = Config.CreateRedisClient();
 const app = express();
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
-let shareData = { config: Config, express, checkEmpty, checkNum, sequelize, ctt: checkToken(sequelize, true), ctf: checkToken(sequelize, false) } //路由中的共享数据
-app.use('/v2.5/Trade', require('./routes/trade')(shareData))
-app.use('/v2.5/Personal', require('./routes/personal')(shareData))
-app.use('/v2.5/ImageTalk', require('./routes/imageTalk')(shareData))
-    /**客户端初始化配置 */
+/**全局错误处理 */
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.send({ Status: 500, Explain: err })
+})
+let shareData = { config: Config, express, checkEmpty, checkNum, sequelize, redisClient, ctt: checkToken(sequelize, true), ctf: checkToken(sequelize, false) } //路由中的共享数据
+async function startMQ() {
+    var amqpConnection = await amqp.connect(Config.amqpConn)
+    let channel = await amqpConnection.createChannel()
+    let ok = await channel.assertQueue('priceNotify')
+    shareData.mqChannel = channel
+    app.use('/v2.5/Trade', require('./routes/trade')(shareData))
+    app.use('/v2.5/Personal', require('./routes/personal')(shareData))
+    app.use('/v2.5/ImageTalk', require('./routes/imageTalk')(shareData))
+}
+startMQ();
+
+/**客户端初始化配置 */
 app.get('/System/GetConfig', async(req, res) => {
     let { version } = req.query
     let setting = version && config.clientInit[version] ? config.clientInit[version] : config.clientInitDefault

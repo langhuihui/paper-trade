@@ -87,21 +87,24 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
     router.get('/GetMyMainList', ctt, checkNum('pageNum', 'pageSize'), (req, res) => {
         let { pageNum = 0, pageSize = 10 } = req.query
         let memberCode = req.memberCode
-        try { mainList({ memberCode, pageNum, pageSize, res }) } catch (ex) {
-            res.send({ Status: "500", Explain: ex })
-        }
+        mainList({ memberCode, pageNum, pageSize, res })
     })
     router.get('/GetHeMainList', checkEmpty('memberCode'), checkNum('pageNum', 'pageSize'), (req, res) => {
         let { pageNum = 0, pageSize = 10, memberCode } = req.query
-        try { mainList({ memberCode, pageNum, pageSize, res }) } catch (ex) {
-            res.send({ Status: "500", Explain: ex })
-        }
+        mainList({ memberCode, pageNum, pageSize, res })
     })
     router.get('/GetMyHomePage', ctt, (req, res) => {
         homePage(req.memberCode, res)
     })
     router.get('/GetHeHomePage/:memberCode', (req, res) => {
         homePage(req.params.memberCode, res)
+    })
+    router.get('/Settings', ctt, (req, res) => {
+        let [result] = await sequelize.query("select * from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } })
+        res.send({ Status: 0, Explain: "", Data: result[0] })
+    })
+    router.put('/Settings', ctt, (req, res) => {
+
     })
     return router
 }

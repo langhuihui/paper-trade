@@ -13,7 +13,7 @@ let config = {
     mysqlconn: "mysql://wftest:WfTestonlytest_20170222@rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com:3306/wolfstreet_test",
     lastPriceIndexMap: { hk: 6, sz: 3, sh: 3, gb_: 1 },
     pricesIndexMap: { hk: [2, 4, 5, 6, 3], sz: [1, 4, 5, 3, 2], sh: [1, 4, 5, 3, 2], gb_: [5, 6, 7, 1, 26] }, //开，高，低，新,昨收
-    chgFunc: { gb_: x => x[2], hk: x => x[8], sh: x => (x[3] - x[2]) / x[2], sz: x => (x[3] - x[2]) / x[2] },
+    //chgFunc: { gb_: x => x[2], hk: x => x[8], sh: x => (x[3] - x[2]) / x[2], sz: x => (x[3] - x[2]) / x[2] },
     sina_qmap: { us: "gb_", hk: "hk", sh: "sh", sz: "sz" },
     stockPatten: /(gb_|hk|sh|sz).+/,
     jpushType: "jpush108",
@@ -25,6 +25,7 @@ let config = {
         appsHost: "https://apps.drivewealth.com",
         reportsHost: "https://reports.drivewealth.net"
     },
+    practiceInitFun: 5000, //模拟交易起始资金
     //  mysqlconn: "mysql://wfadmin:123456@192.168.2.205:3306/wolfstreet_test",
     CreateSequelize() {
         return new Sequelize(this.mysqlconn, { timezone: '+08:00' });

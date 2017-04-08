@@ -5,26 +5,48 @@ import Config from '../config'
 import http from 'http'
 import JPush from 'jpush-sdk'
 import amqp from 'amqplib'
-const jpushRegIDSql = "SELECT a.*,b.JpushRegID FROM wf_securities_remind a LEFT JOIN wf_im_jpush b ON a.MemberCode = b.MemberCode WHERE a.IsOpenLower=1 OR a.IsOpenUpper=1 OR a.IsOpenRiseFall=1 ";
+const jpushRegIDSql = "SELECT a.*,b.JpushRegID FROM wf_securities_remind a LEFT JOIN wf_im_jpush b ON a.MemberCode = b.MemberCode WHERE a.IsOpenLower=1 OR a.IsOpenUpper=1 OR a.IsOpenRise=1 OR a.IsOpenFall=1";
 const jpush = Config.CreateJpushClient();
 const sequelize = Config.CreateSequelize();
 const redisClient = Config.CreateRedisClient();
-// var amqpConnection = amqp.connect(Config.amqpConn)
-// amqpConnection.then(conn => conn.createChannel()).then(ch => {
-//     console.log('amqp ready!')
-//     return ch.assertQueue('priceNotify').then(ok => ch.consume('priceNotify', msg => {
-//         console.log(msg.content);
-//         ch.ack(msg)
-//     }))
-// }).catch(console.warn);
+import StockRef from '../getSinaData/stocksRef'
+var stocksRef = new StockRef()
+var notifies = new Map()
+
+function isAllClose({ IsOpenLower, IsOpenUpper, IsOpenRise, IsOpenFall }) {
+    return !(IsOpenLower || IsOpenUpper || IsOpenRise || IsOpenFall)
+}
 //rabitmq 通讯
 async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
     let ok = await channel.assertQueue('priceNotify')
     channel.consume('priceNotify', msg => {
-        var data = JSON.parse(msg.content.toString())
-
+        let { cmd, data } = JSON.parse(msg.content.toString())
+        switch (cmd) {
+            case "update":
+                if (notifies.has(data.RemindId)) {
+                    if (isAllClose(data)) {
+                        if (stocksRef.removeSymbol(name))
+                            channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "remove", listener: "priceNotify", symbols: [name] })))
+                    } else
+                        Object.assign(notifies.get(data.RemindId), data)
+                } else {
+                    if (!isAllClose(data)) {
+                        notifies.set(data.RemindId, data)
+                        let name = Config.sina_qmap[data.SmallType] + data.SecuritiesNo
+                        if (stocksRef.addSymbol(name))
+                            channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "add", listener: "priceNotify", symbols: [name] })))
+                    }
+                }
+                break;
+            case "changeJpush":
+                let { MemberCode, JpushRegID } = data
+                for (let notify of notifies.values) {
+                    if (notify.MemberCode == MemberCode) notify.JpushRegID = JpushRegID
+                }
+                break;
+        }
         channel.ack(msg)
     })
     await channel.assertExchange("broadcast", "fanout")
@@ -33,6 +55,7 @@ async function startMQ() {
     channel.consume('sinaData', msg => {
         switch (msg.content.toString()) {
             case "restart": //股票引擎重启信号
+                channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "reset", listener: "priceNotify", symbols: stocksRef.array })))
                 break;
         }
         channel.ack(msg)
@@ -40,23 +63,22 @@ async function startMQ() {
 }
 startMQ()
 
-var stocks = {}
-    //股票引用次数
-var stocksRef = {}
-var notifies = {}
-    /**
-     * 获取jpushregid和所有提醒数据
-     */
+
+/**
+ * 获取jpushregid和所有提醒数据
+ */
 async function getAllNotify() {
+    notifies.clear()
+    stocksRef.clear()
     let [ns] = await sequelize.query(Config.jpushRegIDSql)
     for (let n of ns) {
         n.IsOpenLower = n.IsOpenLower[0] == 1
         n.IsOpenUpper = n.IsOpenUpper[0] == 1
-        n.IsOpenRiseFall = n.IsOpenRiseFall[0] == 1
+        n.IsOpenRise = n.IsOpenRise[0] == 1
+        n.IsOpenFall = n.IsOpenFall[0] == 1
         notifies[n.RemindId] = n
         let name = Config.sina_qmap[n.SmallType] + n.SecuritiesNo
-        if (!stocksRef[name]) stocksRef[name] = 1
-        else stocksRef[name]++
+        stocksRef.addSymbol(name)
             //console.log(n)
     }
 }
@@ -162,7 +184,20 @@ setInterval(() => {
             }
         }
         if (chg < 0) {
-
+            if (notify.IsOpenFall) {
+                if (notify.isFallSent) {
+                    if (chg > notify.FallLimit) {
+                        //恢复状态
+                        notify.isFallSent = false
+                    }
+                } else {
+                    if (chg < notify.FallLimit) {
+                        //向下击穿
+                        sendNotify(2, notify, chg)
+                        notify.isFallSent = true
+                    }
+                }
+            }
         } else {
             if (notify.IsOpenRise) {
                 if (notify.isRiseSent) {

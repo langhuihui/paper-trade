@@ -1,5 +1,6 @@
 import sqlstr from '../../common/sqlStr'
-module.exports = function({ sequelize, ctt, express, checkEmpty }) {
+
+module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel }) {
     const router = express.Router();
     /**是否开市*/
     router.get('/:type/IsOpen', async(req, res) => {
@@ -30,7 +31,7 @@ module.exports = function({ sequelize, ctt, express, checkEmpty }) {
     router.put('/SetPriceNotify', ctt, async(req, res) => {
         let replacements = req.body
         replacements.MemberCode = req.memberCode
-        let [result0] = await sequelize.query("select * from wf_securities_remind where MemberCode=:memberCode and SecuritiesNo=:SecuritiesNo and SmallType=:SmallType", { replacements: { memberCode: req.memberCode } })
+        let [result0] = await sequelize.query("select * from wf_securities_remind where MemberCode=:MemberCode and SecuritiesNo=:SecuritiesNo and SmallType=:SmallType", { replacements })
         if (result0.length) {
             let [{ RemindId }] = result0
             replacements.RemindId = RemindId
@@ -39,11 +40,21 @@ module.exports = function({ sequelize, ctt, express, checkEmpty }) {
             let [result] = await sequelize.query(sqlstr.insert("wf_securities_remind", replacements, { CreateTime: "Now()" }), { replacements })
             let [result1] = await sequelize.query("select last_insert_id() insertId")
             let [{ insertId }] = result1
+            replacements.RemindId = insertId
         }
+        res.send({ Status: 0, Explain: "" })
+        mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "update", data: replacements })))
     });
-    /**修改全局股价提醒 */
-    router.put('/SetAllPriceNotify', ctt, async(req, res) => {
-
+    /**排行榜 */
+    router.get('/RankList/:type', async(res, req) => {
+        switch (res.params.type) {
+            case "TotalAmount":
+                res.send(`{ Status: 0, Explain: "", DataList: ${await redisClient.getAsync("RankList:totalAssets")} }`)
+                break
+            case "TodayProfit":
+                res.send(`{ Status: 0, Explain: "", DataList: ${await redisClient.getAsync("RankList:todayProfit")} }`)
+                break
+        }
     })
     return router
 }
