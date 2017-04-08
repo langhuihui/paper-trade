@@ -93,7 +93,7 @@ function start() {
                     let rawData = Iconv.decode(body, 'gb2312')
                     let config = Config
                     let redisClient = client
-                    eval(rawData + '  for (let stockName in stocksRef){let q = config.stockPatten.exec(stockName)[1];let x=eval("hq_str_" + stockName).split(",");redisClient.set("lastPrice:"+stockName,x[config.pricesIndexMap[q][0]]+","+x[config.pricesIndexMap[q][1]]+","+x[config.pricesIndexMap[q][2]]+","+x[config.pricesIndexMap[q][3]]+","+x[config.pricesIndexMap[q][4]])}')
+                    eval(rawData + '  for (let stockName of stocks){let q = config.stockPatten.exec(stockName)[1];let x=eval("hq_str_" + stockName).split(",");redisClient.set("lastPrice:"+stockName,x[config.pricesIndexMap[q][0]]+","+x[config.pricesIndexMap[q][1]]+","+x[config.pricesIndexMap[q][2]]+","+x[config.pricesIndexMap[q][3]]+","+x[config.pricesIndexMap[q][4]])}')
                 })
             }
         }

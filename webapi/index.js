@@ -30,9 +30,17 @@ async function startMQ() {
 startMQ();
 
 /**客户端初始化配置 */
-app.get('/System/GetConfig', async(req, res) => {
-    let { version } = req.query
+app.get('/System/GetConfig', checkEmpty('version'), async(req, res) => {
+    let { version, dbVersion } = req.query
     let setting = version && config.clientInit[version] ? config.clientInit[version] : config.clientInitDefault
+    if (dbVersion) {
+        let [dbResult] = await sequelize.query('select * from wf_securities_version where Versions>:dbVersion order by Versions asc', { replacements: { dbVersion } })
+        if (dbResult.length) {
+            let maxVersion = dbResult.last.Versions
+            dbResult = dbResult.map(x => x.Content)
+            setting.updateSQL = dbResult.join('');
+        }
+    }
     res.send({ Status: 0, Explain: "", Config: setting })
 });
 /**获取精选头部列表 */
