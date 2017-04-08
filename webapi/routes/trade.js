@@ -1,6 +1,6 @@
 import sqlstr from '../../common/sqlStr'
 
-module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel }) {
+module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redisClient }) {
     const router = express.Router();
     /**是否开市*/
     router.get('/:type/IsOpen', async(req, res) => {
