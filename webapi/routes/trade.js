@@ -46,7 +46,7 @@ module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redi
         mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "update", data: replacements })))
     });
     /**排行榜 */
-    router.get('/RankList/:type', async(res, req) => {
+    router.get('/RankList/:type', async(req, res) => {
         switch (res.params.type) {
             case "TotalAmount":
                 res.send(`{ Status: 0, Explain: "", DataList: ${await redisClient.getAsync("RankList:totalAssets")} }`)
