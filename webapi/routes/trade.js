@@ -47,7 +47,7 @@ module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redi
     });
     /**排行榜 */
     router.get('/RankList/:type', async(req, res) => {
-        switch (res.params.type) {
+        switch (req.params.type) {
             case "TotalAmount":
                 res.send(`{ Status: 0, Explain: "", DataList: ${await redisClient.getAsync("RankList:totalAssets")} }`)
                 break
