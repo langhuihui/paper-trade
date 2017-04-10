@@ -49,10 +49,10 @@ module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redi
     router.get('/RankList/:type', async(req, res) => {
         switch (req.params.type) {
             case "TotalAmount":
-                res.send(`{ Status: 0, Explain: "", DataList: ${await redisClient.getAsync("RankList:totalAssets")} }`)
+                res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:totalAssets")} }`)
                 break
             case "TodayProfit":
-                res.send(`{ Status: 0, Explain: "", DataList: ${await redisClient.getAsync("RankList:todayProfit")} }`)
+                res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:todayProfit")} }`)
                 break
             default:
                 res.send({ Status: 40003, Explain: "未知类型" })
