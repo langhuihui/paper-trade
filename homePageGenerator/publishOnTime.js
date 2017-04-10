@@ -22,8 +22,8 @@ class PublishOnTime {
                 timeMap[showTime] = showTime - now
                 if (timeMap[showTime] > 0)
                     this.timeoutIds.push(setTimeout(this.callback, timeMap[showTime]))
-                else normals.push(data)
             }
+            if (timeMap[showTime] < 0) normals.push(data)
         }
         return normals
     }

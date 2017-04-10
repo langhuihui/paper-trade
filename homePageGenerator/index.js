@@ -47,6 +47,7 @@ async function GenerateHomePage() {
         }
         columnsMap[data1.ColumnNo].News.push({ Id: data1.Id, Code: data1.Code, Title: data1.Title, Pic: data1.Pic })
     }
+    console.log(allData[0].length)
     let newsG = new NewsGenerator(publishOnTime.reset(allData[0]))
     let pageData = []
     let page = 0

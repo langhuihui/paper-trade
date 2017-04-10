@@ -74,14 +74,9 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
         res.send({ Status: "0", Explain: "", DataList: result })
     }
     async function homePage(memberCode, res) {
-        let [result] = await sequelize.query("select TotalAmount,MtmPL from wf_drivewealth_practice_asset where MemberCode=:memberCode order by EndDate desc limit 2", { replacements: { memberCode } })
-        let Data = { TotalAmount: 50000, TodayProfit: 0, MtmPL: 0, EveryDayURL: _config.EveryDayURL }
-        if (result.length) {
-            Object.assign(Data, result[0])
-            if (result.length == 2) {
-                Data.TodayProfit = result[0].TotalAmount - result[1].TotalAmount
-            }
-        }
+        let [result] = await sequelize.query("select TotalAmount,TodayProfit,MtmPL from wf_drivewealth_practice_asset where MemberCode=:memberCode order by EndDate desc limit 1", { replacements: { memberCode } })
+        let Data = { TotalAmount: config.practiceInitFun, TodayProfit: 0, MtmPL: 0, EveryDayURL: _config.EveryDayURL + memberCode }
+        Object.assign(Data, result[0])
         res.send({ Status: 0, Explain: "", Data })
     }
     const router = express.Router();

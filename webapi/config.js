@@ -9,9 +9,9 @@ let config = {
         "2.5": { showTrade: false }
     },
     FinancialIndex: {
-        us: [{ Title: "", URL: "" }],
-        hk: [{ Title: "", URL: "" }],
-        hs: [{ Title: "", URL: "" }],
+        us: [{ Title: "上证指数", URL: "" }, { Title: "深证指数", URL: "" }, { Title: "创业指数", URL: "" }],
+        hk: [{ Title: "", URL: "" }, { Title: "深证指数", URL: "" }, { Title: "创业指数", URL: "" }],
+        hs: [{ Title: "", URL: "" }, { Title: "深证指数", URL: "" }, { Title: "创业指数", URL: "" }],
         get sz() {
             return this.hs
         },
@@ -19,7 +19,7 @@ let config = {
             return this.hs
         }
     },
-    EveryDayURL: "http://h5.wolfstree.tv/"
+    EveryDayURL: "http://sharetest.wolfstreet.tv/kmap/profit.html?memberCode="
 }
 
 if (process.env.NODE_ENV === "production") {
