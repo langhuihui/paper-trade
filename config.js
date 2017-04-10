@@ -28,7 +28,7 @@ let config = {
     practiceInitFun: 5000, //模拟交易起始资金
     //  mysqlconn: "mysql://wfadmin:123456@192.168.2.205:3306/wolfstreet_test",
     CreateSequelize() {
-        return new Sequelize(this.mysqlconn, { timezone: '+08:00' });
+        return new Sequelize(this.mysqlconn, { timezone: '+08:00', logging: (...arg) => console.log(new Date().format(), ...arg) });
     },
     CreateRedisClient() {
         return redis.createClient(this.redisConfig);

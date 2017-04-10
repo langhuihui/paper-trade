@@ -54,6 +54,8 @@ module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redi
             case "TodayProfit":
                 res.send(`{ Status: 0, Explain: "", DataList: ${await redisClient.getAsync("RankList:todayProfit")} }`)
                 break
+            default:
+                res.send({ Status: 40003, Explain: "未知类型" })
         }
     })
     return router

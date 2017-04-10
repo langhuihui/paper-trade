@@ -10,7 +10,7 @@ export default new EveryDay('totalAssets', "05:00:00", async({ sequelize, redisC
     for (let { UserId, MemberCode, username, password, emailAddress1 }
         of result) {
         try {
-            let [todayAssetResult] = await sequelize.query("select * from wf_drivewealth_practice_asset where EndDate=CurDate()")
+            let [todayAssetResult] = await sequelize.query("select * from wf_drivewealth_practice_asset where EndDate=CurDate() and UserId:UserId", { replacements: { UserId } })
             if (todayAssetResult.length) continue
             let { sessionKey, accounts } = await request({
                 uri: dwUrls.createSession,

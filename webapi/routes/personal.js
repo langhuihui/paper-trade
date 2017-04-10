@@ -1,3 +1,4 @@
+import sqlstr from '../../common/sqlStr'
 const myMainListSql = `
 SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTime,'%Y-%m-%d %H:%i:%s') AS ShowTime FROM 
 	(SELECT
@@ -99,12 +100,26 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
     router.get('/GetHeHomePage/:memberCode', (req, res) => {
         homePage(req.params.memberCode, res)
     })
-    router.get('/Settings', ctt, (req, res) => {
+    router.get('/Settings', ctt, async(req, res) => {
         let [result] = await sequelize.query("select * from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } })
         res.send({ Status: 0, Explain: "", Data: result[0] })
     })
-    router.put('/Settings', ctt, (req, res) => {
-
+    router.put('/Settings', ctt, async(req, res) => {
+        let [result] = await sequelize.query("select * from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } })
+        let replacements = Object.assign({ memberCode: req.memberCode }, req.body)
+        if (result.length) {
+            for (let n in req.body) {
+                if (!result[0].hasOwnProperty(n)) {
+                    res.send({ Status: 40003, Explain: "没有该设置项：" + n })
+                    return
+                }
+            }
+            let [result2] = await sequelize.query(sqlstr.update("wf_system_setting", replacements, { memberCode: null }) + "where MemberCode=:memberCode", { replacements })
+            res.send({ Status: 0, Explain: result2 })
+        } else {
+            let [result2] = await sequelize.query(sqlstr.insert("wf_system_setting", replacements, { MemberCode: "memberCode" }), { replacements })
+            res.send({ Status: 0, Explain: result2 })
+        }
     })
     return router
 }
