@@ -57,6 +57,12 @@ module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redi
             default:
                 res.send({ Status: 40003, Explain: "未知类型" })
         }
-    })
+    });
+    router.get('/GetStockCanTrade', checkEmpty("stockcode"), async(req, res) => {
+        let { stockcode } = req.query
+        let [result] = await sequelize.query("select * from wf_securities_trade where remark='DW' and SecuritiesNo=:stockcode", { replacements: { stockcode } })
+        res.send({ Status: 0, Explain: "", Result: result.length > 0 })
+
+    });
     return router
 }
