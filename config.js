@@ -42,7 +42,25 @@ if (process.env.NODE_ENV === "production") {
     config.debug = false
     Object.assign(config, require('./pconfig.js'))
 }
-export default config
+export default config;
+/**批量删除对象属性 */
+Object.deleteProperties = function(obj, ...args) {
+    for (let n of args) {
+        if (obj.hasOwnProperty(n)) {
+            delete obj[n]
+        }
+    }
+    return obj
+};
+/**转换Buffer对象成布尔值 */
+Object.convertBuffer2Bool = function(obj, ...args) {
+    for (let n of args) {
+        if (obj.hasOwnProperty(n)) {
+            obj[n] = obj[n][0] == 1
+        }
+    }
+    return obj
+}
 Array.prototype.remove = function(...item) {
     let _this = this;
     item.forEach(i => {

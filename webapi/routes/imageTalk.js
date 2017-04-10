@@ -13,14 +13,7 @@ module.exports = function({ sequelize, ctt, express, config }) {
             it.IsLikes = likeCount[0]["myLikes"] > 0
             let [around] = await sequelize.query('select `Code` LastCode,(select `Code` from wf_imagetext where Id<:Id and `Status`=1 order by Id desc limit 1 ) NextCode from wf_imagetext where Id>:Id and `Status`=1 limit 1', { replacements: { Id: it.Id } })
             Object.assign(it, around[0])
-            delete it.Id
-            delete it.Original_Image
-            delete it.Thumbnail
-            delete it.Status
-            delete it.State
-            delete it.MemberCode
-            delete it.CreateTime
-            delete it.LikeCount
+            Object.deleteProperties(it, "Id", "Original_Image", "Thumbnail", "Status", "State", "MemberCode", "CreateTime", "LikeCount")
             res.send({ Status: 0, Explain: "", Data: it })
         } else {
             res.send({ Status: -1, Explain: "该图说不存在!" })

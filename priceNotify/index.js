@@ -69,10 +69,7 @@ async function getAllNotify() {
     stocksRef.clear()
     let [ns] = await sequelize.query(Config.jpushRegIDSql)
     for (let n of ns) {
-        n.IsOpenLower = n.IsOpenLower[0] == 1
-        n.IsOpenUpper = n.IsOpenUpper[0] == 1
-        n.IsOpenRise = n.IsOpenRise[0] == 1
-        n.IsOpenFall = n.IsOpenFall[0] == 1
+        Object.convertBuffer2Bool(n, "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall")
         notifies[n.RemindId] = n
         let name = Config.sina_qmap[n.SmallType] + n.SecuritiesNo
         stocksRef.addSymbol(name)
