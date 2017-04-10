@@ -10,7 +10,7 @@ export default new EveryDay('totalAssets', "05:00:00", async({ sequelize, redisC
     for (let { UserId, MemberCode, username, password, emailAddress1 }
         of result) {
         try {
-            let [todayAssetResult] = await sequelize.query("select * from wf_drivewealth_practice_asset where EndDate=CurDate() and UserId:UserId", { replacements: { UserId } })
+            let [todayAssetResult] = await sequelize.query("select * from wf_drivewealth_practice_asset where EndDate=CurDate() and UserId=:UserId", { replacements: { UserId } })
             if (todayAssetResult.length) continue
             let { sessionKey, accounts } = await request({
                 uri: dwUrls.createSession,
@@ -52,6 +52,9 @@ export default new EveryDay('totalAssets', "05:00:00", async({ sequelize, redisC
                 } else
                     replacements.TodayProfit = Config.practiceInitFun - replacements.TotalAmount
                 await sequelize.query(sqlstr.insert("wf_drivewealth_practice_asset", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
+            } else {
+                let replacements = { UserId, MemberCode, AccountID: accountID, Balance: cash, Positions: 0, TotalAmount: cash, MtmPL: 0, TodayProfit: 0 }
+                await sequelize.query(sqlstr.insert("wf_drivewealth_practice_asset", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
             }
         } catch (ex) {
             console.error(ex)
@@ -64,4 +67,5 @@ export default new EveryDay('totalAssets', "05:00:00", async({ sequelize, redisC
         //缓存日收益排行
     let [todayProfitResult] = await sequelize.query("select dw.MemberCode,round(dw.TodayProfit) TodayProfit,wf_member.Nickname,concat(:picBaseURL,wf_member.HeadImage) HeadImage from wf_drivewealth_practice_asset as dw left join wf_member on dw.MemberCode=wf_member.MemberCode  where dw.EndDate=CurDate() order by dw.TodayProfit desc limit 100", { replacements: { picBaseURL: Config.picBaseURL } })
     redisClient.set("RankList:todayProfit", JSON.stringify(todayProfitResult))
+    sequelize.query('CALL PRC_WF_PRACTICE_RANK();')
 })

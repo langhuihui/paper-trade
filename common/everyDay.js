@@ -23,5 +23,8 @@ class EveryDay {
         }
         return false
     }
+    run(context) {
+        this.callback(context)
+    }
 }
 export default EveryDay

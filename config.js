@@ -17,6 +17,7 @@ let config = {
     sina_qmap: { us: "gb_", hk: "hk", sh: "sh", sz: "sz" },
     stockPatten: /(gb_|hk|sh|sz).+/,
     jpushType: "jpush108",
+    ajaxOrigin: "*", //跨域访问
     amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001/test",
     picBaseURL: "http://apitest.wolfstreet.tv",
     adminHostURL: "http://admin.wolfstreet.tv",
@@ -26,7 +27,7 @@ let config = {
         appsHost: "https://apps.drivewealth.com",
         reportsHost: "https://reports.drivewealth.net"
     },
-    practiceInitFun: 5000, //模拟交易起始资金
+    practiceInitFun: 10000, //模拟交易起始资金
     //  mysqlconn: "mysql://wfadmin:123456@192.168.2.205:3306/wolfstreet_test",
     CreateSequelize() {
         return new Sequelize(this.mysqlconn, { timezone: '+08:00', logging: (...arg) => console.log(new Date().format(), ...arg) });

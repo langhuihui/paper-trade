@@ -102,6 +102,8 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
     });
     /**我的每日收益 */
     router.get('/MyProfitDaily/:memberCode/:startDate', async(req, res) => {
+        res.setHeader("Access-Control-Allow-Origin", config.ajaxOrigin);
+        res.setHeader("Access-Control-Allow-Methods", "GET");
         let { memberCode, startDate } = req.params
         startDate = new Date(startDate)
         let [result] = await sequelize.query("select TodayProfit profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_drivewealth_practice_asset where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate } })
