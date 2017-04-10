@@ -104,7 +104,7 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
     router.get('/MyProfitDaily/:memberCode/:startDate', async(req, res) => {
         let { memberCode, startDate } = req.params
         startDate = new Date(startDate)
-        let [result] = await sequelize.query("select TodayProfit,DATE_FORMAT(EndDate,'%Y-%m-%d') as date from wf_drivewealth_practice_asset where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate } })
+        let [result] = await sequelize.query("select TodayProfit profit,DATE_FORMAT(EndDate,'%Y-%m-%d') as date from wf_drivewealth_practice_asset where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate } })
         res.send({ Status: 0, Explain: "", DataList: result })
     });
     router.get('/Settings', ctt, async(req, res) => {
