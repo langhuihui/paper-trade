@@ -1,5 +1,5 @@
 import sqlstr from '../../common/sqlStr'
-
+import _config from '../config'
 module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redisClient }) {
     const router = express.Router();
     /**是否开市*/
@@ -52,11 +52,16 @@ module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redi
                 res.send({ Status: 40003, Explain: "未知类型" })
         }
     });
-    router.get('/GetStockCanTrade', checkEmpty("stockcode"), async(req, res) => {
-        let { stockcode } = req.query
+    router.get('/StockCanTrade/:stockcode', async(req, res) => {
+        let { stockcode } = req.params
         let [result] = await sequelize.query("select * from wf_securities_trade where remark='DW' and SecuritiesNo=:stockcode", { replacements: { stockcode } })
         res.send({ Status: 0, Explain: "", Result: result.length > 0 })
 
     });
+    router.get('/FinancialIndex/:type', async(req, res) => {
+        let data = _config.FinancialIndex[req.params.type]
+        if (data) res.send({ Status: 0, Explain: "", DataList: data })
+        else res.send({ Status: 40003, Explain: "未知类型", })
+    })
     return router
 }

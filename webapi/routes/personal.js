@@ -1,4 +1,5 @@
 import sqlstr from '../../common/sqlStr'
+import _config from '../config'
 const myMainListSql = `
 SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTime,'%Y-%m-%d %H:%i:%s') AS ShowTime FROM 
 	(SELECT
@@ -74,7 +75,7 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
     }
     async function homePage(memberCode, res) {
         let [result] = await sequelize.query("select TotalAmount,MtmPL from wf_drivewealth_practice_asset where MemberCode=:memberCode order by EndDate desc limit 2", { replacements: { memberCode } })
-        let Data = { TotalAmount: 50000, TodayProfit: 0, MtmPL: 0, EveryDayURL: "http://h5.wolfstree.tv/" }
+        let Data = { TotalAmount: 50000, TodayProfit: 0, MtmPL: 0, EveryDayURL: _config.EveryDayURL }
         if (result.length) {
             Object.assign(Data, result[0])
             if (result.length == 2) {
