@@ -19,6 +19,7 @@ let config = {
     jpushType: "jpush108",
     amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001/test",
     picBaseURL: "http://apitest.wolfstreet.tv",
+    adminHostURL: "http://admin.wolfstreet.tv",
     redisConfig: { host: "api.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC", db: 1 },
     driveWealthHost: {
         apiHost: "https://api.drivewealth.net",

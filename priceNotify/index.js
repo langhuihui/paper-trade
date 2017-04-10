@@ -1,8 +1,5 @@
 import express from 'express'
-import Iconv from 'iconv-lite'
-import bodyParser from 'body-parser'
 import Config from '../config'
-import http from 'http'
 import JPush from 'jpush-sdk'
 import amqp from 'amqplib'
 const jpushRegIDSql = "SELECT a.*,b.JpushRegID FROM wf_securities_remind a LEFT JOIN wf_im_jpush b ON a.MemberCode = b.MemberCode WHERE a.IsOpenLower=1 OR a.IsOpenUpper=1 OR a.IsOpenRise=1 OR a.IsOpenFall=1";
@@ -83,37 +80,6 @@ async function getAllNotify() {
     }
 }
 getAllNotify()
-    // const app = express();
-    // app.use(bodyParser.json())
-    // app.use(bodyParser.urlencoded({ extended: true }))
-    // app.use('/', (req, res) => {
-    //         res.json({ notifies, stocks_name, stocks })
-    //     })
-    //     //添加提醒
-    // app.use('/addNotify', (req, res) => {
-    //     let { SmallType, SecuritiesNo, RemindId } = req.body
-    //     let name = Config.sina_qmap[SmallType] + SecuritiesNo
-    //     notifies[RemindId] = req.body
-    //     if (!stocksRef[name]) {
-    //         stocksRef[name] = 1
-    //         if (!stocks_name) stocks_name = name
-    //         else stocks_name += "," + name
-    //     } else stocksRef[name]++
-    //         res.json({ Status: 0, Explain: "" })
-    //         //res.cookie('user', 'value', { signed: true })
-    // })
-    // app.use('/modifyNotify', (req, res) => {
-    //     let { SmallType, SecuritiesNo, RemindId } = req.body
-    //     let name = Config.sina_qmap[SmallType] + SecuritiesNo
-    //     notifies[RemindId] = req.body
-    // })
-    // app.use('/updateJpushRegID', (req, res) => {
-    //     let { MemberCode, JpushRegID } = req.body
-    //     for (let nid in notifies) {
-    //         let notify = notifies[nid]
-    //         if (notify.MemberCode == MemberCode) notify.JpushRegID = JpushRegID
-    //     }
-    // })
 
 function sendNotify(type, nofity, price) {
     let msg = "沃夫街股价提醒:" + nofity.SecuritiesNo

@@ -20,13 +20,7 @@ module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redi
 
     //     res.send({ Status: 0, Explain: "", IsDwAccCreated: result.length })
     // });
-    /**我的每日总资产 */
-    router.get('/MyAssetsDaily', checkEmpty("memberCode", "startDate"), async(req, res) => {
-        let { memberCode, startDate } = req.query
-        startDate = new Date(startDate)
-        let [result] = await sequelize.query("select TotalAmount totalAsset,DATE_FORMAT(EndDate,'%Y-%m-%d') as date from wf_drivewealth_practice_asset where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate } })
-        res.send({ Status: 0, Explain: "", DataList: result })
-    });
+
     /**修改股价提醒 */
     router.put('/SetPriceNotify', ctt, async(req, res) => {
         let replacements = req.body

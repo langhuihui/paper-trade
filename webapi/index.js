@@ -23,6 +23,7 @@ async function startMQ() {
     let channel = await amqpConnection.createChannel()
     let ok = await channel.assertQueue('priceNotify')
     shareData.mqChannel = channel
+    app.use('/v2.5/Home', require('./routes/homePage')(shareData))
     app.use('/v2.5/Trade', require('./routes/trade')(shareData))
     app.use('/v2.5/Personal', require('./routes/personal')(shareData))
     app.use('/v2.5/ImageTalk', require('./routes/imageTalk')(shareData))

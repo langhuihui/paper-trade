@@ -99,7 +99,14 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
     })
     router.get('/GetHeHomePage/:memberCode', (req, res) => {
         homePage(req.params.memberCode, res)
-    })
+    });
+    /**我的每日收益 */
+    router.get('/MyProfitDaily/:memberCode/:startDate', async(req, res) => {
+        let { memberCode, startDate } = req.params
+        startDate = new Date(startDate)
+        let [result] = await sequelize.query("select TodayProfit,DATE_FORMAT(EndDate,'%Y-%m-%d') as date from wf_drivewealth_practice_asset where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate } })
+        res.send({ Status: 0, Explain: "", DataList: result })
+    });
     router.get('/Settings', ctt, async(req, res) => {
         let [result] = await sequelize.query("select * from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } })
         res.send({ Status: 0, Explain: "", Data: result[0] })

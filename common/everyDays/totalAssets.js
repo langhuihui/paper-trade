@@ -18,14 +18,14 @@ export default new EveryDay('totalAssets', "05:00:00", async({ sequelize, redisC
                 body: {
                     "appTypeID": "2000",
                     "appVersion": "0.1",
-                    "username": username,
+                    username,
                     "emailAddress": emailAddress1,
                     "ipAddress": "1.1.1.1",
                     "languageID": "zh_CN",
                     "osVersion": "iOS 9.1",
                     "osType": "iOS",
                     "scrRes": "1920x1080",
-                    "password": password
+                    password
                 },
                 json: true
             })

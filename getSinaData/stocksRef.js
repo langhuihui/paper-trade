@@ -1,25 +1,23 @@
 class StockRef {
     constructor() {
-        this.ref = new Map()
+        this.ref = {}
     }
     get array() {
-        return Array.from(this.ref.keys())
+        return Object.keys(this.ref)
     }
     addSymbol(symbol) {
-        if (this.ref.has(symbol)) {
-            this.ref.set(symbol, this.ref.get(symbol) + 1)
+        if (this.ref.hasOwnProperty(symbol)) {
+            this.ref[symbol]++;
             return false
         } else {
-            this.ref.set(symbol, 1)
+            this.ref[symbol] = 1
             return true
         }
     }
     removeSymbol(symbol) {
-        if (this.ref.has(symbol)) {
-            let oldValue = this.ref.get(symbol)
-            this.ref.set(symbol, oldValue - 1)
-            if (oldValue == 1) {
-                this.ref.delete(symbol)
+        if (this.ref.hasOwnProperty(symbol)) {
+            if (--this.ref[symbol] == 0) {
+                delete this.ref[symbo]
                 return true
             }
         }
@@ -36,7 +34,7 @@ class StockRef {
         }
     }
     clear() {
-        this.ref.clear()
+        this.ref = {}
     }
 }
 export default StockRef
