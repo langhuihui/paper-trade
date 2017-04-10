@@ -5,18 +5,22 @@ module.exports = function({ sequelize, ctt, express, config }) {
         let replacements = req.params
         replacements.memberCode = req.memberCode
         replacements.picBaseURL = config.picBaseURL
-        let [result] = await sequelize.query("select *,concat(:picBaseURL,Thumbnail) Composite_Image from wf_imagetext where `Status`=1 and `Code`=:code", { replacements })
+        let [result] = await sequelize.query("select *,LikeCount LikesCount,concat(:picBaseURL,Thumbnail) Composite_Image from wf_imagetext where `Status`=1 and `Code`=:code", { replacements })
         if (result.length) {
             let [it] = result
-            //评论数
-            let [commentCount] = await sequelize.query(`select count(*) from wf_imagetext_comment where ITCode=:code`, { replacements })
-            it.CommentCount = commentCount[0]["count(*)"]
-                //点赞数和我是否已经点赞
-            let [likeCount] = await sequelize.query(`select count(*),sum(case when CreateUser=:memberCode then 1 else 0 end) myLike from wf_imagetext_likes where ITCode=:code`, { replacements })
-            it.LikesCount = likeCount[0]["count(*)"]
-            it.IsLikes = Boolean(likeCount[0]["myLike"])
+            //点赞数和我是否已经点赞
+            let [likeCount] = await sequelize.query(`select count(*) myLikes from wf_imagetext_likes where ITCode=:code and CreateUser=:memberCode`, { replacements })
+            it.IsLikes = likeCount[0]["myLikes"] > 0
             let [around] = await sequelize.query('select `Code` LastCode,(select `Code` from wf_imagetext where Id<:Id and `Status`=1 order by Id desc limit 1 ) NextCode from wf_imagetext where Id>:Id and `Status`=1 limit 1', { replacements: { Id: it.Id } })
             Object.assign(it, around[0])
+            delete it.Id
+            delete it.Original_Image
+            delete it.Thumbnail
+            delete it.Status
+            delete it.State
+            delete it.MemberCode
+            delete it.CreateTime
+            delete it.LikeCount
             res.send({ Status: 0, Explain: "", Data: it })
         } else {
             res.send({ Status: -1, Explain: "该图说不存在!" })

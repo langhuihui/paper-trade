@@ -4,3 +4,4 @@ node_modules
 .vs
 pconfig.js
 test*
+.vscode

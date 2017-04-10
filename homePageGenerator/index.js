@@ -2,6 +2,7 @@ import Config from '../config'
 import Iconv from 'iconv-lite'
 import amqp from 'amqplib'
 import Rx from 'rxjs'
+import { ArrayGenerator, ColumnGenerator, NewsGenerator, BookGenerator } from './generators'
 import PublishOnTime from './publishOnTime'
 const sequelize = Config.CreateSequelize();
 const publishOnTime = new PublishOnTime(() => { GenerateHomePage() })
@@ -27,84 +28,6 @@ const homePageSqls = [
     })
 })();
 
-/**
- * 专栏生成器
- * @constructor
- * @param {Object} allColumns - 所有专栏 */
-class ColumnGenerator {
-    constructor(allColumns) {
-        this.currentIndex = 0
-        this.allColumns = allColumns
-        this.empty = false
-    }
-    get currentColumn() {
-        return this.allColumns[this.currentIndex]
-    };
-    /**下一轮 */
-    gotoNext() {
-        if (this.allColumns.length) {
-            //if (!this.currentColumn.News.length) {
-            if (this.currentColumn.News.length < 4) {
-                this.allColumns.splice(this.currentIndex, 1)
-                if (!this.allColumns.length) {
-                    this.empty = true
-                    return
-                }
-            } else {
-                this.currentIndex++;
-            }
-            //循环获取
-            if (this.currentIndex >= this.allColumns.length) {
-                this.currentIndex = 0
-            }
-        } else this.empty = true
-    };
-    /**获取一个专栏 */
-    getOne() {
-        if (this.empty) return null
-        let l = this.currentColumn.News.length
-        let c = l >= 4 ? 4 : l
-        if (c == 4) {
-            var result = {}
-            Object.assign(result, this.currentColumn)
-            result.News = this.currentColumn.News.slice(0, c)
-            this.currentColumn.News.splice(0, c)
-            this.gotoNext()
-            return result
-        }
-        this.gotoNext()
-        return this.getOne()
-    }
-}
-/**普通资讯生成器 */
-class NewsGenerator {
-    constructor(news) {
-        this.news = news
-        console.log("total news:", news.length)
-        this.newsPos = 0
-        this.empty = false
-    }
-    getOne() {
-        if (this.empty) return null
-        let randNo = getRandomNumber()
-
-        if (this.news.length < this.newsPos + randNo) {
-            randNo = this.news.length - this.newsPos
-            this.empty = true
-            if (!randNo) return null
-        }
-        //let result = { Type: 0, News: this.news.slice(this.newsPos, this.newsPos + randNo) }
-        let result = this.news.slice(this.newsPos, this.newsPos + randNo)
-        this.newsPos += randNo
-        console.log("剩余：", this.news.length - this.newsPos)
-        return result
-    }
-}
-/**随机数生成，3~5 */
-function getRandomNumber() {
-    return Math.round(Math.random() * 2 + 3)
-}
-
 /**首页生成主程序 */
 async function GenerateHomePage() {
     //获取最大版本号
@@ -124,30 +47,21 @@ async function GenerateHomePage() {
         }
         columnsMap[data1.ColumnNo].News.push({ Id: data1.Id, Code: data1.Code, Title: data1.Title, Pic: data1.Pic })
     }
-    columnsMap = new ColumnGenerator(columns)
-    columns = []
-        //把专栏全部生成好
-    while (true) {
-        let column = columnsMap.getOne()
-        if (column) columns.push(column)
-        else break
-    }
     let newsG = new NewsGenerator(publishOnTime.reset(allData[0]))
     let pageData = []
     let page = 0
     let news = newsG.getOne()
     pageData.push(...news) //首页先生成几个资讯
-    let temp = [columns, allData[2], allData[3], allData[4], allData[5]] //专栏、图说、专题、书籍、投票
+    let temp = [new ColumnGenerator(columns), new ArrayGenerator(allData[2]), new ArrayGenerator(allData[3]), new BookGenerator(allData[4]), new ArrayGenerator(allData[5])] //专栏、图说、专题、书籍、投票
         //let temp = [columns, allData[2], allData[3], allData[4]]
     let now = new Date()
     news = null
     while (true) {
         for (let t of temp) {
-            if (t.length) {
-                pageData.push(t[0])
-                t.push(t.shift()) //循环
+            let big = t.getOne()
+            if (big) {
                 news = newsG.getOne()
-                if (news) pageData.push(...news)
+                if (news) pageData.push(big, ...news)
                 else break
             }
         }
