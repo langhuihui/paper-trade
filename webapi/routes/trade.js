@@ -24,7 +24,7 @@ module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redi
         let replacements = req.params
         replacements.MemberCode = req.memberCode
         let [result] = await sequelize.query("select * from wf_securities_remind where MemberCode=:MemberCode and SecuritiesNo=:SecuritiesNo and SmallType=:SmallType limit 1", { replacements })
-        res.send({ Status: 0, Explain: "", Data: result[0] })
+        res.send({ Status: 0, Explain: "", Data: Object.convertBuffer2Bool(result[0], "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall") })
     });
     /**修改股价提醒 */
     router.put('/SetPriceNotify', ctt, async(req, res) => {
@@ -67,6 +67,18 @@ module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redi
         let data = _config.FinancialIndex[req.params.type]
         if (data) res.send({ Status: 0, Explain: "", DataList: data })
         else res.send({ Status: 40003, Explain: "未知类型", })
-    })
+    });
+    /**新增股票详情评论 */
+    router.post('/AddQuotationComment', ctt, async(req, res) => {
+        let replacements = req.body
+        replacements.CreateUser = req.memberCode
+        let result = await sequelize.query(sqlstr.insert("wf_quotation_comment", replacements, { Id: null, CreateTime: "Now()", IsDelelte: 0 }), { replacements })
+        res.send({ Status: 0, Explain: "", Data: result })
+    });
+    /**删除评论股票详情评论 */
+    router.delete('/DelQuotationComment/:id', ctt, async(req, res) => {
+        let [result] = await sequelize.query("update wf_quotation_comment set isdelete=1 where id=:id", { replacements: { id: req.params.id } });
+        res.send({ Status: 0, Explain: "", Result: result.length > 0 })
+    });
     return router
 }
