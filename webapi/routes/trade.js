@@ -20,12 +20,17 @@ module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redi
 
     //     res.send({ Status: 0, Explain: "", IsDwAccCreated: result.length })
     // });
-
+    router.get('/GetPriceNotify/:SmallType/:SecuritiesNo', ctt, async(req, res) => {
+        let replacements = req.params
+        replacements.MemberCode = req.memberCode
+        let [result] = await sequelize.query("select * from wf_securities_remind where MemberCode=:MemberCode and SecuritiesNo=:SecuritiesNo and SmallType=:SmallType limit 1", { replacements })
+        res.send({ Status: 0, Explain: "", Data: result[0] })
+    });
     /**修改股价提醒 */
     router.put('/SetPriceNotify', ctt, async(req, res) => {
         let replacements = req.body
         replacements.MemberCode = req.memberCode
-        let [result0] = await sequelize.query("select * from wf_securities_remind where MemberCode=:MemberCode and SecuritiesNo=:SecuritiesNo and SmallType=:SmallType", { replacements })
+        let [result0] = await sequelize.query("select * from wf_securities_remind where MemberCode=:MemberCode and SecuritiesNo=:SecuritiesNo and SmallType=:SmallType limit 1", { replacements })
         if (result0.length) {
             let [{ RemindId }] = result0
             replacements.RemindId = RemindId

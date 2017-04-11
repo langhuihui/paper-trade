@@ -109,15 +109,13 @@ function sendNotify(type, nofity, price) {
             }
         })
 }
-setInterval(() => {
+setInterval(async() => {
     //调用新浪接口
     for (let nid in notifies) {
         let notify = notifies[nid]
         let name = Config.sina_qmap[notify.SmallType] + notify.SecuritiesNo
         let sp = await redisClient.getAsync("lastPrice:" + name)
-        sp = JSON.parse("[" + sp + "]")
-        let price = sp[3]
-        let chg = (sp[3] - sp[4]) * 100 / sp[4] //涨跌幅
+        let [, , , price, , chg] = JSON.parse("[" + sp + "]")
         if (notify.IsOpenLower) {
             if (notify.isLowSent) {
                 if (price > notify.LowerLimit) {
