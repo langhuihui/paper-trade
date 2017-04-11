@@ -1,6 +1,6 @@
 import sqlstr from '../../common/sqlStr'
 import _config from '../config'
-module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redisClient }) {
+module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChannel, redisClient }) {
     const router = express.Router();
     /**是否开市*/
     router.get('/:type/IsOpen', async(req, res) => {
@@ -84,7 +84,9 @@ module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redi
     });
     //获取此股票的所有评论
     router.get('/GetQuotationCommentList/:StockType/:StockCode', ctt, async(req, res) => {
-        let [result] = await sequelize.query("select * from wf_quotation_comment where isdelete=0 and StockCode=:StockCode and StockType=:StockType", { replacements: req.params });
+        let replacements = req.params
+        replacements.picBaseURL = config.picBaseURL
+        let [result] = await sequelize.query("select wf_quotation_comment.*,wf_member.NickName,concat(:picBaseURL,wf_member.headimage)HeadImage from wf_quotation_comment left join wf_member on wf_member.membercode=wf_quotation_comment.CreateUser where isdelete=0 and StockCode=:StockCode and StockType=:StockType", { replacements });
         res.send({ Status: 0, Explain: "", DataList: result })
     })
     return router
