@@ -81,7 +81,7 @@ async function GenerateHomePage() {
                     return value
             }
         })
-        content = content.substr(1, content.length - 2).replace(/\\r\\n/g, "") //去掉回车换行和前后中括号
+        content = content.substr(1, content.length - 2).replace(/[\\r\\n]/g, "") //去掉回车换行和前后中括号
         await sequelize.query(`insert into wf_homepage(Versions,Page,Content,CreateTime) values(${version},${page},'${content}','${now.format()}')`)
         pageData.length = 0
         page++
