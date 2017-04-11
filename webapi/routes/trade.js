@@ -80,5 +80,10 @@ module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redi
         let [result] = await sequelize.query("update wf_quotation_comment set isdelete=1 where id=:id", { replacements: { id: req.params.id } });
         res.send({ Status: 0, Explain: "", Result: result.length > 0 })
     });
+    //获取此股票的所有评论
+    router.get('/GetQuotationCommentList/:StockType/:StockCode', ctt, async(req, res) => {
+        let [result] = await sequelize.query("select * from wf_quotation_comment where isdelete=0 and StockCode=:StockCode and StockType=:StockType", { replacements: req.params });
+        res.send({ Status: 0, Explain: "", DataList: result })
+    })
     return router
 }
