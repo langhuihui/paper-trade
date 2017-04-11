@@ -3,13 +3,12 @@ import request from 'request'
 import Config from '../config'
 import amqp from 'amqplib'
 import Iconv from 'iconv-lite'
-import DeltaRank from './deltaRank'
 import StockRef from './stocksRef'
 var client = Config.CreateRedisClient();
-const sequelize = Config.CreateSequelize();
+//const sequelize = Config.CreateSequelize();
 var stockRef = new StockRef()
 var listenerSymbol = new Map() //订阅者关注的股票
-var ETFS = []
+    // var ETFS = []
     /**rabbitmq 通讯 */
 async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
@@ -72,26 +71,26 @@ async function startMQ() {
     ok = await channel.bindQueue('sinaData', 'broadcast', 'fanout')
     console.log(ok, channel.sendToQueue('sinaData', new Buffer("restart")))
         /**获取ETF */
-    let [etfs] = await sequelize.query("select * from wf_securities_trade where ShowType='ETF'")
-    for (let etf of etfs) {
-        Object.deleteProperties(etf, "")
-    }
-    //    "SecuritiesID": 16700,
-    //         "SecuritiesNo": "IPU",
-    //         "SecuritiesName": "SPDR S&P International Utilities",
-    //         "Remark": "",
-    //         "BigType": "gp",
-    //         "SmallType": "us",
-    //         "QueryUrlCode": "gb_",
-    //         "PinYin": "SPDR S&P International Utilitie",
-    //         "FirstPinYin": "IPU",
-    //         "Trade_ParentID": null,
-    //         "Trade_ID": null,
-    //         "Expand": "AM",
-    //         "ShowType": "ETF",
-    //         "delta": 0
-    stockRef.addSymbols(etfs.map(etf => etf.QueryUrlCode + etf.SecuritiesNo.toLowerCase()))
-    ETFS = etfs
+        // let [etfs] = await sequelize.query("select * from wf_securities_trade where ShowType='ETF'")
+        // for (let etf of etfs) {
+        //     Object.deleteProperties(etf, "")
+        // }
+        //    "SecuritiesID": 16700,
+        //         "SecuritiesNo": "IPU",
+        //         "SecuritiesName": "SPDR S&P International Utilities",
+        //         "Remark": "",
+        //         "BigType": "gp",
+        //         "SmallType": "us",
+        //         "QueryUrlCode": "gb_",
+        //         "PinYin": "SPDR S&P International Utilitie",
+        //         "FirstPinYin": "IPU",
+        //         "Trade_ParentID": null,
+        //         "Trade_ID": null,
+        //         "Expand": "AM",
+        //         "ShowType": "ETF",
+        //         "delta": 0
+        // stockRef.addSymbols(etfs.map(etf => etf.QueryUrlCode + etf.SecuritiesNo.toLowerCase()))
+        // ETFS = etfs
 }
 
 var intervalId;
@@ -104,7 +103,7 @@ function start() {
             let l = stocks.length;
             let i = 0
             let stocks_name = ""
-            let sinaData = {}
+                //let sinaData = {}
             while (l) {
                 if (l > pageSize) {
                     stocks_name = stocks.slice(i, i + pageSize).join(",")
@@ -118,22 +117,22 @@ function start() {
                     let rawData = Iconv.decode(body, 'gb2312')
                     let config = Config
                     let redisClient = client
-                    let sd = sinaData
+                        //let sd = sinaData
                     eval(rawData + ` for (let stockName of stocks){
                         let q = config.stockPatten.exec(stockName)[1];
                         let x=eval("hq_str_" + stockName).split(",");
-                        let price = sd[stockName] = config.pricesIndexMap[q].map(y=>Number(x[y]));
+                        let price = config.pricesIndexMap[q].map(y=>Number(x[y]));
                         price[5] =  (price[3] - price[4]) * 100 / price[4];
                         redisClient.set("lastPrice:"+stockName,price.join(","))}`)
                 })
             }
-            for (let etf of ETFS) {
-                let stock_name = etf.QueryUrlCode + etf.SecuritiesNo.toLowerCase()
-                let [Open, High, Low, Last, PreClose, Delta] = sinaData[stock_name] ? sinaData[stock_name] : []
-                Object.assign(etf, { Open, High, Low, Last, PreClose, Delta })
-            }
-            ETFS.sort((a, b) => a.Delta > b.Delta)
-            client.set("ETFRank", JSON.stringify(ETFS))
+            // for (let etf of ETFS) {
+            //     let stock_name = etf.QueryUrlCode + etf.SecuritiesNo.toLowerCase()
+            //     let [Open, High, Low, Last, PreClose, Delta] = sinaData[stock_name] ? sinaData[stock_name] : []
+            //     Object.assign(etf, { Open, High, Low, Last, PreClose, Delta })
+            // }
+            // ETFS.sort((a, b) => a.Delta > b.Delta)
+
         }
     }, 5000)
 }
