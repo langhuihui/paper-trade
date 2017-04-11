@@ -8,6 +8,7 @@ let config = {
     clientInit: { //特定版本客户端配置
         "2.5": { showTrade: false }
     },
+    FinancialIndexBaseURL: "",
     FinancialIndex: {
         hs: [{ Title: "上证指数", URL: "" }, { Title: "深证指数", URL: "" }, { Title: "创业指数", URL: "" }],
         hk: [{ Title: "恒生指数", URL: "" }, { Title: "国企指数", URL: "" }, { Title: "红筹指数", URL: "" }],
@@ -28,4 +29,5 @@ if (process.env.NODE_ENV === "production") {
 for (let k in config.clientInit) {
     config.clientInit[k] = Object.assign(Object.assign(Object.assign({}, config.clientInitDefault), config.clientInit[k]), config.clientInitAll)
 }
+//config.FinancialIndex
 export default config

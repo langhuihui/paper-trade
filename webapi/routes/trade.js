@@ -24,7 +24,9 @@ module.exports = function({ sequelize, ctt, express, checkEmpty, mqChannel, redi
         let replacements = req.params
         replacements.MemberCode = req.memberCode
         let [result] = await sequelize.query("select * from wf_securities_remind where MemberCode=:MemberCode and SecuritiesNo=:SecuritiesNo and SmallType=:SmallType limit 1", { replacements })
-        res.send({ Status: 0, Explain: "", Data: Object.convertBuffer2Bool(result[0], "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall") })
+        if (result.length)
+            res.send({ Status: 0, Explain: "", Data: Object.convertBuffer2Bool(result[0], "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall") })
+        else res.send({ Status: 0, Explain: "", Data: { IsOpenLower: false, IsOpenUpper: false, IsOpenRise: false, IsOpenFall: false, LowerLimit: 0, UpperLimit: 0, FallLimit: 0, RiseLimit: 0 } })
     });
     /**修改股价提醒 */
     router.put('/SetPriceNotify', ctt, async(req, res) => {
