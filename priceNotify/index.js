@@ -127,7 +127,7 @@ function sendNotify(type, nofity, price) {
     console.log(nofity.JpushRegID, msg)
     jpush.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(nofity.JpushRegID))
         .setNotification('股价提醒', JPush.ios(msg, 'sound', 0, false, { AlertType: Config.jpushType, SmallType: nofity.SmallType, SecuritiesNo: nofity.SecuritiesNo }), JPush.android(msg, '沃夫街股价提醒', 1, { AlertType: Config.jpushType, SmallType: nofity.SmallType, SecuritiesNo: nofity.SecuritiesNo }))
-        .send((err, res) => {
+        .send(async(err, res) => {
             if (err) {
                 if (err instanceof JPush.APIConnectionError) {
                     console.log(err.message)
@@ -135,9 +135,8 @@ function sendNotify(type, nofity, price) {
                     console.log(err.message)
                 }
             } else {
-                await sequelize.query("insert into wf_messages(Type,Content,MemberCode,CreateTime,Title,Status,Extension) values(1,:msg,:MemberCode,now(),'',0,:Extension)", { replacements: { msg, MemberCode: nofity.MemberCode, Extension: nofity.SmallType + nofity.SecuritiesNo } });
-                console.log('Sendno: ' + res.sendno)
-                console.log('Msg_id: ' + res.msg_id)
+                let replacements = { msg, title: nofity.SecuritiesNo, MemberCode: nofity.MemberCode, Extension: JSON.stringify({ SmallType: nofity.SmallType, SecuritiesNo: nofity.SecuritiesNo }) }
+                await sequelize.query("insert into wf_messages(Type,Content,MemberCode,CreateTime,Title,Status,Extension) values(1,:msg,:MemberCode,now(),:title,0,:Extension)", { replacements });
             }
         })
 }
