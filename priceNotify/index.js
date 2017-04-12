@@ -18,10 +18,13 @@ async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
     let ok = await channel.assertQueue('priceNotify')
+    await getAllNotify()
+    channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "reset", listener: "priceNotify", symbols: stocksRef.array })))
     channel.consume('priceNotify', msg => {
         let { cmd, data } = JSON.parse(msg.content.toString())
         switch (cmd) {
             case "update":
+                let name = Config.sina_qmap[data.SmallType] + data.SecuritiesNo.toLowerCase()
                 if (notifies.has(data.RemindId)) {
                     if (isAllClose(data)) {
                         if (stocksRef.removeSymbol(name))
@@ -31,7 +34,7 @@ async function startMQ() {
                 } else {
                     if (!isAllClose(data)) {
                         notifies.set(data.RemindId, data)
-                        let name = Config.sina_qmap[data.SmallType] + data.SecuritiesNo
+
                         if (stocksRef.addSymbol(name))
                             channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "add", listener: "priceNotify", symbols: [name] })))
                     }
@@ -67,18 +70,19 @@ startMQ()
 async function getAllNotify() {
     notifies.clear()
     stocksRef.clear()
-    let [ns] = await sequelize.query(Config.jpushRegIDSql)
+    let [ns] = await sequelize.query(jpushRegIDSql)
     for (let n of ns) {
         Object.convertBuffer2Bool(n, "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall")
         notifies[n.RemindId] = n
-        let name = Config.sina_qmap[n.SmallType] + n.SecuritiesNo
+        let name = Config.sina_qmap[n.SmallType] + n.SecuritiesNo.toLowerCase()
         stocksRef.addSymbol(name)
             //console.log(n)
     }
 }
-getAllNotify()
+
 
 function sendNotify(type, nofity, price) {
+
     let msg = "沃夫街股价提醒:" + nofity.SecuritiesNo
     switch (type) {
         case 0:
@@ -94,6 +98,7 @@ function sendNotify(type, nofity, price) {
             msg += ` 当前涨幅 ${price} 已经超过 ${nofity.RiseLimit}`
             break
     }
+    console.log(nofity.JpushRegID, msg)
     jpush.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(nofity.JpushRegID))
         .setNotification('股价提醒', JPush.ios(msg, 'sound', 0, false, { AlertType: Config.jpushType, SmallType: nofity.SmallType, SecuritiesNo: nofity.SecuritiesNo }), JPush.android(msg, '沃夫街股价提醒', 1, { AlertType: Config.jpushType, SmallType: nofity.SmallType, SecuritiesNo: nofity.SecuritiesNo }))
         .send((err, res) => {
@@ -114,8 +119,9 @@ setInterval(async() => {
     for (let nid in notifies) {
         let notify = notifies[nid]
         let name = Config.sina_qmap[notify.SmallType] + notify.SecuritiesNo
-        let sp = await redisClient.getAsync("lastPrice:" + name)
+        let sp = await redisClient.getAsync("lastPrice:" + name.toLowerCase())
         let [, , , price, , chg] = JSON.parse("[" + sp + "]")
+            //console.log(name, price, chg, notify)
         if (notify.IsOpenLower) {
             if (notify.isLowSent) {
                 if (price > notify.LowerLimit) {

@@ -44,6 +44,13 @@ if (process.env.NODE_ENV === "production") {
     Object.assign(config, require('./pconfig.js'))
 }
 export default config;
+/**过滤属性（只保留某些属性) */
+Object.filterProperties = function(obj, ...args) {
+    for (let n of Object.keys(obj)) {
+        if (args.indexOf(n) == -1) delete obj[n]
+    }
+    return obj
+};
 /**批量删除对象属性 */
 Object.deleteProperties = function(obj, ...args) {
     for (let n of args) {

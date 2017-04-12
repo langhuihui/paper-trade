@@ -32,18 +32,17 @@ module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChann
     router.put('/SetPriceNotify', ctt, async(req, res) => {
         let replacements = req.body
         replacements.MemberCode = req.memberCode
-        let [result0] = await sequelize.query("select * from wf_securities_remind where MemberCode=:MemberCode and SecuritiesNo=:SecuritiesNo and SmallType=:SmallType limit 1", { replacements })
-        if (result0.length) {
-            let [{ RemindId }] = result0
-            replacements.RemindId = RemindId
-            await sequelize.query(sqlstr.update("wf_securities_remind", replacements, { RemindId: null, MemberCode: null, SecuritiesNo: null, SmallType: null }) + "where RemindId=:RemindId", { replacements })
+        let [result] = await sequelize.query("select * from wf_securities_remind where MemberCode=:MemberCode and SecuritiesNo=:SecuritiesNo and SmallType=:SmallType limit 1", { replacements })
+        if (result.length) {
+            ([{ RemindId: replacements.RemindId }] = result);
+            result = await sequelize.query(sqlstr.update("wf_securities_remind", replacements, { RemindId: null, MemberCode: null, SecuritiesNo: null, SmallType: null }) + "where RemindId=:RemindId", { replacements })
         } else {
-            let [result] = await sequelize.query(sqlstr.insert("wf_securities_remind", replacements, { CreateTime: "Now()" }), { replacements })
-            let [result1] = await sequelize.query("select last_insert_id() insertId")
-            let [{ insertId }] = result1
-            replacements.RemindId = insertId
+            result = await sequelize.query(sqlstr.insert("wf_securities_remind", replacements, { CreateTime: "Now()" }), { replacements });
+            ([
+                [{ insertId: replacements.RemindId }]
+            ] = await sequelize.query("select last_insert_id() insertId"));
         }
-        res.send({ Status: 0, Explain: "" })
+        res.send({ Status: 0, Explain: "", Result: result })
         mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "update", data: replacements })))
     });
     /**排行榜 */
@@ -72,21 +71,21 @@ module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChann
     });
     /**新增股票详情评论 */
     router.post('/AddQuotationComment', ctt, async(req, res) => {
-        let replacements = req.body
+        let replacements = Object.filterProperties(req.body, "StockCode", "StockType", "ParentID", "Content", "IsDelete")
         replacements.CreateUser = req.memberCode
         let result = await sequelize.query(sqlstr.insert("wf_quotation_comment", replacements, { Id: null, CreateTime: "Now()", IsDelelte: 0 }), { replacements })
         res.send({ Status: 0, Explain: "", Data: result })
     });
     /**删除评论股票详情评论 */
     router.delete('/DelQuotationComment/:id', ctt, async(req, res) => {
-        let [result] = await sequelize.query("update wf_quotation_comment set isdelete=1 where id=:id", { replacements: { id: req.params.id } });
+        let [result] = await sequelize.query("update wf_quotation_comment set isdelete=1 where id=:id", { replacements: req.params });
         res.send({ Status: 0, Explain: "", Result: result.length > 0 })
     });
     //获取此股票的所有评论
-    router.get('/GetQuotationCommentList/:StockType/:StockCode', ctt, async(req, res) => {
+    router.get('/GetQuotationCommentList/:StockType/:StockCode', async(req, res) => {
         let replacements = req.params
         replacements.picBaseURL = config.picBaseURL
-        let [result] = await sequelize.query("select wf_quotation_comment.*,wf_member.NickName,concat(:picBaseURL,wf_member.headimage)HeadImage from wf_quotation_comment left join wf_member on wf_member.membercode=wf_quotation_comment.CreateUser where isdelete=0 and StockCode=:StockCode and StockType=:StockType", { replacements });
+        let [result] = await sequelize.query("select wf_quotation_comment.*,DATE_FORMAT(wf_quotation_comment.CreateTime,'%Y-%m-%d %H:%i:%s') CreateTime,wf_member.NickName,concat(:picBaseURL,wf_member.headimage)HeadImage from wf_quotation_comment left join wf_member on wf_member.membercode=wf_quotation_comment.CreateUser where isdelete=0 and StockCode=:StockCode and StockType=:StockType order by wf_quotation_comment.id desc", { replacements });
         res.send({ Status: 0, Explain: "", DataList: result })
     })
     return router

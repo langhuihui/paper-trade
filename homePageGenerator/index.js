@@ -87,8 +87,10 @@ async function GenerateHomePage() {
         page++
     }
     console.log("生成首页完成,共" + page + "页");
-    version = (await sequelize.query("select max(Versions) maxVersion from wf_homepage where CreateTime < CURDATE()"))[0] //选出今天之前的最大版本号
-    version = version[0]['maxVersion']
+    ([
+        [{ maxVersion: version }]
+    ] = await sequelize.query("select max(Versions) maxVersion from wf_homepage where CreateTime < CURDATE()")) //选出今天之前的最大版本号
+    //version = version[0]['maxVersion']
     let delResult = await sequelize.query("delete from wf_homepage where Versions < " + version)
     console.log("已删除旧数据：", delResult[0].affectedRows)
 }
