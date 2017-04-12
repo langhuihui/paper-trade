@@ -116,7 +116,7 @@ async function getAllNotify() {
 function sendNotify(type, notify, price, chg) {
     let title = `${notify.SecuritiesName}(${notify.SecuritiesNo})最新价${price}`
         //您关注的Snapchat(SNAP)于2017-03-11 10:09:11(美东时间)达到21.82，涨幅为7.07%，超过7%了。
-    let msg = `您关注的${notify.SecuritiesName}(${notify.SecuritiesNo})于${notify.SmallType=='us'?timezone(new Date()).tz("America/New_York").format("YYYY-MM-dd hh:mm:ss")+"(美东时间)":moment.format("YYYY-MM-dd hh:mm:ss")}达到${price}`
+    let msg = `您关注的${notify.SecuritiesName}(${notify.SecuritiesNo})于${notify.SmallType=='us'?timezone(new Date()).tz("America/New_York").format("YYYY-MM-dd hh:mm:ss")+"(美东时间)":moment().format("YYYY-MM-dd hh:mm:ss")}达到${price}`
     switch (type) {
         case 0:
             msg += `，低于${notify.LowerLimit}`
