@@ -143,7 +143,7 @@ function sendNotify(type, notify, price, chg) {
                 }
             } else {
                 let replacements = { msg, title, MemberCode: notify.MemberCode, Extension: JSON.stringify({ SmallType: notify.SmallType, SecuritiesNo: notify.SecuritiesNo }) }
-                await sequelize.query("insert into wf_messages(Type,Content,MemberCode,CreateTime,Title,Status,Extension) values(1,:msg,:MemberCode,now(),:title,0,:Extension)", { replacements });
+                await sequelize.query("insert into wf_message(Type,Content,MemberCode,CreateTime,Title,Status,Extension) values(1,:msg,:MemberCode,now(),:title,0,:Extension)", { replacements });
             }
         })
 }
