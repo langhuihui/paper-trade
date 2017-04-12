@@ -2,8 +2,7 @@ import express from 'express'
 import Config from '../config'
 import JPush from 'jpush-sdk'
 import amqp from 'amqplib'
-import moment from 'moment'
-import timezone from 'moment-timezone'
+import moment from 'moment-timezone'
 const jpushRegIDSql = `
 SELECT
 	a.*, b.JpushRegID,c.SecuritiesName
@@ -116,16 +115,16 @@ async function getAllNotify() {
 function sendNotify(type, notify, price, chg) {
     let title = `${notify.SecuritiesName}(${notify.SecuritiesNo})最新价${price}`
         //您关注的Snapchat(SNAP)于2017-03-11 10:09:11(美东时间)达到21.82，涨幅为7.07%，超过7%了。
-    let msg = `您关注的${notify.SecuritiesName}(${notify.SecuritiesNo})于${notify.SmallType=='us'?timezone(new Date()).tz("America/New_York").format("YYYY-MM-dd hh:mm:ss")+"(美东时间)":moment().format("YYYY-MM-dd hh:mm:ss")}达到${price}`
+    let msg = `您关注的${notify.SecuritiesName}(${notify.SecuritiesNo})于${notify.SmallType=='us'?moment().tz('America/New_York').format('YYYY-MM-DD hh:mm:ss')+"(美东时间)":moment().format("YYYY-MM-DD hh:mm:ss")}达到${price}`
     switch (type) {
         case 0:
             msg += `，低于${notify.LowerLimit}`
             break
         case 1:
-            msg += `，超过了${notify.OpenLimit}`
+            msg += `，超过了${notify.UpperLimit}`
             break
         case 2:
-            msg += `，跌幅为${chg.toFixed(2)}%，超过了${notify.FallLimit.toFixed(2)}%`
+            msg += `，跌幅为${chg.toFixed(2)}%，超过了-${notify.FallLimit.toFixed(2)}%`
             break
         case 3:
             msg += `，涨幅为${chg.toFixed(2)}%，超过了${notify.RiseLimit.toFixed(2)}%`
@@ -186,7 +185,7 @@ setInterval(async() => {
         }
         if (chg < 0) {
             if (notify.IsOpenFall) {
-                let target = Number(notify.FallLimit.toFixed(2))
+                let target = -Number(notify.FallLimit.toFixed(2))
                 if (notify.isFallSent) {
                     if (chg > target) {
                         //恢复状态

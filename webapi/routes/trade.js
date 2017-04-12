@@ -70,6 +70,7 @@ module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChann
         let replacements = Object.filterProperties(req.body, "StockCode", "StockType", "ParentID", "Content", "IsDelete")
         rongcloudSDK.message.chatroom.publish("999999999", replacements.StockType + replacements.StockCode, "RC:TxtMsg", { content: "comment", extra: replacements.Content }, (err, result) => {
             if (err) console.error(err)
+            else console.log(result)
         })
         replacements.CreateUser = req.memberCode
         let result = await sequelize.query(sqlstr.insert("wf_quotation_comment", replacements, { Id: null, CreateTime: "Now()", IsDelelte: 0 }), { replacements })
