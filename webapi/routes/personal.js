@@ -102,7 +102,7 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
         res.setHeader("Access-Control-Allow-Methods", "GET");
         let { memberCode, startDate } = req.params
         startDate = new Date(startDate)
-        let [result] = await sequelize.query("select TodayProfit profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_drivewealth_practice_asset where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate } })
+        let [result] = await sequelize.query("select TodayProfit*100/TotalAmount profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_drivewealth_practice_asset where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate } })
         res.send({ Status: 0, Explain: "", DataList: result })
     });
     /**我的系统设置 */

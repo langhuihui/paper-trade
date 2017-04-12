@@ -26,6 +26,10 @@ var notifies = new Map()
 function isAllClose({ IsOpenLower, IsOpenUpper, IsOpenRise, IsOpenFall }) {
     return !(IsOpenLower || IsOpenUpper || IsOpenRise || IsOpenFall)
 }
+/**获取查询股票的代码sina */
+function getQueryName({ SmallType, SecuritiesNo }) {
+    return Config.sina_qmap[SmallType] + SecuritiesNo.toLowerCase()
+}
 //rabitmq 通讯
 async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
@@ -37,7 +41,7 @@ async function startMQ() {
         let { cmd, data } = JSON.parse(msg.content.toString())
         switch (cmd) {
             case "update":
-                let name = Config.sina_qmap[data.SmallType] + data.SecuritiesNo.toLowerCase()
+                let name = getQueryName(data)
                 if (notifies.has(data.RemindId)) {
                     if (isAllClose(data)) {
                         if (stocksRef.removeSymbol(name))
@@ -97,8 +101,7 @@ async function getAllNotify() {
     for (let n of ns) {
         Object.convertBuffer2Bool(n, "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall")
         notifies[n.RemindId] = n
-        let name = Config.sina_qmap[n.SmallType] + n.SecuritiesNo.toLowerCase()
-        stocksRef.addSymbol(name)
+        stocksRef.addSymbol(getQueryName(n))
             //console.log(n)
     }
 }
@@ -141,7 +144,7 @@ setInterval(async() => {
     //调用新浪接口
     for (let nid in notifies) {
         let notify = notifies[nid]
-        let name = Config.sina_qmap[notify.SmallType] + notify.SecuritiesNo
+        let name = getQueryName(notify)
         let sp = await redisClient.getAsync("lastPrice:" + name.toLowerCase())
         let [, , , price, , chg] = JSON.parse("[" + sp + "]")
             //console.log(name, price, chg, notify)
