@@ -68,7 +68,7 @@ module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChann
     /**新增股票详情评论 */
     router.post('/AddQuotationComment', ctt, async(req, res) => {
         let replacements = Object.filterProperties(req.body, "StockCode", "StockType", "ParentID", "Content", "IsDelete")
-        rongcloudSDK.message.chatroom.publish("999999999", replacements.StockType + replacements.StockCode, "RC:TxtMsg", { content: "comment", extra: replacements.Content }, (err, result) => {
+        rongcloudSDK.message.chatroom.publish("999999999", replacements.StockType + replacements.StockCode, "RC:TxtMsg", JSON.stringify({ content: "comment", extra: replacements.Content }), (err, result) => {
             if (err) console.error(err)
             else console.log(result)
         })
