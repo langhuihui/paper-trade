@@ -62,7 +62,7 @@ SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTi
 
 let mainListCache = {}
 
-module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNum }) {
+module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNum, mqChannel }) {
     async function mainList({ memberCode, pageNum, pageSize, res }) {
         if (pageSize < 0) pageSize = 10
         if (pageNum < 0) pageNum = 0
@@ -122,9 +122,15 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
             }
             let [result2] = await sequelize.query(sqlstr.update("wf_system_setting", replacements, { memberCode: null }) + "where MemberCode=:memberCode", { replacements })
             res.send({ Status: 0, Explain: result2 })
+            if (result[0].PriceNotify[0] == 1 && !replacements.PriceNotify) {
+                mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode: req.memberCode } })))
+            }
         } else {
             let [result2] = await sequelize.query(sqlstr.insert("wf_system_setting", replacements, { MemberCode: "memberCode" }), { replacements })
             res.send({ Status: 0, Explain: result2 })
+            if (!replacements.PriceNotify) {
+                mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode: req.memberCode } })))
+            }
         }
     })
     return router

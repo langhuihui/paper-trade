@@ -32,7 +32,7 @@ startMQ();
 
 /**客户端初始化配置 */
 app.get('/System/GetConfig', checkEmpty('version'), async(req, res) => {
-    let { version, dbVersion } = req.query
+    let { version, dbVersion, memberCode, UUID, IMEI } = req.query
     let setting = version && config.clientInit[version] ? config.clientInit[version] : config.clientInitDefault
     if (dbVersion) {
         let [dbResult] = await sequelize.query('select * from wf_securities_version where Versions>:dbVersion order by Versions asc', { replacements: { dbVersion } })

@@ -2,7 +2,20 @@ import express from 'express'
 import Config from '../config'
 import JPush from 'jpush-sdk'
 import amqp from 'amqplib'
-const jpushRegIDSql = "SELECT a.*,b.JpushRegID FROM wf_securities_remind a LEFT JOIN wf_im_jpush b ON a.MemberCode = b.MemberCode WHERE a.IsOpenLower=1 OR a.IsOpenUpper=1 OR a.IsOpenRise=1 OR a.IsOpenFall=1";
+const jpushRegIDSql = `
+SELECT
+	a.*, b.JpushRegID
+FROM
+	wf_securities_remind a
+LEFT JOIN wf_im_jpush b ON a.MemberCode = b.MemberCode
+WHERE
+a.MemberCode not in (select MemberCode from wf_system_setting where PriceNotify = 0)
+AND (
+	a.IsOpenLower = 1
+	OR a.IsOpenUpper = 1
+	OR a.IsOpenRise = 1
+	OR a.IsOpenFall = 1
+);`
 const jpush = Config.CreateJpushClient();
 const sequelize = Config.CreateSequelize();
 const redisClient = Config.CreateRedisClient();
@@ -34,7 +47,6 @@ async function startMQ() {
                 } else {
                     if (!isAllClose(data)) {
                         notifies.set(data.RemindId, data)
-
                         if (stocksRef.addSymbol(name))
                             channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "add", listener: "priceNotify", symbols: [name] })))
                     }
@@ -46,12 +58,23 @@ async function startMQ() {
                     if (notify.MemberCode == MemberCode) notify.JpushRegID = JpushRegID
                 }
                 break;
+            case "turnOff":
+                for (let notify of Array.from(notifies.values)) {
+                    if (notify.MemberCode == data.MemberCode) {
+                        let name = Config.sina_qmap[notify.SmallType] + notify.SecuritiesNo.toLowerCase()
+                        if (stocksRef.removeSymbol(name)) {
+                            channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "remove", listener: "priceNotify", symbols: [name] })))
+                        }
+                        notifies.delete(notify.RemindId)
+                    }
+                }
+                break;
         }
         channel.ack(msg)
-    })
-    await channel.assertExchange("broadcast", "fanout")
-    ok = await channel.assertQueue('sinaData')
-    ok = await channel.bindQueue('sinaData', 'broadcast', 'fanout')
+    });
+    await channel.assertExchange("broadcast", "fanout");
+    ok = await channel.assertQueue('sinaData');
+    ok = await channel.bindQueue('sinaData', 'broadcast', 'fanout');
     channel.consume('sinaData', msg => {
         switch (msg.content.toString()) {
             case "restart": //股票引擎重启信号

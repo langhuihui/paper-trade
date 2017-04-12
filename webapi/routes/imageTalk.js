@@ -10,9 +10,13 @@ module.exports = function({ sequelize, ctt, express, config }) {
             let [it] = result
             //点赞数和我是否已经点赞
             let [likeCount] = await sequelize.query(`select count(*) myLikes from wf_imagetext_likes where ITCode=:code and CreateUser=:memberCode`, { replacements })
-            it.IsLikes = likeCount[0]["myLikes"] > 0
-            let [around] = await sequelize.query('select `Code` LastCode,(select `Code` from wf_imagetext where Id<:Id and `Status`=1 order by Id desc limit 1 ) NextCode from wf_imagetext where Id>:Id and `Status`=1 limit 1', { replacements: { Id: it.Id } })
-            Object.assign(it, around[0])
+            it.IsLikes = likeCount[0]["myLikes"] > 0;
+            ([
+                [{ Code: it.NextCode }]
+            ] = await sequelize.query('select `Code` from wf_imagetext where Id<:Id and `Status`=1 order by Id desc limit 1', { replacements: it }));
+            ([
+                [{ Code: it.LastCode }]
+            ] = await sequelize.query('select `Code` from wf_imagetext where  Id>:Id and `Status`=1 limit 1', { replacements: it }));
             Object.deleteProperties(it, "Id", "Original_Image", "Thumbnail", "Status", "State", "MemberCode", "CreateTime", "LikeCount")
             res.send({ Status: 0, Explain: "", Data: it })
         } else {
