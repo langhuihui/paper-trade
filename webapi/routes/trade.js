@@ -5,13 +5,9 @@ module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChann
     /**是否开市*/
     router.get('/:type/IsOpen', async(req, res) => {
         let type = req.params.type
-        if (type == 'us') {
-            let [result] = await sequelize.query("select * from wf_system_opendate_bak where Type=:type and StartTimeAM<Now() and EndTimePM>Now()", { replacements: { type } })
-            res.send({ Status: 0, Explain: "", IsOpen: result.length > 0 })
-        } else {
-            let [result] = await sequelize.query("select * from wf_system_opendate_bak where Type=:type and ((StartTimeAM<Now() and EndTimeAM>Now()) or (StartTimePM<Now() and EndTimePM>Now()))", { replacements: { type } })
-            res.send({ Status: 0, Explain: "", IsOpen: result.length > 0 })
-        }
+        let condition = type == 'us' ? "StartTimeAM<Now() and EndTimePM>Now()" : "((StartTimeAM<Now() and EndTimeAM>Now()) or (StartTimePM<Now() and EndTimePM>Now()))"
+        let [result] = await sequelize.query("select * from wf_system_opendate_bak where Type=:type and " + condition, { replacements: { type } })
+        res.send({ Status: 0, Explain: "", IsOpen: result.length > 0 })
     });
     // /**是否已经绑定（创建）嘉维账户 */
     // router.get('/IsDwAccCreated', ctt, async(req, res) => {
@@ -74,7 +70,7 @@ module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChann
         let replacements = Object.filterProperties(req.body, "StockCode", "StockType", "ParentID", "Content", "IsDelete")
         replacements.CreateUser = req.memberCode
         let result = await sequelize.query(sqlstr.insert("wf_quotation_comment", replacements, { Id: null, CreateTime: "Now()", IsDelelte: 0 }), { replacements })
-        res.send({ Status: 0, Explain: "", Data: result })
+        res.send({ Status: 0, Explain: "", Result: result })
     });
     /**删除评论股票详情评论 */
     router.delete('/DelQuotationComment/:id', ctt, async(req, res) => {

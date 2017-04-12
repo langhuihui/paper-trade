@@ -70,8 +70,8 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
             let [result] = await sequelize.query(myMainListSql, { replacements: { memberCode, picBaseURL: config.picBaseURL } })
             mainListCache[memberCode] = result
         }
-        let result = mainListCache[memberCode].slice(pageNum, pageNum + pageSize)
-        res.send({ Status: "0", Explain: "", DataList: result })
+        let result = mainListCache[memberCode].slice(pageNum * pageSize, (pageNum + 1) * pageSize)
+        res.send({ Status: 0, Explain: "", DataList: result })
     }
     async function homePage(memberCode, res) {
         let [result] = await sequelize.query("select TotalAmount,TodayProfit,MtmPL from wf_drivewealth_practice_asset where MemberCode=:memberCode order by EndDate desc limit 1", { replacements: { memberCode } })
