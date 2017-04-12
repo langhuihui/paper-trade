@@ -111,27 +111,35 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
         res.send({ Status: 0, Explain: "", Data: Object.convertBuffer2Bool(result[0], "PriceNotify") })
     })
     router.put('/Settings', ctt, async(req, res) => {
-        let [result] = await sequelize.query("select * from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } })
-        let replacements = Object.assign({ memberCode: req.memberCode }, req.body)
-        if (result.length) {
-            for (let n in req.body) {
-                if (!result[0].hasOwnProperty(n)) {
-                    res.send({ Status: 40003, Explain: "没有该设置项：" + n })
-                    return
+            let [result] = await sequelize.query("select * from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } })
+            let replacements = Object.assign({ memberCode: req.memberCode }, req.body)
+            if (result.length) {
+                for (let n in req.body) {
+                    if (!result[0].hasOwnProperty(n)) {
+                        res.send({ Status: 40003, Explain: "没有该设置项：" + n })
+                        return
+                    }
+                }
+                let [result2] = await sequelize.query(sqlstr.update("wf_system_setting", replacements, { memberCode: null }) + "where MemberCode=:memberCode", { replacements })
+                res.send({ Status: 0, Explain: result2 })
+                if (result[0].PriceNotify[0] == 1 && !replacements.PriceNotify) {
+                    mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode: req.memberCode } })))
+                }
+            } else {
+                let [result2] = await sequelize.query(sqlstr.insert("wf_system_setting", replacements, { MemberCode: "memberCode" }), { replacements })
+                res.send({ Status: 0, Explain: result2 })
+                if (!replacements.PriceNotify) {
+                    mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode: req.memberCode } })))
                 }
             }
-            let [result2] = await sequelize.query(sqlstr.update("wf_system_setting", replacements, { memberCode: null }) + "where MemberCode=:memberCode", { replacements })
-            res.send({ Status: 0, Explain: result2 })
-            if (result[0].PriceNotify[0] == 1 && !replacements.PriceNotify) {
-                mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode: req.memberCode } })))
-            }
-        } else {
-            let [result2] = await sequelize.query(sqlstr.insert("wf_system_setting", replacements, { MemberCode: "memberCode" }), { replacements })
-            res.send({ Status: 0, Explain: result2 })
-            if (!replacements.PriceNotify) {
-                mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode: req.memberCode } })))
-            }
-        }
+        })
+        /**获取我的消息列表 */
+    router.get('/Messages', ctt, async(req, res) => {
+        let replacements = req.body
+        replacements.MemberCode = req.memberCode
+        let [result] = await sequelize.query("select * from wf_message where MemberCode=:memberCode and Status=0", { replacements: { memberCode: req.memberCode } })
+        await sequelize.query("delete from wf_message where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } });
+        res.send({ Status: 0, Explain: "", DataList: result })
     })
     return router
 }
