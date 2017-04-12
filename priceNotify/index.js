@@ -135,6 +135,7 @@ function sendNotify(type, nofity, price) {
                     console.log(err.message)
                 }
             } else {
+                await sequelize.query("insert into wf_messages(Type,Content,MemberCode,CreateTime,Title,Status,Extension) values(1,:msg,:MemberCode,now(),'',0,:Extension)", { replacements: { msg, MemberCode: nofity.MemberCode, Extension: nofity.SmallType + nofity.SecuritiesNo } });
                 console.log('Sendno: ' + res.sendno)
                 console.log('Msg_id: ' + res.msg_id)
             }
