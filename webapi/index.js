@@ -2,6 +2,7 @@ import checkToken from './middles/checkToken'
 import checkEmpty from './middles/checkEmpty'
 import checkNum from './middles/checkNum'
 import express from 'express'
+import path from 'path'
 import bodyParser from 'body-parser'
 import Config from '../config'
 import config from './config'
@@ -13,7 +14,8 @@ var redisClient = Config.CreateRedisClient();
 const app = express();
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
-/**全局错误处理 */
+app.use('/web', express.static(path.resolve(__dirname, 'web', 'dist')))
+    /**全局错误处理 */
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.send({ Status: 500, Explain: err })
@@ -34,11 +36,11 @@ startMQ();
 /**客户端初始化配置 */
 app.get('/System/GetConfig', checkEmpty('version'), async(req, res) => {
     let { version, dbVersion, memberCode, UUID, IMEI } = req.query
-    let setting = version && config.clientInit[version] ? config.clientInit[version] : config.clientInitDefault
+    let setting = Object.assign({}, version && config.clientInit[version] ? config.clientInit[version] : config.clientInitDefault)
     if (dbVersion) {
         let [dbResult] = await sequelize.query('select * from wf_securities_version where Versions>:dbVersion order by Versions asc', { replacements: { dbVersion } })
         if (dbResult.length) {
-            let maxVersion = dbResult.last.Versions
+            //let maxVersion = dbResult.last.Versions
             dbResult = dbResult.map(x => x.Content)
             setting.updateSQL = dbResult.join('');
         }
@@ -53,10 +55,6 @@ app.get('/v2.5/Choiceness/ChoicenessBannerList', async(req, res) => {
     } catch (ex) {
         res.send({ Status: 500, Explain: ex })
     }
-    // let page = req.param("page", 0)
-    // let size = req.param("size", 10)
-    // console.log(page, size)
-    // return res.json({ page, size })
 });
 /**获取精选列 */
 app.get('/v2.5/Choiceness/ChoicenessList', async(req, res) => {
@@ -66,11 +64,6 @@ app.get('/v2.5/Choiceness/ChoicenessList', async(req, res) => {
     } catch (ex) {
         res.send({ Status: 500, Explain: ex })
     }
-    // let page = req.param("page", 0)
-    // let size = req.param("size", 10)
-    // let maxId = req.param("maxId")
-    // console.log(page, size)
-    // return res.json({ page, size, maxId })
 })
 
 let server = app.listen(config.port, () => {

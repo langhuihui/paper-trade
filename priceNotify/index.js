@@ -2,12 +2,15 @@ import express from 'express'
 import Config from '../config'
 import JPush from 'jpush-sdk'
 import amqp from 'amqplib'
+import moment from 'moment'
+import timezone from 'moment-timezone'
 const jpushRegIDSql = `
 SELECT
-	a.*, b.JpushRegID
+	a.*, b.JpushRegID,c.SecuritiesName
 FROM
 	wf_securities_remind a
 LEFT JOIN wf_im_jpush b ON a.MemberCode = b.MemberCode
+LEFT JOIN wf_securities_trade c ON a.SecuritiesNo = c.SecuritiesNo and a.SmallType = c.SmallType
 WHERE
 a.MemberCode not in (select MemberCode from wf_system_setting where PriceNotify = 0)
 AND (
@@ -51,8 +54,12 @@ async function startMQ() {
                 } else {
                     if (!isAllClose(data)) {
                         notifies.set(data.RemindId, data)
-                        if (stocksRef.addSymbol(name))
+                        if (stocksRef.addSymbol(name)) {
+                            sequelize.query('select SecuritiesName from wf_securities_trade where SecuritiesNo =:SecuritiesNo and SmallType = :SmallType', { replacements: data }).then(result => {
+                                data.SecuritiesName = result[0][0]["SecuritiesName"]
+                            })
                             channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "add", listener: "priceNotify", symbols: [name] })))
+                        }
                     }
                 }
                 break;
@@ -106,27 +113,27 @@ async function getAllNotify() {
     }
 }
 
-
-function sendNotify(type, nofity, price) {
-
-    let msg = "沃夫街股价提醒:" + nofity.SecuritiesNo
+function sendNotify(type, notify, price, chg) {
+    let title = `${notify.SecuritiesName}(${notify.SecuritiesNo})最新价${price}`
+        //您关注的Snapchat(SNAP)于2017-03-11 10:09:11(美东时间)达到21.82，涨幅为7.07%，超过7%了。
+    let msg = `您关注的${notify.SecuritiesName}(${notify.SecuritiesNo})于${notify.SmallType=='us'?timezone(new Date()).tz("America/New_York").format("YYYY-MM-dd hh:mm:ss")+"(美东时间)":moment.format("YYYY-MM-dd hh:mm:ss")}达到${price}`
     switch (type) {
         case 0:
-            msg += ` 当前价格 ${price} 已经向下击穿 ${nofity.LowerLimit}`
+            msg += `，低于${notify.LowerLimit}`
             break
         case 1:
-            msg += ` 当前价格 ${price} 已经向下突破 ${nofity.IsOpenUpper}`
+            msg += `，超过了${notify.OpenLimit}`
             break
         case 2:
-            msg += ` 当前跌幅 ${price} 已经超过 ${nofity.FallLimit}`
+            msg += `，跌幅为${chg.toFixed(2)}%，超过了${notify.FallLimit.toFixed(2)}%`
             break
         case 3:
-            msg += ` 当前涨幅 ${price} 已经超过 ${nofity.RiseLimit}`
+            msg += `，涨幅为${chg.toFixed(2)}%，超过了${notify.RiseLimit.toFixed(2)}%`
             break
     }
-    console.log(nofity.JpushRegID, msg)
-    jpush.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(nofity.JpushRegID))
-        .setNotification('股价提醒', JPush.ios(msg, 'sound', 0, false, { AlertType: Config.jpushType, SmallType: nofity.SmallType, SecuritiesNo: nofity.SecuritiesNo }), JPush.android(msg, '沃夫街股价提醒', 1, { AlertType: Config.jpushType, SmallType: nofity.SmallType, SecuritiesNo: nofity.SecuritiesNo }))
+    console.log(notify.JpushRegID, msg)
+    jpush.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(notify.JpushRegID))
+        .setNotification('股价提醒', JPush.ios(msg, 'sound', 0, false, { AlertType: Config.jpushType, SmallType: notify.SmallType, SecuritiesNo: notify.SecuritiesNo }), JPush.android(msg, title, 1, { AlertType: Config.jpushType, SmallType: notify.SmallType, SecuritiesNo: notify.SecuritiesNo }))
         .send(async(err, res) => {
             if (err) {
                 if (err instanceof JPush.APIConnectionError) {
@@ -135,7 +142,7 @@ function sendNotify(type, nofity, price) {
                     console.log(err.message)
                 }
             } else {
-                let replacements = { msg, title: nofity.SecuritiesNo, MemberCode: nofity.MemberCode, Extension: JSON.stringify({ SmallType: nofity.SmallType, SecuritiesNo: nofity.SecuritiesNo }) }
+                let replacements = { msg, title, MemberCode: notify.MemberCode, Extension: JSON.stringify({ SmallType: notify.SmallType, SecuritiesNo: notify.SecuritiesNo }) }
                 await sequelize.query("insert into wf_messages(Type,Content,MemberCode,CreateTime,Title,Status,Extension) values(1,:msg,:MemberCode,now(),:title,0,:Extension)", { replacements });
             }
         })
@@ -147,6 +154,7 @@ setInterval(async() => {
         let name = getQueryName(notify)
         let sp = await redisClient.getAsync("lastPrice:" + name.toLowerCase())
         let [, , , price, , chg] = JSON.parse("[" + sp + "]")
+        chg = Number(chg.toFixed(2))
             //console.log(name, price, chg, notify)
         if (notify.IsOpenLower) {
             if (notify.isLowSent) {
@@ -157,7 +165,7 @@ setInterval(async() => {
             } else {
                 if (price < notify.LowerLimit) {
                     //向下击穿
-                    sendNotify(0, notify, price)
+                    sendNotify(0, notify, price, chg)
                     notify.isLowSent = true
                 }
             }
@@ -171,37 +179,39 @@ setInterval(async() => {
             } else {
                 if (price > notify.UpperLimit) {
                     //向上突破
-                    sendNotify(1, notify, price)
+                    sendNotify(1, notify, price, chg)
                     notify.isUpperSent = true
                 }
             }
         }
         if (chg < 0) {
             if (notify.IsOpenFall) {
+                let target = Number(notify.FallLimit.toFixed(2))
                 if (notify.isFallSent) {
-                    if (chg > notify.FallLimit) {
+                    if (chg > target) {
                         //恢复状态
                         notify.isFallSent = false
                     }
                 } else {
-                    if (chg < notify.FallLimit) {
+                    if (chg < target) {
                         //向下击穿
-                        sendNotify(2, notify, chg)
+                        sendNotify(2, notify, price, chg)
                         notify.isFallSent = true
                     }
                 }
             }
         } else {
             if (notify.IsOpenRise) {
+                let target = Number(notify.RiseLimit.toFixed(2))
                 if (notify.isRiseSent) {
-                    if (chg < notify.RiseLimit) {
+                    if (chg < target) {
                         //恢复状态
                         notify.isRiseSent = false
                     }
                 } else {
-                    if (chg > notify.RiseLimit) {
+                    if (chg > target) {
                         //向上突破
-                        sendNotify(3, notify, chg)
+                        sendNotify(3, notify, price, chg)
                         notify.isRiseSent = true
                     }
                 }

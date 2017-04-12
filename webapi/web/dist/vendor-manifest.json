@@ -1,0 +1,22 @@
+{
+  "name": "vendor_library",
+  "content": {
+    "./node_modules/vue/dist/vue.runtime.esm.js": {
+      "id": 0,
+      "meta": {
+        "harmonyModule": true
+      },
+      "exports": [
+        "default"
+      ]
+    },
+    "./node_modules/muse-ui/dist/muse-ui.js": {
+      "id": 1,
+      "meta": {}
+    },
+    "./node_modules/webpack/buildin/global.js": {
+      "id": 2,
+      "meta": {}
+    }
+  }
+}

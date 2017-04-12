@@ -70,13 +70,16 @@ async function GenerateHomePage() {
             //生成的json进行一些格式处理
         let content = JSON.stringify(pageData, (key, value) => {
             switch (key) {
+                case "Title":
+                case "Des":
+                    return value.replace(/"/g, '\\"')
                 case "ShowTime":
                 case "CreateTime": //时间格式
                     return new Date(value).format()
                 case "Pic": //加入图片的路径前缀
                     return Config.picBaseURL + value
                 case "Details": //截取前100个字符
-                    return (value.length > 100 ? value.substr(0, 100) : value).replace(/"/g, "\\\"")
+                    return (value.length > 100 ? value.substr(0, 100) : value).replace(/"/g, '\\"')
                 default:
                     return value
             }

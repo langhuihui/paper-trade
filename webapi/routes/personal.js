@@ -137,7 +137,7 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
     router.get('/Messages', ctt, async(req, res) => {
         let replacements = req.body
         replacements.MemberCode = req.memberCode
-        let [result] = await sequelize.query("select * from wf_message where MemberCode=:memberCode and Status=0", { replacements: { memberCode: req.memberCode } })
+        let [result] = await sequelize.query("select *,DATE_FORMAT(CreateTime,'%Y-%m-%d %H:%i:%s') CreateTime from wf_message where MemberCode=:memberCode and Status=0", { replacements: { memberCode: req.memberCode } })
         for (let msg of result) {
             if (msg.Extension) {
                 msg.Extension = JSON.parse(msg.Extension)
