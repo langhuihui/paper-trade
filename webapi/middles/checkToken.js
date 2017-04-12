@@ -16,14 +16,14 @@ async function checkToken(token, isLogin) {
         if (tokenModel) {
             memberCode = tokenModel.MemberCode
             if (Date.parse(tokenModel.ValidityTime) + config.tokenTime * 60 < new Date().getTime()) {
-                result = { Status: "40012", Explain: "您还没有登录，请登录后操作" }
+                result = { Status: 40012, Explain: "您还没有登录，请登录后操作" }
             } else if (tokenModel.Status != 1) {
-                result = { Status: "40012", Explain: "您的账号已经停用,如有疑问请联系客服!" }
+                result = { Status: 40012, Explain: "您的账号已经停用,如有疑问请联系客服!" }
             } else {
                 updateToken(tokenModel.TokenID)
             }
         } else {
-            result = { Status: "40012", Explain: "您的登录已丢失,请重新登录" }
+            result = { Status: 40012, Explain: "您的登录已丢失,请重新登录" }
         }
     } else {
         memberCode = tokenMode.MemberCode

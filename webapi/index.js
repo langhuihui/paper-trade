@@ -6,7 +6,8 @@ import bodyParser from 'body-parser'
 import Config from '../config'
 import config from './config'
 import amqp from 'amqplib'
-
+import rongcloudSDK from 'rongcloud-sdk'
+rongcloudSDK.init(Config.Rong_Appkey, Config.Rong_Secret);
 var sequelize = Config.CreateSequelize();
 var redisClient = Config.CreateRedisClient();
 const app = express();
@@ -17,7 +18,7 @@ app.use((err, req, res, next) => {
     console.error(err.stack);
     res.send({ Status: 500, Explain: err })
 })
-let shareData = { config: Config, express, checkEmpty, checkNum, sequelize, redisClient, ctt: checkToken(sequelize, true), ctf: checkToken(sequelize, false) } //路由中的共享数据
+let shareData = { config: Config, rongcloudSDK, express, checkEmpty, checkNum, sequelize, redisClient, ctt: checkToken(sequelize, true), ctf: checkToken(sequelize, false) } //路由中的共享数据
 async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
@@ -48,7 +49,7 @@ app.get('/System/GetConfig', checkEmpty('version'), async(req, res) => {
 app.get('/v2.5/Choiceness/ChoicenessBannerList', async(req, res) => {
     try {
         let result = await redisClient.getAsync("cacheResult:bannerChoice")
-        return res.send('{"Status":"0","Explain":"ok","Data":' + result + '}')
+        return res.send('{"Status":0,"Explain":"ok","Data":' + result + '}')
     } catch (ex) {
         res.send({ Status: 500, Explain: ex })
     }
@@ -61,7 +62,7 @@ app.get('/v2.5/Choiceness/ChoicenessBannerList', async(req, res) => {
 app.get('/v2.5/Choiceness/ChoicenessList', async(req, res) => {
     try {
         let result = await redisClient.getAsync("cacheResult:normalChoice")
-        return res.send('{"Status":"0","Explain":"ok","Data":' + result + '}')
+        return res.send('{"Status":0,"Explain":"ok","Data":' + result + '}')
     } catch (ex) {
         res.send({ Status: 500, Explain: ex })
     }

@@ -8,6 +8,8 @@ let config = {
     debug: true,
     Jpush_Appkey: "2857872dca17b28541cde5f0",
     Jpush_Secret: "3a521e1803c5ce64fb226c74",
+    Rong_Appkey: "82hegw5uhhjix",
+    Rong_Secret: "zpKgSmbS28gUh",
     sina_realjs: "http://hq.sinajs.cn/list=",
     netease_realjs: "http://api.money.126.net/data/feed/",
     mysqlconn: "mysql://wftest:WfTestonlytest_20170222@rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com:3306/wolfstreet_test",

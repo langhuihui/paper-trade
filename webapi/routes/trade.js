@@ -1,6 +1,6 @@
 import sqlstr from '../../common/sqlStr'
 import _config from '../config'
-module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChannel, redisClient }) {
+module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChannel, redisClient, rongcloudSDK }) {
     const router = express.Router();
     /**是否开市*/
     router.get('/:type/IsOpen', async(req, res) => {
@@ -68,6 +68,9 @@ module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChann
     /**新增股票详情评论 */
     router.post('/AddQuotationComment', ctt, async(req, res) => {
         let replacements = Object.filterProperties(req.body, "StockCode", "StockType", "ParentID", "Content", "IsDelete")
+        rongcloudSDK.message.chatroom.publish("999999999", replacements.StockType + replacements.StockCode, "RC:TxtMsg", { content: "comment", extra: replacements.Content }, (err, result) => {
+
+        })
         replacements.CreateUser = req.memberCode
         let result = await sequelize.query(sqlstr.insert("wf_quotation_comment", replacements, { Id: null, CreateTime: "Now()", IsDelelte: 0 }), { replacements })
         res.send({ Status: 0, Explain: "", Result: result })
