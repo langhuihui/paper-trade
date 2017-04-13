@@ -69,6 +69,7 @@ async function GenerateHomePage() {
         if (!news) break //资讯用完则跳出循环
             //生成的json进行一些格式处理
         let content = JSON.stringify(pageData, (key, value) => {
+            if (value == null) return null
             switch (key) {
                 case "Title":
                 case "Des":

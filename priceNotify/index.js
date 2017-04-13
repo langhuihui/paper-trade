@@ -132,6 +132,7 @@ function sendNotify(type, notify, price, chg) {
     }
     console.log(notify.JpushRegID, msg)
     jpush.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(notify.JpushRegID))
+        .setOptions({ apns_production: Config.apns_production })
         .setNotification('股价提醒', JPush.ios(msg, 'sound', 0, false, { AlertType: Config.jpushType, SmallType: notify.SmallType, SecuritiesNo: notify.SecuritiesNo }), JPush.android(msg, title, 1, { AlertType: Config.jpushType, SmallType: notify.SmallType, SecuritiesNo: notify.SecuritiesNo }))
         .send(async(err, res) => {
             if (err) {

@@ -5,6 +5,9 @@
             mu-text-field(icon="search" v-model="memberCode" class="appbar-search-field"  hintText="请输入memberCode")
             mu-flat-button(color="white" label="查询"  @click="getToken")
             mu-text-field(v-model="token" )
+        div(style="display:flex")
+          mu-flat-button(label="config" style="margin:12px" @click="getConfig")
+          mu-flat-button(label="webConfig" style="margin:12px" @click="getWebConfig")
 </template>
 <script>
     import App from './app.js'

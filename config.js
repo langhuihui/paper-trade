@@ -25,7 +25,7 @@ let config = {
     stockPatten: /(gb_|hk|sh|sz).+/,
     jpushType: "jpush108",
     ajaxOrigin: "*", //跨域访问
-
+    apns_production: false, //ios JPUSH配置
     picBaseURL: "http://apitest.wolfstreet.tv",
     adminHostURL: "http://admin.wolfstreet.tv",
 
@@ -47,7 +47,6 @@ let config = {
     }
 }
 if (process.env.NODE_ENV === "production") {
-    config.test = false
     Object.assign(config, require('./pconfig.js'))
 }
 export default config;
