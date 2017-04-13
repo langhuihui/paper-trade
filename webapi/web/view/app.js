@@ -39,7 +39,7 @@ export default {
                     new Vue({
                         el: 'pm2list',
                         render: h => h(Mu_Table),
-                        data: {
+                        props: {
                             titles: ["PID", "Name", "PM_ID", "Memory", "CPU", "Watch"],
                             data: _data
                         }

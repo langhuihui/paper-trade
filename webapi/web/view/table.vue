@@ -9,8 +9,9 @@
 </template>
 <script>
     export default {
+        props:["titles","data"],
         data:function(){
-            return {titles:[],data:[]}
+            return {titles:this.titles,data:this.data}
         }
     }
 </script>
