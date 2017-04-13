@@ -2,9 +2,9 @@
     #app
         mu-appbar(title="MDZZ")
             mu-icon-button(icon="menu" slot="left")
-            mu-text-field(icon="search" v-model="memberCode" class="appbar-search-field" slot="right" hintText="请输入memberCode")
-            mu-flat-button(color="white" label="查询" solt="right" @click="getToken")
-            mu-text-field(v-model="token")
+            mu-text-field(icon="search" v-model="memberCode" class="appbar-search-field"  hintText="请输入memberCode")
+            mu-flat-button(color="white" label="查询"  @click="getToken")
+            mu-text-field(v-model="token" )
 </template>
 <script>
     import App from './app.js'

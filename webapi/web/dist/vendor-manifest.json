@@ -14,8 +14,20 @@
       "id": 1,
       "meta": {}
     },
-    "./node_modules/webpack/buildin/global.js": {
+    "./node_modules/vue-resource/dist/vue-resource.es2015.js": {
       "id": 2,
+      "meta": {
+        "harmonyModule": true
+      },
+      "exports": [
+        "default",
+        "Url",
+        "Http",
+        "Resource"
+      ]
+    },
+    "./node_modules/webpack/buildin/global.js": {
+      "id": 3,
       "meta": {}
     }
   }

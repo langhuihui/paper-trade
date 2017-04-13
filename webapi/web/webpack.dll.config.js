@@ -3,7 +3,7 @@ const webpack = require('webpack');
 
 module.exports = {
     entry: {
-        vendor: ['vue', 'muse-ui']
+        vendor: ['vue', 'muse-ui', 'vue-resource']
     },
     output: {
         path: path.join(__dirname, 'dist'),

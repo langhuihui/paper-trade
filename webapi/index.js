@@ -14,7 +14,7 @@ var redisClient = Config.CreateRedisClient();
 const app = express();
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use('/web', express.static(path.resolve(__dirname, 'web', 'dist')))
+if (Config.test) app.use('/web', express.static(path.resolve(__dirname, 'web', 'dist')))
     /**全局错误处理 */
 app.use((err, req, res, next) => {
     console.error(err.stack);
