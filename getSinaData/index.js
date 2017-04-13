@@ -122,7 +122,7 @@ function start() {
                         let q = config.stockPatten.exec(stockName)[1];
                         let x=eval("hq_str_" + stockName).split(",");
                         let price = config.pricesIndexMap[q].map(y=>Number(x[y]));
-                        price[5] =  (price[3] - price[4]) * 100 / price[4];
+                        price[5] = price[4]? (price[3] - price[4]) * 100 / price[4]:0;
                         redisClient.set("lastPrice:"+stockName,price.join(","))}`)
                 })
             }

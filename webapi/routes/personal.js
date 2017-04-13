@@ -135,8 +135,6 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
     });
     /**获取我的消息列表 */
     router.get('/Messages', ctt, async(req, res) => {
-        let replacements = req.body
-        replacements.MemberCode = req.memberCode
         let [result] = await sequelize.query("select *,DATE_FORMAT(CreateTime,'%Y-%m-%d %H:%i:%s') CreateTime from wf_message where MemberCode=:memberCode and Status=0", { replacements: { memberCode: req.memberCode } })
         for (let msg of result) {
             if (msg.Extension) {
