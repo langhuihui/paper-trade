@@ -47,10 +47,7 @@ export default new EveryDay('totalAssets', "05:00:00", async({ sequelize, redisC
                 let MtmPL = positions.reduce((acc, val) => acc + val.mtmPL, 0) //总的持仓浮动盈亏
                 let replacements = { UserId, MemberCode, AccountID: accountID, Balance: cash, Positions, TotalAmount: cash + Positions, MtmPL }
                 let [result] = await sequelize.query('select TotalAmount from wf_drivewealth_practice_asset where UserId=:UserId and EndDate<CurDate() order by EndDate desc limit 1', { replacements })
-                if (result.length) {
-                    replacements.TodayProfit = replacements.TotalAmount - result[0].TotalAmount
-                } else
-                    replacements.TodayProfit = Config.practiceInitFun - replacements.TotalAmount
+                replacements.TodayProfit = replacements.TotalAmount - (result.length ? result[0].TotalAmount : Config.practiceInitFun)
                 await sequelize.query(sqlstr.insert("wf_drivewealth_practice_asset", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
             } else {
                 let replacements = { UserId, MemberCode, AccountID: accountID, Balance: cash, Positions: 0, TotalAmount: cash, MtmPL: 0, TodayProfit: 0 }

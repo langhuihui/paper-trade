@@ -1,3 +1,5 @@
+import Vue from 'vue'
+import Mu_Table from './table.vue'
 export default {
     data() {
         return {
@@ -29,38 +31,21 @@ export default {
         getPM2List() {
             this.$http.get('/test/pm2/list').then(res => {
                 this.resultTitle = "PM2List"
-                let apps = res.body
-                let s = `
-                <mu-table>
-  <mu-thead>
-    <mu-tr>
-      <mu-th>PID</mu-th>
-      <mu-th>Name</mu-th>
-      <mu-th>PM_ID</mu-th>
-       <mu-th>Memory</mu-th>
-        <mu-th>CPU</mu-th>
-         <mu-th>WATCH</mu-th>
-    </mu-tr>
-  </mu-thead>
-  <mu-tbody>
-                `
-                for (let { pid, name, pm_id, pm2_env: { watch }, monit: { memory, cpu } }
-                    of apps) {
-                    s += ` <mu-tr>
-                    <mu-td>${pid}</mu-td>
-      <mu-td>${name}</mu-td>
-      <mu-td>${pm_id}</mu-td>
-        <mu-td>${memory}</mu-td>
-      <mu-td>${cpu}</mu-td>
-       <mu-td>${watch}</mu-td>
-         </mu-tr>
-                    `
-                }
-                this.resultContent = s + `
-                  </mu-tbody>
-</mu-table>
-</template>
-                `
+                this.resultContent = "<pm2list/>"
+                let _data = res.body.map(({ pid, name, pm_id, pm2_env: { watch }, monit: { memory, cpu } }) => {
+                    return { pid, name, pm_id, memory, cpu, watch }
+                })
+                setTimeout(() => {
+                    new Vue({
+                        el: 'pm2list',
+                        render: h => h(Mu_Table),
+                        data: {
+                            titles: ["PID", "Name", "PM_ID", "Memory", "CPU", "Watch"],
+                            data: _data
+                        }
+                    })
+                }, 1000)
+
             })
         }
     }
