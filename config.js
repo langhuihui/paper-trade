@@ -5,7 +5,7 @@ import JPush from 'jpush-sdk'
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 let config = {
-    debug: true,
+    test: true,
     Jpush_Appkey: "2857872dca17b28541cde5f0",
     Jpush_Secret: "3a521e1803c5ce64fb226c74",
     Rong_Appkey: "82hegw5uhhjix",
@@ -13,7 +13,11 @@ let config = {
     sina_realjs: "http://hq.sinajs.cn/list=",
     netease_realjs: "http://api.money.126.net/data/feed/",
     mysqlconn: "mysql://wftest:WfTestonlytest_20170222@rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com:3306/wolfstreet_test",
-    //mysqlconn: "mysql://program_admin:!P%402%23dh%254%5e5Y%26g*4@rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com:3306/wolfstreet",
+    amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001/test",
+    redisConfig: { host: "api.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC", db: 1 },
+    // redisConfig: { host: "api.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC" },
+    // amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001",
+    // mysqlconn: "mysql://program_admin:!P%402%23dh%254%5e5Y%26g*4@rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com:3306/wolfstreet",
     lastPriceIndexMap: { hk: 6, sz: 3, sh: 3, gb_: 1 },
     pricesIndexMap: { hk: [2, 4, 5, 6, 3], sz: [1, 4, 5, 3, 2], sh: [1, 4, 5, 3, 2], gb_: [5, 6, 7, 1, 26] }, //开，高，低，新,昨收
     //chgFunc: { gb_: x => x[2], hk: x => x[8], sh: x => (x[3] - x[2]) / x[2], sz: x => (x[3] - x[2]) / x[2] },
@@ -21,12 +25,10 @@ let config = {
     stockPatten: /(gb_|hk|sh|sz).+/,
     jpushType: "jpush108",
     ajaxOrigin: "*", //跨域访问
-    amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001/test",
-    //amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001",
+
     picBaseURL: "http://apitest.wolfstreet.tv",
     adminHostURL: "http://admin.wolfstreet.tv",
-    redisConfig: { host: "api.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC", db: 1 },
-    // redisConfig: { host: "api.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC" },
+
     driveWealthHost: {
         apiHost: "https://api.drivewealth.net",
         appsHost: "https://apps.drivewealth.com",
@@ -45,7 +47,7 @@ let config = {
     }
 }
 if (process.env.NODE_ENV === "production") {
-    config.debug = false
+    config.test = false
     Object.assign(config, require('./pconfig.js'))
 }
 export default config;
