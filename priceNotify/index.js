@@ -43,6 +43,7 @@ async function startMQ() {
         let { cmd, data } = JSON.parse(msg.content.toString())
         switch (cmd) {
             case "update":
+                console.log("更新股价提醒", data)
                 let name = getQueryName(data)
                 if (notifies.has(data.RemindId)) {
                     if (isAllClose(data)) {
@@ -63,6 +64,7 @@ async function startMQ() {
                 }
                 break;
             case "changeJpush":
+                console.log("更新Jpush", data)
                 let { MemberCode, JpushRegID } = data
                 for (let notify of notifies.values) {
                     if (notify.MemberCode == MemberCode) notify.JpushRegID = JpushRegID

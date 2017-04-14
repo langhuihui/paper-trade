@@ -8,6 +8,7 @@ import Config from '../config'
 import config from './config'
 import amqp from 'amqplib'
 import rongcloudSDK from 'rongcloud-sdk'
+import sqlstr from '../common/sqlStr'
 rongcloudSDK.init(Config.Rong_Appkey, Config.Rong_Secret);
 var sequelize = Config.CreateSequelize();
 var redisClient = Config.CreateRedisClient();
@@ -46,13 +47,17 @@ app.get('/System/GetConfig', checkEmpty('version'), async(req, res) => {
             setting.updateSQL = dbResult.join('');
         }
     }
+    /**埋点*/
+    let statistic = { LoginId: memberCode ? memberCode : (UUID ? UUID : IMEI), DataSource: UUID ? "ios" : "android", AppVersion: version, IsLogin: memberCode != null };
+    sequelize.query(...sqlstr.insert2("wf_statistics_login", statistic, { CreateTime: "now()" }));
+    /**end*/
     res.send({ Status: 0, Explain: "", Config: setting })
 });
 /**获取精选头部列表 */
 app.get('/v2.5/Choiceness/ChoicenessBannerList', async(req, res) => {
     try {
         let result = await redisClient.getAsync("cacheResult:bannerChoice")
-        return res.send('{"Status":0,"Explain":"ok","Data":' + result + '}')
+        res.send('{"Status":0,"Explain":"ok","Data":' + result + '}')
     } catch (ex) {
         res.send({ Status: 500, Explain: ex })
     }
@@ -60,8 +65,12 @@ app.get('/v2.5/Choiceness/ChoicenessBannerList', async(req, res) => {
 /**获取精选列 */
 app.get('/v2.5/Choiceness/ChoicenessList', async(req, res) => {
     try {
-        let result = await redisClient.getAsync("cacheResult:normalChoice")
-        return res.send('{"Status":0,"Explain":"ok","Data":' + result + '}')
+        let result = await redisClient.getAsync("cacheResult:normalChoice");
+        /**埋点*/
+        let statistic = { LoginId: req.memberCode, TypeId: 4, AppVersion: version, IsLogin: memberCode != null };
+        sequelize.query(...sqlstr.insert2("wf_statistics_module", statistic, { CreateTime: "now()" }));
+        /**end*/
+        res.send('{"Status":0,"Explain":"ok","Data":' + result + '}')
     } catch (ex) {
         res.send({ Status: 500, Explain: ex })
     }

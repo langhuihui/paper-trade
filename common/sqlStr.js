@@ -4,12 +4,8 @@
  * @param other 要覆盖的名称，键为字段名，值为要覆盖的sql参数名,值为空则删除操作对象中的属性名
  */
 function getNames(value, other) {
-    let names = [];
-    let argNames = [];
-    for (let n in value) {
-        names.push(n)
-        argNames.push(":" + n)
-    }
+    let names = Object.keys(value);
+    let argNames = names.map(n => ':' + n);
     if (other)
         for (let n in other) {
             let i = names.indexOf(n)
@@ -33,6 +29,9 @@ export default {
     insert(table, value, other) {
         let { names, argNames } = getNames(value, other)
         return `insert into ${table}(${names.join(',')}) values(${argNames.join(',')}) `
+    },
+    insert2(table, value, other) {
+        return [this.insert(table, value, other), { replacements: value }]
     },
     update(table, value, other) {
         let { names, argNames } = getNames(value, other)
