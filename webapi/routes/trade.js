@@ -34,9 +34,8 @@ module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChann
             result = await sequelize.query(sqlstr.update("wf_securities_remind", replacements, { RemindId: null, MemberCode: null, SecuritiesNo: null, SmallType: null }) + "where RemindId=:RemindId", { replacements })
         } else {
             result = await sequelize.query(sqlstr.insert("wf_securities_remind", replacements, { CreateTime: "Now()" }), { replacements });
-            ([
-                [{ insertId: replacements.RemindId }]
-            ] = await sequelize.query("select last_insert_id() insertId"));
+            let [insertId] = await sequelize.query("select last_insert_id() insertId");
+            replacements.RemindId = insertId[0].insertId
         }
         res.send({ Status: 0, Explain: "", Result: result })
         mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "update", data: replacements })))
