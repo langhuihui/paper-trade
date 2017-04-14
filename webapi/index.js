@@ -15,7 +15,7 @@ var redisClient = Config.CreateRedisClient();
 const app = express();
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
-if (Config.test) app.use('/web', express.static(path.resolve(__dirname, 'web', 'dist')))
+if (Config.test) app.use('/admin', express.static(path.resolve(__dirname, 'web', 'dist')))
     /**全局错误处理 */
 app.use((err, req, res, next) => {
     console.error(err.stack);
@@ -31,7 +31,7 @@ async function startMQ() {
     app.use('/v2.5/Trade', require('./routes/trade')(shareData))
     app.use('/v2.5/Personal', require('./routes/personal')(shareData))
     app.use('/v2.5/ImageTalk', require('./routes/imageTalk')(shareData))
-    if (Config.test) app.use('/test', require('./routes/admin')(shareData))
+    if (Config.test) app.use('/admin', require('./routes/admin')(shareData))
 }
 startMQ();
 
