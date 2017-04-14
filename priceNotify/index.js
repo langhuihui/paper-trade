@@ -156,7 +156,8 @@ setInterval(async() => {
         let notify = notifies[nid]
         let name = getQueryName(notify)
         let sp = await redisClient.getAsync("lastPrice:" + name.toLowerCase())
-        let [, , , price, , chg] = JSON.parse("[" + sp + "]")
+        let [, , , price, pre, chg] = JSON.parse("[" + sp + "]")
+        if (!chg) chg = pre ? (price - pre) * 100 / pre : 0
         chg = Number(chg.toFixed(2))
             //console.log(name, price, chg, notify)
         if (notify.IsOpenLower) {
