@@ -1,5 +1,5 @@
 <template lang="pug">
-    mu-table
+    mu-table(':enableSelectAll'="true" ':multiSelectable'="true")
         mu-thead
             mu-tr
                 mu-th(v-for="item in titles") {{item}}

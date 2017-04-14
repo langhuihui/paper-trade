@@ -29,21 +29,19 @@ export default {
             })
         },
         getPM2List() {
+            this.resultTitle = "PM2List"
+            this.resultContent = "<pm2list/>"
             this.$http.get('pm2/list').then(res => {
-                this.resultTitle = "PM2List"
-                this.resultContent = "<pm2list/>"
                 let _data = res.body.map(({ pid, name, pm_id, pm2_env: { watch }, monit: { memory, cpu } }) => ({ pid, name, pm_id, memory, cpu, watch }))
-                setTimeout(() => {
-                    new Vue({
-                        el: 'pm2list',
-                        render: h => h(Mu_Table, {
-                            props: {
-                                titles: ["PID", "Name", "PM_ID", "Memory", "CPU", "Watch"],
-                                data: _data
-                            }
-                        })
+                new Vue({
+                    el: 'pm2list',
+                    render: h => h(Mu_Table, {
+                        props: {
+                            titles: ["PID", "Name", "PM_ID", "Memory", "CPU", "Watch"],
+                            data: _data
+                        }
                     })
-                }, 1000)
+                })
             })
         }
     }

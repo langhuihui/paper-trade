@@ -10,8 +10,8 @@
             mu-flat-button(label="webConfig" style="margin:12px" @click="getWebConfig")
             mu-flat-button(label="PM2List" style="margin:12px" @click="getPM2List")
         div
-          mu-sub-header {{resultTitle}}
-          mu-content-block(v-html="resultContent")
+            mu-sub-header {{resultTitle}}
+            mu-content-block(v-html="resultContent")
 </template>
 <script>
     import App from './app.js'
