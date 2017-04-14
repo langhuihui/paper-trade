@@ -54,9 +54,12 @@ async function startMQ() {
                 } else {
                     if (!isAllClose(data)) {
                         notifies.set(data.RemindId, data)
+                        sequelize.query('select JpushRegID from wf_im_jpush where MemberCode=:MemberCode', { replacements: data }).then(result => {
+                            if (result[0].length) data.JpushRegID = result[0][0]["JpushRegID"]
+                        })
                         if (stocksRef.addSymbol(name)) {
                             sequelize.query('select SecuritiesName from wf_securities_trade where SecuritiesNo =:SecuritiesNo and SmallType = :SmallType', { replacements: data }).then(result => {
-                                data.SecuritiesName = result[0][0]["SecuritiesName"]
+                                if (result[0].length) data.SecuritiesName = result[0][0]["SecuritiesName"]
                             })
                             channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "add", listener: "priceNotify", symbols: [name] })))
                         }
@@ -132,8 +135,8 @@ function sendNotify(type, notify, price, chg) {
             msg += `，涨幅为${chg.toFixed(2)}%，超过了${notify.RiseLimit.toFixed(2)}%`
             break
     }
-    console.log(notify.JpushRegID, msg)
-    jpush.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(notify.JpushRegID))
+    if (notify.JpushRegID)
+        jpush.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(notify.JpushRegID))
         //sendno, time_to_live, override_msg_id, apns_production, big_push_duration
         .setOptions(null, null, null, Config.apns_production)
         .setNotification('股价提醒', JPush.ios(msg, 'sound', 0, false, { AlertType: Config.jpushType, SmallType: notify.SmallType, SecuritiesNo: notify.SecuritiesNo }), JPush.android(msg, title, 1, { AlertType: Config.jpushType, SmallType: notify.SmallType, SecuritiesNo: notify.SecuritiesNo }))
