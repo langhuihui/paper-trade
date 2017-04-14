@@ -153,10 +153,15 @@ function sendNotify(type, notify, price, chg) {
             }
         })
 }
+
 setInterval(async() => {
-    //调用新浪接口
-    for (let nid in notifies) {
-        let notify = notifies[nid]
+    let marketIsOpen = await redisClient.getAsync("marketIsOpen")
+    marketIsOpen = JSON.parse(marketIsOpen)
+        //调用新浪接口
+    for (let notify of notifies.values()) {
+        if (!marketIsOpen[notify.SmallType]) {
+            continue
+        }
         let name = getQueryName(notify)
         let sp = await redisClient.getAsync("lastPrice:" + name.toLowerCase())
         let [, , , price, pre, chg] = JSON.parse("[" + sp + "]")

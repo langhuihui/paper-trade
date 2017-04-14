@@ -1,5 +1,6 @@
 import Config from '../config'
 import totalAssets from './everyDays/totalAssets'
+import marketTime from './everyDays/marketTime'
 // import amqp from 'amqplib'
 let sequelize = Config.CreateSequelize()
 let redisClient = Config.CreateRedisClient();
@@ -17,7 +18,7 @@ let redisClient = Config.CreateRedisClient();
 
 //每天执行函数
 let everyDayFuns = [
-    totalAssets
+    totalAssets, marketTime
 ]
 async function initEveryDayFuns() {
     for (let f of everyDayFuns) {
@@ -34,5 +35,11 @@ setInterval(() => {
         if (f.checkAndRun(now, { sequelize, redisClient })) {
             redisClient.set('timeRunFlag:' + f.name, now)
         }
+    }
+    if (marketTime.setRedis) marketTime.setRedis(now)
+    else {
+        marketTime.callback({ sequelize, redisClient }).then(() => {
+            marketTime.setRedis(now)
+        })
     }
 }, 1000)
