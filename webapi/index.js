@@ -1,6 +1,7 @@
 import checkToken from './middles/checkToken'
 import checkEmpty from './middles/checkEmpty'
 import checkNum from './middles/checkNum'
+import Statistic from './statistic'
 import express from 'express'
 import path from 'path'
 import bodyParser from 'body-parser'
@@ -16,12 +17,13 @@ const app = express();
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
 if (Config.test) app.use('/admin', express.static(path.resolve(__dirname, 'web', 'dist')))
-    /**全局错误处理 */
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.send({ Status: 500, Explain: err })
+app.use((req, res, next) => {
+    if (req.body.Token) delete req.body.Token
+    next()
 })
-let shareData = { config: Config, rongcloudSDK, express, checkEmpty, checkNum, sequelize, redisClient, ctt: checkToken(sequelize, true), ctf: checkToken(sequelize, false) } //路由中的共享数据
+const statistic = new Statistic({ sequelize })
+const wrap = fn => (...args) => fn(...args).catch(args[2])
+let shareData = { config: Config, wrap, rongcloudSDK, statistic, express, checkEmpty, checkNum, sequelize, redisClient, ctt: checkToken(sequelize, true), ctf: checkToken(sequelize, false) } //路由中的共享数据
 async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
@@ -31,12 +33,19 @@ async function startMQ() {
     app.use('/v2.5/Trade', require('./routes/trade')(shareData))
     app.use('/v2.5/Personal', require('./routes/personal')(shareData))
     app.use('/v2.5/ImageTalk', require('./routes/imageTalk')(shareData))
+    app.use('/v2.5/Choiceness', require('./routes/choiceness')(shareData))
+    app.use('/v2.5/DriveWealth', require('./routes/drivewealth')(shareData))
     if (Config.test) app.use('/admin', require('./routes/admin')(shareData))
+        /**全局错误处理 */
+    app.use((err, req, res, next) => {
+        console.error(err.stack);
+        res.send({ Status: 500, Explain: err })
+    })
 }
 startMQ();
 
 /**客户端初始化配置 */
-app.get('/System/GetConfig', checkEmpty('version'), async(req, res) => {
+app.get('/System/GetConfig', checkEmpty('version'), wrap(async(req, res) => {
     let { version, dbVersion, memberCode, UUID, IMEI } = req.query
     let setting = Object.assign({}, version && config.clientInit[version] ? config.clientInit[version] : config.clientInitDefault)
     if (dbVersion) {
@@ -47,34 +56,11 @@ app.get('/System/GetConfig', checkEmpty('version'), async(req, res) => {
             setting.updateSQL = dbResult.join('');
         }
     }
-    /**埋点*/
-    let statistic = { LoginId: memberCode ? memberCode : (UUID ? UUID : IMEI), DataSource: UUID ? "ios" : "android", AppVersion: version, IsLogin: memberCode != null };
-    sequelize.query(...sqlstr.insert2("wf_statistics_login", statistic, { CreateTime: "now()" }));
-    /**end*/
+    //埋点
+    statistic.login({ LoginId: memberCode ? memberCode : (UUID ? UUID : IMEI), DataSource: UUID ? "ios" : "android", AppVersion: version, IsLogin: memberCode != null })
     res.send({ Status: 0, Explain: "", Config: setting })
-});
-/**获取精选头部列表 */
-app.get('/v2.5/Choiceness/ChoicenessBannerList', async(req, res) => {
-    try {
-        let result = await redisClient.getAsync("cacheResult:bannerChoice")
-        res.send('{"Status":0,"Explain":"ok","Data":' + result + '}')
-    } catch (ex) {
-        res.send({ Status: 500, Explain: ex })
-    }
-});
-/**获取精选列 */
-app.get('/v2.5/Choiceness/ChoicenessList', async(req, res) => {
-    try {
-        let result = await redisClient.getAsync("cacheResult:normalChoice");
-        /**埋点*/
-        let statistic = { LoginId: req.memberCode, TypeId: 4, AppVersion: version, IsLogin: memberCode != null };
-        sequelize.query(...sqlstr.insert2("wf_statistics_module", statistic, { CreateTime: "now()" }));
-        /**end*/
-        res.send('{"Status":0,"Explain":"ok","Data":' + result + '}')
-    } catch (ex) {
-        res.send({ Status: 500, Explain: ex })
-    }
-})
+}));
+
 
 let server = app.listen(config.port, () => {
     let host = server.address().address;

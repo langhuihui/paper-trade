@@ -39,5 +39,8 @@ export default {
             names[i] = names[i] + "=" + argNames[i]
         }
         return `update ${table} set ${names.join(',')} `
+    },
+    update2(table, value, other, where = "") {
+        return [this.update(table, value, other) + where, { replacements: value }]
     }
 }

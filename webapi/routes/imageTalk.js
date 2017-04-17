@@ -1,4 +1,4 @@
-module.exports = function({ sequelize, ctt, express, config }) {
+module.exports = function({ sequelize, statistic, ctt, express, config }) {
     const router = express.Router();
     /**图说详情 */
     router.get('/Detail/:code', ctt, async(req, res) => {
@@ -17,6 +17,8 @@ module.exports = function({ sequelize, ctt, express, config }) {
             if (result.length)([{ Code: it.LastCode }] = result);
             Object.deleteProperties(it, "Id", "Original_Image", "Thumbnail", "Status", "State", "MemberCode", "CreateTime", "LikeCount")
             res.send({ Status: 0, Explain: "", Data: it })
+                //埋点
+            statistic.page({ LoginId: req.memberCode, Type: 18, PageId: it.Id, IsLogin: true })
         } else {
             res.send({ Status: -1, Explain: "该图说不存在!" })
         }

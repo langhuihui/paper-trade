@@ -5,9 +5,8 @@ module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChann
     /**是否开市*/
     router.get('/:type/IsOpen', async(req, res) => {
         let type = req.params.type
-        let condition = type == 'us' ? "StartTimeAM<Now() and EndTimePM>Now()" : "((StartTimeAM<Now() and EndTimeAM>Now()) or (StartTimePM<Now() and EndTimePM>Now()))"
-        let [result] = await sequelize.query("select * from wf_system_opendate_bak where Type=:type and " + condition, { replacements: { type } })
-        res.send({ Status: 0, Explain: "", IsOpen: result.length > 0 })
+        let marketIsOpen = await redisClient.getAsync('marketIsOpen')
+        res.send({ Status: 0, Explain: "", IsOpen: marketIsOpen[type] })
     });
     // /**是否已经绑定（创建）嘉维账户 */
     // router.get('/IsDwAccCreated', ctt, async(req, res) => {
@@ -16,6 +15,7 @@ module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChann
 
     //     res.send({ Status: 0, Explain: "", IsDwAccCreated: result.length })
     // });
+    /**获取股价提醒 */
     router.get('/GetPriceNotify/:SmallType/:SecuritiesNo', ctt, async(req, res) => {
         let replacements = req.params
         replacements.MemberCode = req.memberCode
@@ -52,12 +52,14 @@ module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChann
                 res.send({ Status: 40003, Explain: "未知类型" })
         }
     });
+    /**是否可以交易，是否属于嘉维*/
     router.get('/StockCanTrade/:stockcode', async(req, res) => {
         let { stockcode } = req.params
         let [result] = await sequelize.query("select * from wf_securities_trade where remark='DW' and SecuritiesNo=:stockcode", { replacements: { stockcode } })
         res.send({ Status: 0, Explain: "", Result: result.length > 0 })
 
     });
+    /**获取金融指数的名称和h5链接地址 */
     router.get('/FinancialIndex/:type', async(req, res) => {
         let data = _config.FinancialIndex[req.params.type]
         if (data) res.send({ Status: 0, Explain: "", DataList: data })
