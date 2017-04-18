@@ -31,7 +31,7 @@ module.exports = function({ sequelize, statistic, ctt, express, config }) {
             return
         }
         let memberCode = req.memberCode
-        let [result] = await sequelize.query("update wf_imagetext set `Status`=0 where `Status`=1 and `Code`=:code and MemberCode=:memberCode", { replacements: { code, memberCode } })
+        let [result] = await sequelize.query("update wf_imagetext set Status=0 where Status=1 and `Code`=:code and MemberCode=:memberCode", { replacements: { code, memberCode } })
         res.send({ Status: 0, Explain: "成功", Data: result })
     })
     return router

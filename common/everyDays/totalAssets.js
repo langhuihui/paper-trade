@@ -54,7 +54,7 @@ export default new EveryDay('totalAssets', "05:00:00", async({ sequelize, redisC
                 await sequelize.query(sqlstr.insert("wf_drivewealth_practice_asset", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
             }
         } catch (ex) {
-            console.error(ex)
+            console.error(new Date(), ex)
             continue;
         }
     }

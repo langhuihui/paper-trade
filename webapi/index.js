@@ -35,6 +35,7 @@ async function startMQ() {
     app.use('/v2.5/ImageTalk', require('./routes/imageTalk')(shareData))
     app.use('/v2.5/Choiceness', require('./routes/choiceness')(shareData))
     app.use('/v2.5/DriveWealth', require('./routes/drivewealth')(shareData))
+    app.use('/v2.5/Video', require('./routes/video')(shareData))
     if (Config.test) app.use('/admin', require('./routes/admin')(shareData))
         /**全局错误处理 */
     app.use((err, req, res, next) => {
