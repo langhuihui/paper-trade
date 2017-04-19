@@ -1,6 +1,6 @@
 import sqlstr from '../../common/sqlStr'
 import _config from '../config'
-module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChannel, redisClient, rongcloudSDK }) {
+module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChannel, redisClient, rongcloudSDK, wrap }) {
     const router = express.Router();
     /**是否开市*/
     router.get('/:type/IsOpen', async(req, res) => {
@@ -87,6 +87,12 @@ module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChann
         replacements.picBaseURL = config.picBaseURL
         let [result] = await sequelize.query("select wf_quotation_comment.*,DATE_FORMAT(wf_quotation_comment.CreateTime,'%Y-%m-%d %H:%i:%s') CreateTime,wf_member.NickName,concat(:picBaseURL,wf_member.headimage)HeadImage from wf_quotation_comment left join wf_member on wf_member.membercode=wf_quotation_comment.CreateUser where isdelete=0 and StockCode=:StockCode and StockType=:StockType order by wf_quotation_comment.id desc", { replacements });
         res.send({ Status: 0, Explain: "", DataList: result })
-    })
+    });
+    //查询中概股排行榜
+    router.get('/QuotationRank/:type/:order', wrap(async(req, res) => {
+        let currentSRT = await redisClient.getAsync("currentSRT")
+        let [result] = await sequelize.query("select * from " + currentSRT + " where ShowType=:type order by RiseFallRange " + req.params.order, { replacements: req.params })
+        res.send({ Status: 0, Explain: "", DataList: result })
+    }))
     return router
 }

@@ -30,7 +30,7 @@ function isAllClose({ IsOpenLower, IsOpenUpper, IsOpenRise, IsOpenFall }) {
 }
 /**获取查询股票的代码sina */
 function getQueryName({ SmallType, SecuritiesNo }) {
-    return Config.sina_qmap[SmallType] + SecuritiesNo.toLowerCase()
+    return Config.sina_qmap[SmallType] + SecuritiesNo.toLowerCase().replace(".", "$")
 }
 //rabitmq 通讯
 async function startMQ() {

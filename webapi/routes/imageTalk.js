@@ -13,8 +13,10 @@ module.exports = function({ sequelize, statistic, ctt, express, config }) {
             it.IsLikes = likeCount[0]["myLikes"] > 0;
             ([result] = await sequelize.query('select `Code` from wf_imagetext where Id<:Id and `Status`=1 order by Id desc limit 1', { replacements: it }));
             if (result.length)([{ Code: it.NextCode }] = result);
+            else it.NextCode = "";
             ([result] = await sequelize.query('select `Code` from wf_imagetext where  Id>:Id and `Status`=1 limit 1', { replacements: it }));
             if (result.length)([{ Code: it.LastCode }] = result);
+            else it.LastCode = "";
             Object.deleteProperties(it, "Id", "Original_Image", "Thumbnail", "Status", "State", "MemberCode", "CreateTime", "LikeCount")
             res.send({ Status: 0, Explain: "", Data: it })
                 //埋点
