@@ -45,8 +45,8 @@ module.exports = function({ sequelize, statistic, ctt, express, config, wrap, re
         res.send({ Status: 0, Explain: "", Data: { Dissertation, Column, Latest } })
     }));
     /**教学列表 */
-    router.get('/Teaching', wrap(async(req, res) => {
-        let [result] = await sequelize.query("select *,DATE_FORMAT(ShowTime,'%Y-%m-%d %H:%i:%s') ShowTime from wf_live_video where Backup1=3 and Status=0")
+    router.get('/Teaching/:page', wrap(async(req, res) => {
+        let [result] = await sequelize.query("select *,DATE_FORMAT(ShowTime,'%Y-%m-%d %H:%i:%s') ShowTime from wf_live_video where Backup1=3 and Status=0 limit :page,10", { replacements: req.params })
         res.send({ Status: 0, Explain: "", DataList: result })
     }));
     /**热门分类 */
@@ -55,9 +55,19 @@ module.exports = function({ sequelize, statistic, ctt, express, config, wrap, re
         res.send({ Status: 0, Explain: "", DataList: Column })
     }));
     /**某分类的视频列表 */
-    router.get('/Column/:Id', wrap(async(req, res) => {
-        let [Column] = await sequelize.query("select VideoCode Code,VideoName Name,VideoImage Image,TimeLong from wf_live_video where Status=0 and ColumnId=:Id order by ShowTime desc", { replacements: req.params })
+    router.get('/Column/:Id/:page', wrap(async(req, res) => {
+        let [Column] = await sequelize.query("select VideoCode Code,VideoName Name,VideoImage Image,TimeLong from wf_live_video where Status=0 and ColumnId=:Id order by ShowTime desc limit :page,10", { replacements: req.params })
         res.send({ Status: 0, Explain: "", DataList: Column })
+    }));
+    /**某专题视频列表*/
+    router.get('/Dissertation/:Id/:page', wrap(async(req, res) => {
+        let [Dissertation] = await sequelize.query("select VideoCode Code,VideoName Name,VideoImage Image,TimeLong from wf_live_video where Status=0 and DissertationId=:Id order by ShowTime desc limit :page,10", { replacements: req.params })
+        res.send({ Status: 0, Explain: "", DataList: Dissertation })
+    }));
+    /**最新视频列表 */
+    router.get('/Lastest/:page', wrap(async(req, res) => {
+        let [result] = await sequelize.query("select VideoCode Code,VideoName Name,VideoImage Image,TimeLong from wf_live_video where Status=0 order by ShowTime desc limit :page,10", { replacements: req.params })
+        res.send({ Status: 0, Explain: "", DataList: result })
     }));
     return router;
 }
