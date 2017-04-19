@@ -40,7 +40,7 @@ async function startMQ() {
         /**全局错误处理 */
     app.use((err, req, res, next) => {
         console.error(err.stack);
-        res.send({ Status: 500, Explain: err })
+        res.send({ Status: 500, Explain: err.stack })
     })
 }
 startMQ();

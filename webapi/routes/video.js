@@ -26,7 +26,7 @@ module.exports = function({ sequelize, statistic, ctt, express, config, wrap, re
     const router = express.Router();
     /**直播列表*/
     router.get('/LiveList', wrap(async(req, res) => {
-        let [result] = await sequelize.query(sql1, { replacements: { config } })
+        let [result] = await sequelize.query(sql1, { replacements: config })
         for (let item of result) {
             item.MemberNum = Number(await redisClient.getAsync("roommemberrealcount:" + item.RoomCode)) + Number(await redisClient.getAsync("roomrobotcount:" + item.RoomCode))
         }
