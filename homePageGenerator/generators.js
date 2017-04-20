@@ -93,12 +93,17 @@ class BookGenerator extends ArrayGenerator {
         super(books)
     }
     getOne() {
-        if (this.data.length) {
-            let child = []
-            for (let i = 0; i < 4; i++) {
-                child.push(this.data[(Math.random() * this.data.length) >> 0])
+        if (this.data.length > 4) {
+            let child = new Map()
+            while (child.size < 4) {
+                let c = Object.assign({}, this.data[(Math.random() * this.data.length) >> 0])
+                c.Pic = c.Pic2
+                delete c.Pic2
+                child.set(c.Id, c)
             }
-            return Object.assign({ Books: Array.from(new Set(child)) /*去重*/ }, super.getOne())
+            let result = Object.assign({ Books: Array.from(child.values()) /*去重*/ }, super.getOne())
+            delete result.Pic2
+            return result
         }
         return null
     }

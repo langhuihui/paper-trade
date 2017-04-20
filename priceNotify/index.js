@@ -3,6 +3,8 @@ import Config from '../config'
 import JPush from 'jpush-sdk'
 import amqp from 'amqplib'
 import moment from 'moment-timezone'
+import singleton from '../common/singleton'
+const { mainDB, redisClient, jpushClient } = singleton
 const jpushRegIDSql = `
 SELECT
 	a.*, b.JpushRegID,c.SecuritiesName
@@ -18,9 +20,6 @@ AND (
 	OR a.IsOpenRise = 1
 	OR a.IsOpenFall = 1
 );`
-const jpush = Config.CreateJpushClient();
-const sequelize = Config.CreateSequelize();
-const redisClient = Config.CreateRedisClient();
 import StockRef from '../getSinaData/stocksRef'
 var stocksRef = new StockRef()
 var notifies = new Map()
@@ -54,11 +53,11 @@ async function startMQ() {
                 } else {
                     if (!isAllClose(data)) {
                         notifies.set(data.RemindId, data)
-                        sequelize.query('select JpushRegID from wf_im_jpush where MemberCode=:MemberCode', { replacements: data }).then(result => {
+                        mainDB.query('select JpushRegID from wf_im_jpush where MemberCode=:MemberCode', { replacements: data }).then(result => {
                             if (result[0].length) data.JpushRegID = result[0][0]["JpushRegID"]
                         })
                         if (stocksRef.addSymbol(name)) {
-                            sequelize.query('select SecuritiesName from wf_securities_trade where SecuritiesNo =:SecuritiesNo and SmallType = :SmallType', { replacements: data }).then(result => {
+                            mainDB.query('select SecuritiesName from wf_securities_trade where SecuritiesNo =:SecuritiesNo and SmallType = :SmallType', { replacements: data }).then(result => {
                                 if (result[0].length) data.SecuritiesName = result[0][0]["SecuritiesName"]
                             })
                             channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "add", listener: "priceNotify", symbols: [name] })))
@@ -108,7 +107,7 @@ startMQ()
 async function getAllNotify() {
     notifies.clear()
     stocksRef.clear()
-    let [ns] = await sequelize.query(jpushRegIDSql)
+    let [ns] = await mainDB.query(jpushRegIDSql)
     for (let n of ns) {
         Object.convertBuffer2Bool(n, "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall")
         notifies[n.RemindId] = n
@@ -136,7 +135,7 @@ function sendNotify(type, notify, price, chg) {
             break
     }
     if (notify.JpushRegID)
-        jpush.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(notify.JpushRegID))
+        jpushClient.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(notify.JpushRegID))
         //sendno, time_to_live, override_msg_id, apns_production, big_push_duration
         .setOptions(null, null, null, Config.apns_production)
         .setNotification('股价提醒', JPush.ios(msg, 'sound', 0, false, { AlertType: Config.jpushType, SmallType: notify.SmallType, SecuritiesNo: notify.SecuritiesNo }), JPush.android(msg, title, 1, { AlertType: Config.jpushType, SmallType: notify.SmallType, SecuritiesNo: notify.SecuritiesNo }))
@@ -149,7 +148,7 @@ function sendNotify(type, notify, price, chg) {
                 }
             } else {
                 let replacements = { msg, title, MemberCode: notify.MemberCode, Extension: JSON.stringify({ SmallType: notify.SmallType, SecuritiesNo: notify.SecuritiesNo }) }
-                await sequelize.query("insert into wf_message(Type,Content,MemberCode,CreateTime,Title,Status,Extension) values(1,:msg,:MemberCode,now(),:title,0,:Extension)", { replacements });
+                await mainDB.query("insert into wf_message(Type,Content,MemberCode,CreateTime,Title,Status,Extension) values(1,:msg,:MemberCode,now(),:title,0,:Extension)", { replacements });
             }
         })
 }

@@ -1,10 +1,10 @@
 import sqlstr from '../../common/sqlStr'
 import _config from '../config'
 import pm2 from 'pm2'
-module.exports = function({ config, sequelize, ctt, express, checkEmpty, mqChannel, redisClient, rongcloudSDK }) {
+module.exports = function({ config, mainDB, ctt, express, checkEmpty, mqChannel, redisClient }) {
     const router = express.Router();
     router.get('/token/:memberCode', async(req, res) => {
-        let [result] = await sequelize.query('select * from wf_token where MemberCode=:memberCode', { replacements: req.params })
+        let [result] = await mainDB.query('select * from wf_token where MemberCode=:memberCode', { replacements: req.params })
         if (result.length)
             res.send(result[0]["TokenValue"])
         else res.send("")

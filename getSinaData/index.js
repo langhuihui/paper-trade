@@ -5,8 +5,26 @@ import amqp from 'amqplib'
 import Iconv from 'iconv-lite'
 import StockRef from './stocksRef'
 import sqlstr from '../common/sqlStr'
-var client = Config.CreateRedisClient();
-const sequelize = Config.CreateSequelize();
+import singleton from '../common/singleton'
+const { mainDB, redisClient } = singleton
+
+// import Sequelize from 'sequelize'
+// var securities_rank = new Sequelize('securities_rank', null, null, {
+//     dialect: 'sqlite',
+//     storage: 'securities_rank.db'
+// });
+// let SR_Table = {
+//     SmallType: Sequelize.STRING,
+//     SecuritiesName: Sequelize.STRING,
+//     SecuritiesNo: Sequelize.STRING,
+//     RiseFallRange: Sequelize.DECIMAL,
+//     LastPrice: Sequelize.DECIMAL,
+//     ShowType: Sequelize.STRING
+// }
+// var SecuritiesRankA = securities_rank.define('wf_securities_rank_a', SR_Table)
+// var SecuritiesRankB = securities_rank.define('wf_securities_rank_b', SR_Table)
+// SecuritiesRankA.sync()
+// SecuritiesRankB.sync()
 var stockRef = new StockRef()
 var listenerSymbol = new Map() //订阅者关注的股票
     // var ETFS = []
@@ -76,20 +94,21 @@ async function startMQ() {
     })
     ok = await channel.bindQueue('sinaData', 'broadcast', 'fanout')
     console.log(ok, channel.sendToQueue('sinaData', new Buffer("restart")))
-        //获取中概股
-    let [ccss] = await sequelize.query("select * from wf_securities_trade where ShowType='CCS'")
+
+    //获取中概股
+    let [ccss] = await mainDB.query("select * from wf_securities_trade where ShowType='CCS'")
     stockRef.addSymbols(ccss.map(ccs => getQueryName(ccs)))
     for (let ccs of ccss) {
         stockInfo[getQueryName(ccs)] = ccs
     }
     //获取明星股
-    let [gss] = await sequelize.query("select * from wf_securities_trade where ShowType='GS'")
+    let [gss] = await mainDB.query("select * from wf_securities_trade where ShowType='GS'")
     stockRef.addSymbols(gss.map(gs => getQueryName(gs)))
     for (let gs of gss) {
         stockInfo[getQueryName(gs)] = gs
     }
     /**获取ETF */
-    // let [etfs] = await sequelize.query("select * from wf_securities_trade where ShowType='ETF'")
+    // let [etfs] = await mainDB.query("select * from wf_securities_trade where ShowType='ETF'")
     // for (let etf of etfs) {
     //     Object.deleteProperties(etf, "")
     // }
@@ -118,20 +137,30 @@ function start() {
     intervalId = setInterval(async() => {
         let marketIsOpen = await redisClient.getAsync("marketIsOpen")
         marketIsOpen = JSON.parse(marketIsOpen)
-            //let stocks = marketIsOpen.us?Array.from(marketIsOpen.us):
-        if (stocks.length && client.connected) {
-            let l = stocks.length;
+        let stocks = []
+            //筛选出当前在开盘的股票
+        for (var market in marketIsOpen) {
+            if (marketIsOpen[market])
+                stocks.push(...stockRef[market])
+        }
+        let l = stocks.length;
+        if (l && redisClient.connected) {
             let i = 0
             let stocks_name = ""
-            let currentRankTable = await client.getAsync("currentSRT")
+                //获取和设置当前使用的表
+            let currentRankTable = await redisClient.getAsync("currentSRT")
             if (!currentRankTable) {
                 currentRankTable = "wf_securities_rank_a"
-                client.set("currentSRT", "wf_securities_rank_b")
+                redisClient.set("currentSRT", "wf_securities_rank_b")
             } else {
-                await client.setAsync("currentSRT", currentRankTable == "wf_securities_rank_a" ? "wf_securities_rank_b" : "wf_securities_rank_a")
-                sequelize.query("truncate table " + currentRankTable);
+                await redisClient.setAsync("currentSRT", currentRankTable == "wf_securities_rank_a" ? "wf_securities_rank_b" : "wf_securities_rank_a")
+                    //mainDB.query("truncate table " + currentRankTable);
             }
-            //let sinaData = {}
+            let collection = singleton.getRealDB().collection(currentRankTable);
+            collection.drop((err, reply) => {})
+            collection.ensureIndex({ RiseFallRange: 1 })
+                //currentRankTable = currentRankTable == "wf_securities_rank_a" ? SecuritiesRankA : SecuritiesRankB
+                //currentRankTable.truncate()
             while (l) {
                 if (l > pageSize) {
                     stocks_name = stocks.slice(i, i + pageSize).join(",")
@@ -144,12 +173,10 @@ function start() {
                 request.get({ encoding: null, url: Config.sina_realjs + stocks_name.toLowerCase() }, (error, response, body) => {
                     let rawData = Iconv.decode(body, 'gb2312')
                     let config = Config
-                    let redisClient = client
-                    let _sqlstr = sqlstr
-                    let insertSql = "insert into " + currentRankTable + "(SecuritiesType,SecuritiesNo,SecuritiesName,NewPrice,RiseFallRange,ShowType) values"
-                        //let sd = sinaData
-                    eval(rawData + ` 
                     let values = []
+                        // let _sqlstr = sqlstr
+                        //let insertSql = "insert into " + currentRankTable + "(SecuritiesType,SecuritiesNo,SecuritiesName,NewPrice,RiseFallRange,ShowType) values"
+                    eval(rawData + ` 
                     for (let stockName of stocks){
                         let q = config.stockPatten.exec(stockName)[1];
                         let x=eval("hq_str_" + stockName).split(",");
@@ -157,11 +184,19 @@ function start() {
                         if(Number.isNaN(price[4]))price[4]=0;
                         price[5] = price[4]? (price[3] - price[4]) * 100 / price[4]:0;
                         redisClient.set("lastPrice:"+stockName,price.join(","));
-                        values.push("('"+stockInfo[stockName].SmallType+"','"+stockInfo[stockName].SecuritiesNo+"','"+(stockInfo[stockName].SecuritiesName).replace(/'/g,"’")+"',"+price[4]+","+price[5]+",'"+stockInfo[stockName].ShowType+"')")
+                        if(stockInfo[stockName]){
+                            let {SmallType,SecuritiesNo,SecuritiesName,ShowType} = stockInfo[stockName];
+                            SecuritiesName.replace(/'/g,"’");
+                            values.push({SmallType,SecuritiesNo,SecuritiesName,ShowType,RiseFallRange:price[5],LastPrice:price[4]})
+                        }
+                        //currentRankTable.create({SmallType,SecuritiesNo,SecuritiesName,ShowType,RiseFallRange:price[5],LastPrice:price[4]});
+                       // values.push("('"+stockInfo[stockName].SmallType+"','"+stockInfo[stockName].SecuritiesNo+"','"+(stockInfo[stockName].SecuritiesName).replace(/'/g,"’")+"',"+price[4]+","+price[5]+",'"+stockInfo[stockName].ShowType+"')")
                     }
-                    insertSql+=values.join(",")
-                    sequelize.query(insertSql)
+                    //insertSql+=values.join(",")
+                   // mainDB.query(insertSql)
                     `)
+                    if (values.length)
+                        collection.insertMany(values)
                 })
             }
             // for (let etf of ETFS) {

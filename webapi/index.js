@@ -8,11 +8,10 @@ import bodyParser from 'body-parser'
 import Config from '../config'
 import config from './config'
 import amqp from 'amqplib'
-import rongcloudSDK from 'rongcloud-sdk'
 import sqlstr from '../common/sqlStr'
-rongcloudSDK.init(Config.Rong_Appkey, Config.Rong_Secret);
-var sequelize = Config.CreateSequelize();
-var redisClient = Config.CreateRedisClient();
+import singleton from '../common/singleton'
+const { mainDB, redisClient, rongcloud } = singleton
+
 const app = express();
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -21,14 +20,15 @@ app.use((req, res, next) => {
     if (req.body.Token) delete req.body.Token
     next()
 })
-const statistic = new Statistic({ sequelize })
+const statistic = new Statistic()
 const wrap = fn => (...args) => fn(...args).catch(args[2])
-let shareData = { config: Config, wrap, rongcloudSDK, statistic, express, checkEmpty, checkNum, sequelize, redisClient, ctt: checkToken(sequelize, true), ctf: checkToken(sequelize, false) } //路由中的共享数据
+let shareData = { config: Config, wrap, rongcloud, statistic, express, checkEmpty, checkNum, mainDB, redisClient, ctt: checkToken(true), ctf: checkToken(false) } //路由中的共享数据
 async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
     let ok = await channel.assertQueue('priceNotify')
     shareData.mqChannel = channel
+    shareData.realDB = await singleton.getRealDB()
     app.use('/v2.5/Home', require('./routes/homePage')(shareData))
     app.use('/v2.5/Trade', require('./routes/trade')(shareData))
     app.use('/v2.5/Personal', require('./routes/personal')(shareData))
@@ -50,7 +50,7 @@ app.get('/System/GetConfig', checkEmpty('version'), wrap(async(req, res) => {
     let { version, dbVersion, memberCode, UUID, IMEI } = req.query
     let setting = Object.assign({}, version && config.clientInit[version] ? config.clientInit[version] : config.clientInitDefault)
     if (dbVersion) {
-        let [dbResult] = await sequelize.query('select * from wf_securities_version where Versions>:dbVersion order by Versions asc', { replacements: { dbVersion } })
+        let [dbResult] = await mainDB.query('select * from wf_securities_version where Versions>:dbVersion order by Versions asc', { replacements: { dbVersion } })
         if (dbResult.length) {
             //let maxVersion = dbResult.last.Versions
             dbResult = dbResult.map(x => x.Content)

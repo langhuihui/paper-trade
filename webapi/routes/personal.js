@@ -62,19 +62,19 @@ SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTi
 
 let mainListCache = {}
 
-module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNum, mqChannel }) {
+module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, mqChannel }) {
     async function mainList({ memberCode, pageNum, pageSize, res }) {
         if (pageSize < 0) pageSize = 10
         if (pageNum < 0) pageNum = 0
         if (pageNum == 0 || !mainListCache[memberCode]) {
-            let [result] = await sequelize.query(myMainListSql, { replacements: { memberCode, picBaseURL: config.picBaseURL } })
+            let [result] = await mainDB.query(myMainListSql, { replacements: { memberCode, picBaseURL: config.picBaseURL } })
             mainListCache[memberCode] = result
         }
         let result = mainListCache[memberCode].slice(pageNum * pageSize, (pageNum + 1) * pageSize)
         res.send({ Status: 0, Explain: "", DataList: result })
     }
     async function homePage(memberCode, res) {
-        let [result] = await sequelize.query("select TotalAmount,TodayProfit,MtmPL from wf_drivewealth_practice_asset where MemberCode=:memberCode order by EndDate desc limit 1", { replacements: { memberCode } })
+        let [result] = await mainDB.query("select TotalAmount,TodayProfit,MtmPL from wf_drivewealth_practice_asset where MemberCode=:memberCode order by EndDate desc limit 1", { replacements: { memberCode } })
         let Data = { TotalAmount: config.practiceInitFun, TodayProfit: 0, MtmPL: 0, EveryDayURL: _config.EveryDayURL + memberCode }
         Object.assign(Data, result[0])
         res.send({ Status: 0, Explain: "", Data })
@@ -102,16 +102,16 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
         res.setHeader("Access-Control-Allow-Methods", "GET");
         let { memberCode, startDate } = req.params
         startDate = new Date(startDate)
-        let [result] = await sequelize.query("select TodayProfit*100/TotalAmount profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_drivewealth_practice_asset where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate } })
+        let [result] = await mainDB.query("select TodayProfit*100/TotalAmount profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_drivewealth_practice_asset where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate } })
         res.send({ Status: 0, Explain: "", DataList: result })
     });
     /**我的系统设置 */
     router.get('/Settings', ctt, async(req, res) => {
-        let [result] = await sequelize.query("select PriceNotify from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } })
+        let [result] = await mainDB.query("select PriceNotify from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } })
         res.send({ Status: 0, Explain: "", Data: Object.convertBuffer2Bool(result[0], "PriceNotify") })
     })
     router.put('/Settings', ctt, async(req, res) => {
-        let [result] = await sequelize.query("select * from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } })
+        let [result] = await mainDB.query("select * from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } })
         let replacements = Object.assign({ memberCode: req.memberCode }, req.body)
         if (result.length) {
             for (let n in req.body) {
@@ -120,13 +120,13 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
                     return
                 }
             }
-            let [result2] = await sequelize.query(sqlstr.update("wf_system_setting", replacements, { memberCode: null }) + "where MemberCode=:memberCode", { replacements })
+            let [result2] = await mainDB.query(sqlstr.update("wf_system_setting", replacements, { memberCode: null }) + "where MemberCode=:memberCode", { replacements })
             res.send({ Status: 0, Explain: result2 })
             if (result[0].PriceNotify[0] == 1 && !replacements.PriceNotify) {
                 mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode: req.memberCode } })))
             }
         } else {
-            let [result2] = await sequelize.query(sqlstr.insert("wf_system_setting", replacements, { MemberCode: "memberCode" }), { replacements })
+            let [result2] = await mainDB.query(sqlstr.insert("wf_system_setting", replacements, { MemberCode: "memberCode" }), { replacements })
             res.send({ Status: 0, Explain: result2 })
             if (!replacements.PriceNotify) {
                 mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode: req.memberCode } })))
@@ -135,13 +135,13 @@ module.exports = function({ express, sequelize, ctt, config, checkEmpty, checkNu
     });
     /**获取我的消息列表 */
     router.get('/Messages', ctt, async(req, res) => {
-        let [result] = await sequelize.query("select Id,Type,Title,Extension,Content,DATE_FORMAT(CreateTime,'%Y-%m-%d %H:%i:%s') CreateTime from wf_message where (MemberCode=:memberCode or Type=2) and Status=0 order by Id desc", { replacements: { memberCode: req.memberCode } })
+        let [result] = await mainDB.query("select Id,Type,Title,Extension,Content,DATE_FORMAT(CreateTime,'%Y-%m-%d %H:%i:%s') CreateTime from wf_message where (MemberCode=:memberCode or Type=2) and Status=0 order by Id desc", { replacements: { memberCode: req.memberCode } })
         for (let msg of result) {
             if (msg.Extension) {
                 msg.Extension = JSON.parse(msg.Extension)
             }
         }
-        await sequelize.query("delete from wf_message where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } });
+        await mainDB.query("delete from wf_message where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } });
         res.send({ Status: 0, Explain: "", DataList: result })
     })
     return router

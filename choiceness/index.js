@@ -1,8 +1,8 @@
 import request from 'request'
 import Config from '../config'
 import amqp from 'amqplib'
-var sequelize = Config.CreateSequelize();
-var redisClient = Config.CreateRedisClient();
+import singleton from '../common/singleton'
+const { mainDB, redisClient } = singleton
 async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
@@ -26,7 +26,7 @@ async function startMQ() {
 /**从数据库里读取所有精选信息 */
 async function getAllChocieness(channel) {
     console.log("获取所有精选")
-    let choiceness = await sequelize.query('select a.Id,a.`Code`,a.Title,a.Details,a.content,a.CoverImage,a.BannerImage,a.Provenance,a.StocksCount,a.State,b.Id SecuritiesId,b.SecuritiesType,b.SecuritiesNo,b.SecuritiesName from wf_choiceness a, wf_choiceness_stock b where a.`Code` = b.ChoiceCode and a.`Status` = 1 order by a.Id desc')
+    let choiceness = await mainDB.query('select a.Id,a.`Code`,a.Title,a.Details,a.content,a.CoverImage,a.BannerImage,a.Provenance,a.StocksCount,a.State,b.Id SecuritiesId,b.SecuritiesType,b.SecuritiesNo,b.SecuritiesName from wf_choiceness a, wf_choiceness_stock b where a.`Code` = b.ChoiceCode and a.`Status` = 1 order by a.Id desc')
     choiceness = choiceness[0]
     let choicenessMap = {} //按精选Id分组
     bannerChoice = []

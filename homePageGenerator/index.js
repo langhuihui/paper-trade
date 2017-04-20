@@ -4,7 +4,8 @@ import amqp from 'amqplib'
 import Rx from 'rxjs'
 import { ArrayGenerator, ColumnGenerator, NewsGenerator, BookGenerator } from './generators'
 import PublishOnTime from './publishOnTime'
-const sequelize = Config.CreateSequelize();
+import singleton from '../common/singleton'
+const { mainDB } = singleton
 const publishOnTime = new PublishOnTime(() => { GenerateHomePage() })
 const homePageSqls = [
     //"SELECT *,0 Type FROM (SELECT `Code`,id Id,Title,SelectPicture Pic,SecuritiesNo,ShowTime FROM wf_news news WHERE  IsStartNews = 0 AND type = 9 AND ColumnNo = '' UNION SELECT `Code`,id,Title,SelectPicture,SecuritiesNo,ShowTime FROM wf_news news,wf_news_column ncolumn WHERE news.ColumnNo = ncolumn.ColumnNo AND (ncolumn.State = 0 OR ncolumn.Type = 0) AND news.Type=9) tp ORDER BY ShowTime desc",
@@ -12,7 +13,7 @@ const homePageSqls = [
     "SELECT a.ColumnId Id,a.ColumnNo,a.`Name` ColumnTitle,a.HomePage_Image,a.Description ColumnDes,b.`Code`,b.id Id,b.Title,b.SelectPicture Pic FROM wf_news_column a,wf_news b WHERE a.ColumnNo = b.ColumnNo AND a.State = 1 AND a.Type = 1 AND b.Type=9 ORDER BY b.ShowTime desc", //专栏
     "SELECT 2 Type,`Code`,id Id,Thumbnail Pic,Details,CreateTime FROM wf_imagetext WHERE State = 1 AND `Status` = 1 ORDER BY id DESC", //图说
     "SELECT 3 Type,Cover_Image Pic,`Code`,id Id FROM wf_dissertation_type WHERE State = 1 AND `Status` = 1 ORDER BY id DESC", //专题
-    "SELECT 4 Type,`Code`,id Id,HomePage_Image Pic FROM wf_books WHERE `Status` = 1 ORDER BY id DESC", //书籍
+    "SELECT 4 Type,`Code`,id Id,HomePage_Image Pic,Cover_Image Pic2 FROM wf_books WHERE `Status` = 1 ORDER BY id DESC", //书籍
     "select 5 Type,VoteId Id,VoteCode `Code`,Title,Description Des,HomePageImage Pic,CreateTime,VoteCount from wf_vote where IsDelete = 0 order by CreateTime desc" //投票
 ];
 
@@ -31,13 +32,10 @@ const homePageSqls = [
 /**首页生成主程序 */
 async function GenerateHomePage() {
     //获取最大版本号
-    let [version] = (await sequelize.query("select max(Versions)+1 maxVersion from wf_homepage"))[0]
+    let [version] = (await mainDB.query("select max(Versions)+1 maxVersion from wf_homepage"))[0]
     version = version['maxVersion']
     if (!version) version = 1
-    let allData = []
-    for (let i = 0; i < 6; i++) {
-        allData[i] = (await sequelize.query(homePageSqls[i]))[0]
-    }
+    let allData = (await Promise.all(homePageSqls.map(sql => mainDB.query(sql)))).map(d => d[0])
     let columnsMap = {} //按专栏id分组专栏数据
     let columns = []
     for (var data1 of allData[1]) {
@@ -86,7 +84,7 @@ async function GenerateHomePage() {
             }
         })
         content = content.substr(1, content.length - 2).replace(/\\r|\\n/g, "") //去掉回车换行和前后中括号
-        await sequelize.query(`insert into wf_homepage(Versions,Page,Content,CreateTime) values(${version},${page},'${content}','${now.format()}')`)
+        await mainDB.query(`insert into wf_homepage(Versions,Page,Content,CreateTime) values(${version},${page},'${content}','${now.format()}')`)
         pageData.length = 0
         page++
     }
@@ -94,9 +92,9 @@ async function GenerateHomePage() {
     try {
         ([
             [{ maxVersion: version }]
-        ] = await sequelize.query("select max(Versions) maxVersion from wf_homepage where CreateTime < CURDATE()")) //选出今天之前的最大版本号
+        ] = await mainDB.query("select max(Versions) maxVersion from wf_homepage where CreateTime < CURDATE()")) //选出今天之前的最大版本号
         //version = version[0]['maxVersion']
-        let delResult = await sequelize.query("delete from wf_homepage where Versions < " + version)
+        let delResult = await mainDB.query("delete from wf_homepage where Versions < " + version)
         console.log("已删除旧数据：", delResult[0].affectedRows)
     } catch (ex) {
         console.error(ex)

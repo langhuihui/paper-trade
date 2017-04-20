@@ -1,4 +1,4 @@
-module.exports = function({ sequelize, statistic, ctt, express, config }) {
+module.exports = function({ mainDB, statistic, ctt, express, config }) {
     const router = express.Router();
     /**获取精选头部列表 */
     router.get('/ChoicenessBannerList', async(req, res) => {

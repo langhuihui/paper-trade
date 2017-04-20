@@ -3,14 +3,16 @@ import request from 'request-promise'
 import Config from '../../config'
 import driveWealth from '../driveWealth'
 import sqlstr from '../sqlStr'
+import singleton from '../singleton'
+const { mainDB, redisClient } = singleton
 let { urls: dwUrls } = driveWealth
 Object.assign(dwUrls, Config.driveWealthHost)
-export default new EveryDay('totalAssets', "05:00:00", async({ sequelize, redisClient }) => {
-    let [result] = await sequelize.query('select * from wf_drivewealth_practice_account')
+export default new EveryDay('totalAssets', "05:00:00", async() => {
+    let [result] = await mainDB.query('select * from wf_drivewealth_practice_account')
     for (let { UserId, MemberCode, username, password, emailAddress1 }
         of result) {
         try {
-            let [todayAssetResult] = await sequelize.query("select * from wf_drivewealth_practice_asset where EndDate=CurDate() and UserId=:UserId", { replacements: { UserId } })
+            let [todayAssetResult] = await mainDB.query("select * from wf_drivewealth_practice_asset where EndDate=CurDate() and UserId=:UserId", { replacements: { UserId } })
             if (todayAssetResult.length) continue
             let { sessionKey, accounts } = await request({
                 uri: dwUrls.createSession,
@@ -46,12 +48,12 @@ export default new EveryDay('totalAssets', "05:00:00", async({ sequelize, redisC
                 let Positions = positions.reduce((acc, val) => acc + val.mtm, 0) //总的持仓资产
                 let MtmPL = positions.reduce((acc, val) => acc + val.mtmPL, 0) //总的持仓浮动盈亏
                 let replacements = { UserId, MemberCode, AccountID: accountID, Balance: cash, Positions, TotalAmount: cash + Positions, MtmPL }
-                let [result] = await sequelize.query('select TotalAmount from wf_drivewealth_practice_asset where UserId=:UserId and EndDate<CurDate() order by EndDate desc limit 1', { replacements })
+                let [result] = await mainDB.query('select TotalAmount from wf_drivewealth_practice_asset where UserId=:UserId and EndDate<CurDate() order by EndDate desc limit 1', { replacements })
                 replacements.TodayProfit = replacements.TotalAmount - (result.length ? result[0].TotalAmount : Config.practiceInitFun)
-                await sequelize.query(sqlstr.insert("wf_drivewealth_practice_asset", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
+                await mainDB.query(sqlstr.insert("wf_drivewealth_practice_asset", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
             } else {
                 let replacements = { UserId, MemberCode, AccountID: accountID, Balance: cash, Positions: 0, TotalAmount: cash, MtmPL: 0, TodayProfit: 0 }
-                await sequelize.query(sqlstr.insert("wf_drivewealth_practice_asset", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
+                await mainDB.query(sqlstr.insert("wf_drivewealth_practice_asset", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
             }
         } catch (ex) {
             console.error(new Date(), ex)
@@ -59,10 +61,10 @@ export default new EveryDay('totalAssets', "05:00:00", async({ sequelize, redisC
         }
     }
     //缓存总资产排行
-    let [totalAmountResult] = await sequelize.query("select dw.MemberCode,round(dw.TotalAmount) TotalAmount,wf_member.Nickname,concat(:picBaseURL,wf_member.HeadImage) HeadImage from wf_drivewealth_practice_asset as dw left join wf_member on dw.MemberCode=wf_member.MemberCode where dw.EndDate=CurDate() order by dw.TotalAmount desc limit 100", { replacements: { picBaseURL: Config.picBaseURL } })
+    let [totalAmountResult] = await mainDB.query("select dw.MemberCode,round(dw.TotalAmount) TotalAmount,wf_member.Nickname,concat(:picBaseURL,wf_member.HeadImage) HeadImage from wf_drivewealth_practice_asset as dw left join wf_member on dw.MemberCode=wf_member.MemberCode where dw.EndDate=CurDate() order by dw.TotalAmount desc limit 100", { replacements: { picBaseURL: Config.picBaseURL } })
     redisClient.set("RankList:totalAssets", JSON.stringify(totalAmountResult))
         //缓存日收益排行
-    let [todayProfitResult] = await sequelize.query("select dw.MemberCode,round(dw.TodayProfit) TodayProfit,wf_member.Nickname,concat(:picBaseURL,wf_member.HeadImage) HeadImage from wf_drivewealth_practice_asset as dw left join wf_member on dw.MemberCode=wf_member.MemberCode  where dw.EndDate=CurDate() order by dw.TodayProfit desc limit 100", { replacements: { picBaseURL: Config.picBaseURL } })
+    let [todayProfitResult] = await mainDB.query("select dw.MemberCode,round(dw.TodayProfit) TodayProfit,wf_member.Nickname,concat(:picBaseURL,wf_member.HeadImage) HeadImage from wf_drivewealth_practice_asset as dw left join wf_member on dw.MemberCode=wf_member.MemberCode  where dw.EndDate=CurDate() order by dw.TodayProfit desc limit 100", { replacements: { picBaseURL: Config.picBaseURL } })
     redisClient.set("RankList:todayProfit", JSON.stringify(todayProfitResult))
-    sequelize.query('CALL PRC_WF_PRACTICE_RANK();')
+    mainDB.query('CALL PRC_WF_PRACTICE_RANK();')
 })

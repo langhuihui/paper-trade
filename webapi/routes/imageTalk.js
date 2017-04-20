@@ -1,20 +1,20 @@
-module.exports = function({ sequelize, statistic, ctt, express, config }) {
+module.exports = function({ mainDB, statistic, ctt, express, config }) {
     const router = express.Router();
     /**图说详情 */
     router.get('/Detail/:code', ctt, async(req, res) => {
         let replacements = req.params
         replacements.memberCode = req.memberCode
         replacements.picBaseURL = config.picBaseURL
-        let [result] = await sequelize.query("select *,LikeCount LikesCount,concat(:picBaseURL,Thumbnail) Composite_Image from wf_imagetext where `Status`=1 and `Code`=:code", { replacements })
+        let [result] = await mainDB.query("select *,LikeCount LikesCount,concat(:picBaseURL,Thumbnail) Composite_Image from wf_imagetext where `Status`=1 and `Code`=:code", { replacements })
         if (result.length) {
             let [it] = result
             //点赞数和我是否已经点赞
-            let [likeCount] = await sequelize.query(`select count(*) myLikes from wf_imagetext_likes where ITCode=:code and CreateUser=:memberCode`, { replacements })
+            let [likeCount] = await mainDB.query(`select count(*) myLikes from wf_imagetext_likes where ITCode=:code and CreateUser=:memberCode`, { replacements })
             it.IsLikes = likeCount[0]["myLikes"] > 0;
-            ([result] = await sequelize.query('select `Code` from wf_imagetext where Id<:Id and `Status`=1 order by Id desc limit 1', { replacements: it }));
+            ([result] = await mainDB.query('select `Code` from wf_imagetext where Id<:Id and `Status`=1 order by Id desc limit 1', { replacements: it }));
             if (result.length)([{ Code: it.NextCode }] = result);
             else it.NextCode = "";
-            ([result] = await sequelize.query('select `Code` from wf_imagetext where  Id>:Id and `Status`=1 limit 1', { replacements: it }));
+            ([result] = await mainDB.query('select `Code` from wf_imagetext where  Id>:Id and `Status`=1 limit 1', { replacements: it }));
             if (result.length)([{ Code: it.LastCode }] = result);
             else it.LastCode = "";
             Object.deleteProperties(it, "Id", "Original_Image", "Thumbnail", "Status", "State", "MemberCode", "CreateTime", "LikeCount")
@@ -33,7 +33,7 @@ module.exports = function({ sequelize, statistic, ctt, express, config }) {
             return
         }
         let memberCode = req.memberCode
-        let [result] = await sequelize.query("update wf_imagetext set Status=0 where Status=1 and `Code`=:code and MemberCode=:memberCode", { replacements: { code, memberCode } })
+        let [result] = await mainDB.query("update wf_imagetext set Status=0 where Status=1 and `Code`=:code and MemberCode=:memberCode", { replacements: { code, memberCode } })
         res.send({ Status: 0, Explain: "成功", Data: result })
     })
     return router

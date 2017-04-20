@@ -1,9 +1,3 @@
-import Sequelize from 'sequelize'
-import redis from 'redis'
-import bluebird from 'bluebird'
-import JPush from 'jpush-sdk'
-bluebird.promisifyAll(redis.RedisClient.prototype);
-bluebird.promisifyAll(redis.Multi.prototype);
 let config = {
     test: true,
     Jpush_Appkey: "2857872dca17b28541cde5f0",
@@ -15,6 +9,7 @@ let config = {
     mysqlconn: "mysql://wftest:WfTestonlytest_20170222@rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com:3306/wolfstreet_test",
     amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001/test",
     redisConfig: { host: "api.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC", db: 1 },
+    mongodbconn: "mongodb://wfadmin:wf123456@118.178.88.67:27017/wolfstreet",
     // redisConfig: { host: "api.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC" },
     // amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001",
     // mysqlconn: "mysql://program_admin:!P%402%23dh%254%5e5Y%26g*4@rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com:3306/wolfstreet",
@@ -36,16 +31,8 @@ let config = {
     },
     practiceInitFun: 10000, //模拟交易起始资金
     //  mysqlconn: "mysql://wfadmin:123456@192.168.2.205:3306/wolfstreet_test",
-    CreateSequelize() {
-        return new Sequelize(this.mysqlconn, { timezone: '+08:00', logging: (...arg) => console.log(new Date().format(), ...arg) });
-    },
-    CreateRedisClient() {
-        return redis.createClient(this.redisConfig);
-    },
-    CreateJpushClient() {
-        return JPush.buildClient(this.Jpush_Appkey, this.Jpush_Secret)
-    }
 }
+console.log(process.env.NODE_ENV)
 if (process.env.NODE_ENV === "production") {
     Object.assign(config, require('./pconfig.js'))
 }

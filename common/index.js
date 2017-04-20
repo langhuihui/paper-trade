@@ -1,9 +1,10 @@
-import Config from '../config'
+//import Config from '../config'
 import totalAssets from './everyDays/totalAssets'
 import marketTime from './everyDays/marketTime'
+import singleton from './singleton'
+const { redisClient } = singleton
 // import amqp from 'amqplib'
-let sequelize = Config.CreateSequelize()
-let redisClient = Config.CreateRedisClient();
+
 // async function startMQ() {
 //     let amqpConnection = await amqp.connect(Config.amqpConn)
 //     let channel = await amqpConnection.createChannel()
@@ -32,13 +33,13 @@ initEveryDayFuns()
 setInterval(() => {
     let now = new Date()
     for (let f of everyDayFuns) {
-        if (f.checkAndRun(now, { sequelize, redisClient })) {
+        if (f.checkAndRun(now)) {
             redisClient.set('timeRunFlag:' + f.name, now)
         }
     }
     if (marketTime.setRedis) marketTime.setRedis(now)
     else {
-        marketTime.callback({ sequelize, redisClient }).then(() => {
+        marketTime.callback().then(() => {
             marketTime.setRedis(now)
         })
     }

@@ -1,16 +1,17 @@
 import Config from '../../config'
 import config from '../config'
-let sequelize = null
+import singleton from '../../common/singleton'
+const { mainDB } = singleton
 const tokenSql = "SELECT wf_token.TokenID,wf_token.ClientType,wf_token.MemberCode,wf_token.TokenValue,wf_token.ValidityTime,wf_member.Status FROM wf_token LEFT JOIN wf_member ON wf_member.MemberCode=wf_token.MemberCode WHERE wf_token.TokenValue=?";
 const updateTokenSql = "UPDATE wf_token set ValidityTime=? WHERE TokenID=?";
 
 function updateToken(tokenId) {
-    sequelize.query(updateTokenSql, { replacements: [new Date(), tokenId] })
+    mainDB.query(updateTokenSql, { replacements: [new Date(), tokenId] })
 }
 async function checkToken(token, isLogin) {
     let result = 0
     let memberCode = ""
-    let tokenModel = (await sequelize.query(tokenSql, { replacements: [token] }))
+    let tokenModel = (await mainDB.query(tokenSql, { replacements: [token] }))
     tokenModel = tokenModel[0][0]
     if (isLogin) {
         if (tokenModel) {
@@ -33,8 +34,7 @@ async function checkToken(token, isLogin) {
 }
 //token验证中间件
 
-function checkLogin(seq, isLogin) {
-    sequelize = seq
+function checkLogin(isLogin) {
     return async function(req, res, next) {
         let { result, memberCode } = await checkToken(req.header('Token'), isLogin)
         req.memberCode = memberCode
