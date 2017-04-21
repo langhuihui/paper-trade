@@ -121,7 +121,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode } })))
             }
         } else {
-            let [result2] = await mainDB.query(...sqlstr.insert2("wf_system_setting", replacements, { MemberCode: ":memberCode" }))
+            let [result2] = await mainDB.query(...sqlstr.insert2("wf_system_setting", replacements))
             res.send({ Status: 0, Explain: result2 })
             if (!replacements.PriceNotify) {
                 mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode } })))
