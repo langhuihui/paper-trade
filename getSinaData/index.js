@@ -156,7 +156,7 @@ function start() {
                 await redisClient.setAsync("currentSRT", currentRankTable == "wf_securities_rank_a" ? "wf_securities_rank_b" : "wf_securities_rank_a")
                     //mainDB.query("truncate table " + currentRankTable);
             }
-            let collection = singleton.getRealDB().collection(currentRankTable);
+            let collection = (await singleton.getRealDB()).collection(currentRankTable);
             collection.drop((err, reply) => {})
             collection.ensureIndex({ RiseFallRange: 1 })
                 //currentRankTable = currentRankTable == "wf_securities_rank_a" ? SecuritiesRankA : SecuritiesRankB
