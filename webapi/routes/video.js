@@ -27,7 +27,7 @@ module.exports = function({ mainDB, statistic, ctt, express, config, wrap, redis
         let replacements = { page: Number(req.params.page) * 20, picBaseURL: config.picBaseURL }
         let [result] = await mainDB.query(sql1, { replacements })
         let roomCodes = result.map(i => i.RoomCode)
-        roomCodes = await redisClient.mgetAsync(...roomCodes.map(i => "roommemberrealcount:" + i.RoomCode).concat(roomCodes.map(i => "roomrobotcount:" + i.RoomCode)))
+        roomCodes = await redisClient.mgetAsync(...roomCodes.map(i => "roommemberrealcount:" + i).concat(roomCodes.map(i => "roomrobotcount:" + i)))
         let count = result.length;
         for (let i = 0; i < count; i++) {
             result[i].MemberNum = Number(roomCodes[i]) + Number(roomCodes[count + i])
