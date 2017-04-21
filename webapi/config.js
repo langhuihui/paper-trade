@@ -1,9 +1,9 @@
 let config = {
     port: 10002,
     tokenTime: 14400000,
-    clientInitAll: { forceUpdate: 2.4, quotation: { source: "sina" }, dbVersion: 1 }, //所有客户端配置
+    clientInitAll: { forceUpdate: 2.4, quotation: { source: "sina" }, dbVersion: 1, showRank: true }, //所有客户端配置
     clientInitDefault: {
-
+        showTrade: true
     }, //默认配置
     clientInit: { //特定版本客户端配置
         "2.5": { showTrade: false }

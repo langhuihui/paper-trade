@@ -103,6 +103,8 @@ class BookGenerator extends ArrayGenerator {
             }
             let result = Object.assign({ Books: Array.from(child.values()) /*去重*/ }, super.getOne())
             delete result.Pic2
+            delete result.Author
+            delete result.BookName
             return result
         }
         return null

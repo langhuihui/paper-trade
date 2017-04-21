@@ -3,7 +3,7 @@ SELECT
 	room.RoomCode,room.RoomTitle,room.MemberCode,room.SecretType,room.City,room.CreateTime, c.Topic,(case when room.Status=0 then 'video' else 'live' end) Type,DATE_FORMAT(room.CreateTime,'%Y-%m-%d %H:%i:%s') CreateTime,
 	wf_member.HeadImage,wf_member.NickName,concat(:picBaseURL, ImageUrl) ImageUrl
 FROM
-	(Select * from wf_liveroom where Status < 2 order by RoomId Desc LIMIT :page,20) room
+	(Select * from wf_liveroom where Status < 2 order by Status,RoomId Desc LIMIT :page,20) room
 LEFT JOIN (
 	SELECT
 		a.LiveRoomCode,

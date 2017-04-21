@@ -13,8 +13,8 @@ const homePageSqls = [
     "SELECT a.ColumnId Id,a.ColumnNo,a.`Name` ColumnTitle,a.HomePage_Image,a.Description ColumnDes,b.`Code`,b.id Id,b.Title,b.SelectPicture Pic FROM wf_news_column a,wf_news b WHERE a.ColumnNo = b.ColumnNo AND a.State = 1 AND a.Type = 1 AND b.Type=9 ORDER BY b.ShowTime desc", //专栏
     "SELECT 2 Type,`Code`,id Id,Thumbnail Pic,Details,CreateTime FROM wf_imagetext WHERE State = 1 AND `Status` = 1 ORDER BY id DESC", //图说
     "SELECT 3 Type,Cover_Image Pic,`Code`,id Id FROM wf_dissertation_type WHERE State = 1 AND `Status` = 1 ORDER BY id DESC", //专题
-    "SELECT 4 Type,`Code`,id Id,HomePage_Image Pic,Cover_Image Pic2 FROM wf_books WHERE `Status` = 1 ORDER BY id DESC", //书籍
-    "select 5 Type,VoteId Id,VoteCode `Code`,Title,Description Des,HomePageImage Pic,CreateTime,VoteCount from wf_vote where IsDelete = 0 order by CreateTime desc" //投票
+    "SELECT 4 Type,`Code`,id Id,HomePage_Image Pic,Cover_Image Pic2,BookName,Author FROM wf_books WHERE `Status` = 1 ORDER BY id DESC", //书籍
+    "SELECT 5 Type,VoteId Id,VoteCode `Code`,Title,Description Des,HomePageImage Pic,CreateTime,VoteCount from wf_vote where IsDelete = 0 order by CreateTime desc" //投票
 ];
 
 (async() => {
@@ -71,6 +71,8 @@ async function GenerateHomePage() {
             switch (key) {
                 case "Title":
                 case "Des":
+                case "BookName":
+                case "Author":
                     return value.replace(/"/g, '\\"')
                 case "ShowTime":
                 case "CreateTime": //时间格式
