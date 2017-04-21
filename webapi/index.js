@@ -46,8 +46,7 @@ async function startMQ() {
 startMQ();
 
 /**客户端初始化配置 */
-app.get('/System/GetConfig', checkEmpty('version'), wrap(async(req, res) => {
-    let { version, dbVersion, memberCode, UUID, IMEI } = req.query
+app.get('/System/GetConfig', checkEmpty('version'), wrap(async({ query: { version, dbVersion, memberCode, UUID, IMEI } }, res) => {
     let setting = Object.assign({}, version && config.clientInit[version] ? config.clientInit[version] : config.clientInitDefault)
     if (dbVersion) {
         let [dbResult] = await mainDB.query('select * from wf_securities_version where Versions>:dbVersion order by Versions asc', { replacements: { dbVersion } })
@@ -57,9 +56,9 @@ app.get('/System/GetConfig', checkEmpty('version'), wrap(async(req, res) => {
             setting.updateSQL = dbResult.join('');
         }
     }
-    //埋点
-    statistic.login({ LoginId: memberCode ? memberCode : (UUID ? UUID : IMEI), DataSource: UUID ? "ios" : "android", AppVersion: version, IsLogin: memberCode != null })
     res.send({ Status: 0, Explain: "", Config: setting })
+        //埋点
+    statistic.login({ LoginId: memberCode ? memberCode : (UUID ? UUID : IMEI), DataSource: UUID ? "ios" : "android", AppVersion: version, IsLogin: memberCode != null })
 }));
 
 
