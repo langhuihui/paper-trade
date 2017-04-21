@@ -11,8 +11,8 @@ SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTi
 		wf_live_video.ShowTime,
 		'' SecuritiesNo,
 		'' SecuritiesType,
-		'' LikeCount,
-		'' CommentCount
+		0 LikeCount,
+		0 CommentCount
 	FROM
 		wf_live_video
 	LEFT JOIN wf_member ON wf_live_video.MemberCode = wf_member.MemberCode
@@ -29,8 +29,8 @@ SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTi
 		wf_News.ShowTime,
 		wf_News.SecuritiesNo,
 		wf_News.SecuritiesType,
-		'' LikeCount,
-		'' CommentCount
+		0 LikeCount,
+		0 CommentCount
 	FROM
 		wf_News
 	LEFT JOIN wf_member ON wf_News.CreateUser = wf_member.MemberCode
@@ -55,14 +55,14 @@ SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTi
 		wf_imagetext
 	LEFT JOIN wf_member ON wf_imagetext.MemberCode = wf_member.MemberCode
 	WHERE
-		wf_imagetext.\`Status\` = 1
+		wf_imagetext.Status = 1
 	AND wf_imagetext.MemberCode = :memberCode
 ) a order by  a.ShowTime DESC;
 `
 
 let mainListCache = {}
 
-module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, mqChannel }) {
+module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, mqChannel, wrap }) {
     async function mainList({ memberCode, pageNum, pageSize, res }) {
         if (pageSize < 0) pageSize = 10
         if (pageNum < 0) pageNum = 0
@@ -75,42 +75,37 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }
     async function homePage(memberCode, res) {
         let [result] = await mainDB.query("select TotalAmount,TodayProfit,MtmPL from wf_drivewealth_practice_asset where MemberCode=:memberCode order by EndDate desc limit 1", { replacements: { memberCode } })
-        let Data = { TotalAmount: config.practiceInitFun, TodayProfit: 0, MtmPL: 0, EveryDayURL: _config.EveryDayURL + memberCode }
-        Object.assign(Data, result[0])
+        let Data = { TotalAmount: config.practiceInitFun, TodayProfit: 0, MtmPL: 0, EveryDayURL: _config.EveryDayURL + memberCode, Unused: true }
+        if (result.length) {
+            Data.Unused = false
+            Object.assign(Data, result[0])
+        }
         res.send({ Status: 0, Explain: "", Data })
     }
     const router = express.Router();
     /**个人主页我的发布或者他人主页中的发布列表 */
-    router.get('/GetMyMainList', ctt, checkNum('pageNum', 'pageSize'), (req, res) => {
-        let { pageNum = 0, pageSize = 10 } = req.query
-        let memberCode = req.memberCode
-        mainList({ memberCode, pageNum, pageSize, res })
-    })
-    router.get('/GetHeMainList', checkEmpty('memberCode'), checkNum('pageNum', 'pageSize'), (req, res) => {
-        let { pageNum = 0, pageSize = 10, memberCode } = req.query
-        mainList({ memberCode, pageNum, pageSize, res })
-    })
-    router.get('/GetMyHomePage', ctt, (req, res) => {
-        homePage(req.memberCode, res)
-    })
-    router.get('/GetHeHomePage/:memberCode', (req, res) => {
-        homePage(req.params.memberCode, res)
-    });
+    router.get('/GetMyMainList', ctt, checkNum('pageNum', 'pageSize'), wrap(({ query: { pageNum = 0, pageSize = 10 }, memberCode }, res) => mainList({ memberCode, pageNum, pageSize, res })));
+    /**他人主页 */
+    router.get('/GetHeMainList', checkEmpty('memberCode'), checkNum('pageNum', 'pageSize'), wrap(({ query: { pageNum = 0, pageSize = 10, memberCode } }, res) => mainList({ memberCode, pageNum, pageSize, res })));
+    router.get('/GetMyHomePage', ctt, wrap((req, res) => homePage(req.memberCode, res)));
+    router.get('/GetHeHomePage/:memberCode', wrap((req, res) => homePage(req.params.memberCode, res)));
     /**我的每日收益 */
-    router.get('/MyProfitDaily/:memberCode/:startDate', async(req, res) => {
+    router.get('/MyProfitDaily/:memberCode/:startDate', wrap(async(req, res) => {
         res.setHeader("Access-Control-Allow-Origin", config.ajaxOrigin);
         res.setHeader("Access-Control-Allow-Methods", "GET");
         let { memberCode, startDate } = req.params
         startDate = new Date(startDate)
         let [result] = await mainDB.query("select TodayProfit*100/TotalAmount profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_drivewealth_practice_asset where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate } })
         res.send({ Status: 0, Explain: "", DataList: result })
-    });
+    }));
     /**我的系统设置 */
-    router.get('/Settings', ctt, async(req, res) => {
+    router.get('/Settings', ctt, wrap(async(req, res) => {
         let [result] = await mainDB.query("select PriceNotify from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } })
-        res.send({ Status: 0, Explain: "", Data: Object.convertBuffer2Bool(result[0], "PriceNotify") })
-    })
-    router.put('/Settings', ctt, async(req, res) => {
+        if (result.length)
+            res.send({ Status: 0, Explain: "", Data: Object.convertBuffer2Bool(result[0], "PriceNotify") })
+        else res.send({ Status: 0, Explain: "", Data: { PriceNotify: true } }) //默认配置
+    }))
+    router.put('/Settings', ctt, wrap(async(req, res) => {
         let [result] = await mainDB.query("select * from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } })
         let replacements = Object.assign({ memberCode: req.memberCode }, req.body)
         if (result.length) {
@@ -126,15 +121,15 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode: req.memberCode } })))
             }
         } else {
-            let [result2] = await mainDB.query(sqlstr.insert("wf_system_setting", replacements, { MemberCode: "memberCode" }), { replacements })
+            let [result2] = await mainDB.query(...sqlstr.insert2("wf_system_setting", replacements, { MemberCode: "memberCode" }))
             res.send({ Status: 0, Explain: result2 })
             if (!replacements.PriceNotify) {
                 mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode: req.memberCode } })))
             }
         }
-    });
+    }));
     /**获取我的消息列表 */
-    router.get('/Messages', ctt, async(req, res) => {
+    router.get('/Messages', ctt, wrap(async(req, res) => {
         let [result] = await mainDB.query("select Id,Type,Title,Extension,Content,DATE_FORMAT(CreateTime,'%Y-%m-%d %H:%i:%s') CreateTime from wf_message where (MemberCode=:memberCode or Type=2) and Status=0 order by Id desc", { replacements: { memberCode: req.memberCode } })
         for (let msg of result) {
             if (msg.Extension) {
@@ -143,6 +138,6 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         }
         await mainDB.query("delete from wf_message where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } });
         res.send({ Status: 0, Explain: "", DataList: result })
-    })
+    }))
     return router
 }

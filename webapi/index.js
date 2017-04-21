@@ -21,7 +21,7 @@ app.use((req, res, next) => {
     next()
 })
 const statistic = new Statistic()
-const wrap = fn => (...args) => fn(...args).catch(args[2])
+const wrap = fn => (...args) => fn(...args).catch(err => args[2] ? args[2](err) : console.error(new Date(), err))
 let shareData = { config: Config, wrap, rongcloud, statistic, express, checkEmpty, checkNum, mainDB, redisClient, ctt: checkToken(true), ctf: checkToken(false) } //路由中的共享数据
 async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)

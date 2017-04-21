@@ -1,10 +1,10 @@
 import { encrypt, decrypt } from '../../common/aes'
 import sqlstr from '../../common/sqlStr'
 
-module.exports = function({ config, mainDB, ctt, express, checkEmpty, mqChannel, redisClient }) {
+module.exports = function({ config, mainDB, ctt, express, checkEmpty, mqChannel, redisClient, wrap }) {
     const router = express.Router();
     /**创建嘉维真实账户 */
-    router.post('/CreateAccount', ctt, async(req, res) => {
+    router.post('/CreateAccount', ctt, wrap(async(req, res) => {
         let data = req.body
         data.MemberCode = req.memberCode
         data.password = encrypt(data.password)
@@ -16,9 +16,9 @@ module.exports = function({ config, mainDB, ctt, express, checkEmpty, mqChannel,
         } else
             ([result] = await mainDB.query(...sqlstr.insert2("wf_drivewealth_account", data, { CreateTime: "now()" })))
         res.send({ Status: 0, Explain: "", Result: result })
-    })
-    router.post('/CreateOrder', ctt, async(req, res) => {
+    }))
+    router.post('/CreateOrder', ctt, wrap(async(req, res) => {
         // await sequelize.query()
-    })
+    }))
     return router
 }
