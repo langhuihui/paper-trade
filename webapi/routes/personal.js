@@ -87,29 +87,29 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     router.get('/GetMyMainList', ctt, checkNum('pageNum', 'pageSize'), wrap(({ query: { pageNum = 0, pageSize = 10 }, memberCode }, res) => mainList({ memberCode, pageNum, pageSize, res })));
     /**他人主页 */
     router.get('/GetHeMainList', checkEmpty('memberCode'), checkNum('pageNum', 'pageSize'), wrap(({ query: { pageNum = 0, pageSize = 10, memberCode } }, res) => mainList({ memberCode, pageNum, pageSize, res })));
-    router.get('/GetMyHomePage', ctt, wrap((req, res) => homePage(req.memberCode, res)));
-    router.get('/GetHeHomePage/:memberCode', wrap((req, res) => homePage(req.params.memberCode, res)));
+    router.get('/GetMyHomePage', ctt, wrap(({ memberCode }, res) => homePage(memberCode, res)));
+    router.get('/GetHeHomePage/:memberCode', wrap(({ params: { memberCode } }, res) => homePage(memberCode, res)));
     /**我的每日收益 */
-    router.get('/MyProfitDaily/:memberCode/:startDate', wrap(async(req, res) => {
+    router.get('/MyProfitDaily/:memberCode/:startDate', wrap(async({ params: { memberCode, startDate } }, res) => {
         res.setHeader("Access-Control-Allow-Origin", config.ajaxOrigin);
         res.setHeader("Access-Control-Allow-Methods", "GET");
-        let { memberCode, startDate } = req.params
         startDate = new Date(startDate)
         let [result] = await mainDB.query("select TodayProfit*100/TotalAmount profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_drivewealth_practice_asset where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate } })
         res.send({ Status: 0, Explain: "", DataList: result })
     }));
     /**我的系统设置 */
-    router.get('/Settings', ctt, wrap(async(req, res) => {
-        let [result] = await mainDB.query("select PriceNotify from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } })
+    router.get('/Settings', ctt, wrap(async({ memberCode }, res) => {
+        let [result] = await mainDB.query("select PriceNotify from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode } })
         if (result.length)
             res.send({ Status: 0, Explain: "", Data: Object.convertBuffer2Bool(result[0], "PriceNotify") })
         else res.send({ Status: 0, Explain: "", Data: { PriceNotify: true } }) //默认配置
     }))
-    router.put('/Settings', ctt, wrap(async(req, res) => {
-        let [result] = await mainDB.query("select * from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } })
-        let replacements = Object.assign({ memberCode: req.memberCode }, req.body)
+    router.put('/Settings', ctt, wrap(async({ memberCode, body }, res) => {
+        let replacements = { memberCode }
+        let [result] = await mainDB.query("select * from wf_system_setting where MemberCode=:memberCode", { replacements })
+        Object.assign(replacements, body)
         if (result.length) {
-            for (let n in req.body) {
+            for (let n in body) {
                 if (!result[0].hasOwnProperty(n)) {
                     res.send({ Status: 40003, Explain: "没有该设置项：" + n })
                     return
@@ -118,25 +118,25 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             let [result2] = await mainDB.query(sqlstr.update("wf_system_setting", replacements, { memberCode: null }) + "where MemberCode=:memberCode", { replacements })
             res.send({ Status: 0, Explain: result2 })
             if (result[0].PriceNotify[0] == 1 && !replacements.PriceNotify) {
-                mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode: req.memberCode } })))
+                mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode } })))
             }
         } else {
-            let [result2] = await mainDB.query(...sqlstr.insert2("wf_system_setting", replacements, { MemberCode: "memberCode" }))
+            let [result2] = await mainDB.query(...sqlstr.insert2("wf_system_setting", replacements, { MemberCode: ":memberCode" }))
             res.send({ Status: 0, Explain: result2 })
             if (!replacements.PriceNotify) {
-                mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode: req.memberCode } })))
+                mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode } })))
             }
         }
     }));
     /**获取我的消息列表 */
-    router.get('/Messages', ctt, wrap(async(req, res) => {
-        let [result] = await mainDB.query("select Id,Type,Title,Extension,Content,DATE_FORMAT(CreateTime,'%Y-%m-%d %H:%i:%s') CreateTime from wf_message where (MemberCode=:memberCode or Type=2) and Status=0 order by Id desc", { replacements: { memberCode: req.memberCode } })
+    router.get('/Messages', ctt, wrap(async({ memberCode }, res) => {
+        let [result] = await mainDB.query("select Id,Type,Title,Extension,Content,DATE_FORMAT(CreateTime,'%Y-%m-%d %H:%i:%s') CreateTime from wf_message where (MemberCode=:memberCode or Type=2) and Status=0 order by Id desc", { replacements: { memberCode } })
         for (let msg of result) {
             if (msg.Extension) {
                 msg.Extension = JSON.parse(msg.Extension)
             }
         }
-        await mainDB.query("delete from wf_message where MemberCode=:memberCode", { replacements: { memberCode: req.memberCode } });
+        await mainDB.query("delete from wf_message where MemberCode=:memberCode", { replacements: { memberCode } });
         res.send({ Status: 0, Explain: "", DataList: result })
     }))
     return router

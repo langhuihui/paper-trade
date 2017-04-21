@@ -95,7 +95,8 @@ class BookGenerator extends ArrayGenerator {
     getOne() {
         if (this.data.length > 4) {
             let child = new Map()
-            while (child.size < 4) {
+            let childnum = Math.min(20, this.data.length - 1)
+            while (child.size < childnum) {
                 let c = Object.assign({}, this.data[(Math.random() * this.data.length) >> 0])
                 c.Pic = c.Pic2
                 delete c.Pic2
