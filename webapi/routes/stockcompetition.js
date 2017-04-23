@@ -46,7 +46,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     router.get('/Login', ctt, wrap(async({ memberCode }, res) => {
         let [result] = await mainDB.query("select membercode from wf_stockcompetitionmember where MemberCode=:memberCode", { replacements: { memberCode } })
         if (result.length) {
-            let [result] = await mainDB.query("select Rank from wf_drivewealth_practice_rank where MemberCode=:memberCode order by RankId desc ", { replacements: { memberCode } })
+            let [result] = await mainDB.query("select Rank from wf_drivewealth_practice_rank where MemberCode=:memberCode where type='Amount' order by RankId desc limit 1 ", { replacements: { memberCode } })
             if (result.length)
                 res.send({ Status: 0, Explain: "", Rank: result })
             else
