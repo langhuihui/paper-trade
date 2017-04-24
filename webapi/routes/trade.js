@@ -89,7 +89,7 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
         res.send({ Status: 0, Explain: "", DataList: result })
     });
     //查询中概股排行榜
-    router.get('/QuotationRank/:type/:order', wrap(async(req, res) => {
+    router.all('/QuotationRank/:type/:order', wrap(async(req, res) => {
         let currentSRT = await redisClient.getAsync("currentSRT")
         let result = await realDB.collection(currentSRT).find({ ShowType: req.params.type }, { _id: 0 }).sort({ RiseFallRange: req.params.order == "desc" ? -1 : 1 }).toArray()
             //let [result] = await mainDB.query("select * from " + currentSRT + " where ShowType=:type order by RiseFallRange " + req.params.order, { replacements: req.params })
