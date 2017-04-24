@@ -1,12 +1,11 @@
 import EveryDay from '../everyDay'
 import request from 'request-promise'
 import Config from '../../config'
-import driveWealth from '../driveWealth'
+import { dwUrls } from '../driveWealth'
 import sqlstr from '../sqlStr'
 import singleton from '../singleton'
 const { mainDB, redisClient } = singleton
-let { urls: dwUrls } = driveWealth
-Object.assign(dwUrls, Config.driveWealthHost)
+
 export default new EveryDay('totalAssets', "05:00:00", async() => {
     let [result] = await mainDB.query('select * from wf_drivewealth_practice_account')
     for (let { UserId, MemberCode, username, password, emailAddress1 }
