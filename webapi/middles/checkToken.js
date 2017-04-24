@@ -36,7 +36,7 @@ async function checkToken(token, isLogin) {
 
 function checkLogin(isLogin) {
     return async function(req, res, next) {
-        let { result, memberCode } = await checkToken(req.header('Token'), isLogin)
+        let { result, memberCode } = await checkToken(req.header('Token') || req.params.Token, isLogin)
         req.memberCode = memberCode
         if (result === 0) next()
         else res.send(result)
