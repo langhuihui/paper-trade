@@ -20,8 +20,28 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap }) {
     router.delete('/Orders/:orderID', ctt, wrap(async(req, res) => {
 
     }));
-    /**持仓和未完成的订单 */
-    router.get('/Report', ctt, wrap(async(req, res) => {
+    /**持仓 */
+    router.get('/Position', ctt, wrap(async(req, res) => {
+
+    }));
+    /**今日委托 */
+    router.get('/TodayOrders', ctt, wrap(async(req, res) => {
+
+    }));
+    /**今日成交 */
+    router.get('/TodayDeals', ctt, wrap(async(req, res) => {
+
+    }));
+    /**历史委托 */
+    router.get('/Orders/:startDate/:endDate', ctt, wrap(async(req, res) => {
+
+    }));
+    /**历史成交 */
+    router.get('/Deals/:startDate/:endDate', ctt, wrap(async(req, res) => {
+
+    }));
+    /**我的账户详情 */
+    router.get('/Account', ctt, wrap(async(req, res) => {
 
     }));
     return router

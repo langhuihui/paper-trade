@@ -60,3 +60,9 @@ async function startMQ() {
     })
 }
 startMQ()
+
+setInterval(async() => {
+    let marketIsOpen = await redisClient.getAsync("marketIsOpen")
+    marketIsOpen = JSON.parse(marketIsOpen)
+
+}, 10000)

@@ -87,8 +87,8 @@ function start() {
         let stocks = []
             //筛选出当前在开盘的股票
         for (var market in marketIsOpen) {
-            //if (marketIsOpen[market])
-            stocks.push(...stockRef[market])
+            if (marketIsOpen[market])
+                stocks.push(...stockRef[market])
         }
         let l = stocks.length;
         if (l && redisClient.connected) {
