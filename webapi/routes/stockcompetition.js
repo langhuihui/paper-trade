@@ -48,6 +48,9 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             let [result] = await mainDB.query("select a.HeadImage,b.RankValue,IFNULL(b.Rank,0)Rank from (select * from wf_member where MemberCode=:memberCode)a left join(select * from wf_drivewealth_practice_rank where wf_drivewealth_practice_rank.type = 'Amount')b on b.MemberCode = a.MemberCode ORDER BY b.RankId desc limit 1", { replacements: { memberCode } })
             if (result.length) {
                 result[0].OpenDate = opendate
+                if (!result[0].HeadImage) {
+                    result[0].HeadImage = "/UploadFile/Default/default_headerimage.png"
+                }
                 res.send({ Status: 0, Explain: "", result: result[0] })
             } else
                 res.send({ Status: 0, Explain: "", result: { Rank: 0, OpenDate: opendate } })
