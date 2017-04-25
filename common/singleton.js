@@ -38,6 +38,11 @@ let o = {
     },
     get rongcloud() {
         return rongcloudSDK;
+    },
+    async marketIsOpen(market) {
+        let marketIsOpen = await _redisClient.getAsync("marketIsOpen")
+        marketIsOpen = JSON.parse(marketIsOpen)
+        return market ? marketIsOpen[market] : marketIsOpen
     }
 }
 export default o

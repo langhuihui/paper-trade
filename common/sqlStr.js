@@ -33,12 +33,12 @@ export default {
     insert2(table, value, other) {
         return [this.insert(table, value, other), { replacements: value }]
     },
-    update(table, value, other) {
+    update(table, value, other, where = "") {
         let { names, argNames } = getNames(value, other)
         for (let i = 0; i < names.length; i++) {
             names[i] = names[i] + "=" + argNames[i]
         }
-        return `update ${table} set ${names.join(',')} `
+        return `update ${table} set ${names.join(',')} ${where}`
     },
     update2(table, value, other, where = "") {
         return [this.update(table, value, other) + where, { replacements: value }]

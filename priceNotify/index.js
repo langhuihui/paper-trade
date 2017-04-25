@@ -174,8 +174,7 @@ function sendNotify(type, notify, price, chg) {
 }
 
 setInterval(async() => {
-    let marketIsOpen = await redisClient.getAsync("marketIsOpen")
-    marketIsOpen = JSON.parse(marketIsOpen)
+    let marketIsOpen = await singleton.marketIsOpen()
         //调用新浪接口
     for (let notify of notifies.values()) {
         if (!marketIsOpen[notify.SmallType]) {

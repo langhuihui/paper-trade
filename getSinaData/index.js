@@ -19,7 +19,7 @@ async function startMQ() {
     await channel.assertExchange("broadcast", "fanout")
     let ok = await channel.assertQueue('sinaData')
     ok = await channel.assertQueue("getSinaData")
-    channel.consume('getSinaData', msg => {
+    channel.consume('getSinaData', async msg => {
         var { symbols, listener, type } = JSON.parse(msg.content.toString())
         if (!symbols) symbols = []
         if (!listenerSymbol.has(listener)) listenerSymbol.set(listener, [])
@@ -67,8 +67,14 @@ async function startMQ() {
                 }
                 break
         }
-        if (needRemove.length) stockRef.removeSymbols(needRemove)
-        if (needAdd.length) stockRef.addSymbols(needAdd)
+        if (needRemove.length) {
+            stockRef.removeSymbols(needRemove)
+            redisClient.srem("watch_stocks", ...needRemove)
+        }
+        if (needAdd.length) {
+            stockRef.addSymbols(needAdd)
+            redisClient.sadd("watch_stocks", ...needAdd)
+        }
         channel.ack(msg)
     })
     ok = await channel.bindQueue('sinaData', 'broadcast', 'fanout')
@@ -82,8 +88,7 @@ var pageSize = 1000;
 
 function start() {
     intervalId = setInterval(async() => {
-        let marketIsOpen = await redisClient.getAsync("marketIsOpen")
-        marketIsOpen = JSON.parse(marketIsOpen)
+        let marketIsOpen = await singleton.marketIsOpen()
         let stocks = []
             //筛选出当前在开盘的股票
         for (var market in marketIsOpen) {

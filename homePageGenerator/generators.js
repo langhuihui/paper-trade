@@ -91,24 +91,41 @@ class NewsGenerator extends ArrayGenerator {
 class BookGenerator extends ArrayGenerator {
     constructor(books) {
         super(books)
+        this.turn = 0
     }
     getOne() {
-        if (this.data.length > 4) {
-            let child = new Map()
-            let childnum = Math.min(20, this.data.length - 1)
-            while (child.size < childnum) {
-                let c = Object.assign({}, this.data[(Math.random() * this.data.length) >> 0])
-                c.Pic = c.Pic2
-                delete c.Pic2
-                child.set(c.Id, c)
-            }
-            let result = Object.assign({ Books: Array.from(child.values()) /*去重*/ }, super.getOne())
+        this.turn++;
+        if (this.turn == 2 && this.data.length) {
+            let result = Object.assign({
+                Books: this.data.map(d => {
+                    let r = Object.assign({}, d)
+                    r.Pic = d.Pic2
+                    delete r.Pic
+                    return r
+                })
+            }, this.data[0]);
             delete result.Pic2
             delete result.Author
             delete result.BookName
-            return result
+            return result;
         }
         return null
+            // if (this.data.length > 4) {
+            //     let child = new Map()
+            //     let childnum = Math.min(20, this.data.length - 1)
+            //     while (child.size < childnum) {
+            //         let c = Object.assign({}, this.data[(Math.random() * this.data.length) >> 0])
+            //         c.Pic = c.Pic2
+            //         delete c.Pic2
+            //         child.set(c.Id, c)
+            //     }
+            //     let result = Object.assign({ Books: Array.from(child.values()) /*去重*/ }, super.getOne())
+            //     delete result.Pic2
+            //     delete result.Author
+            //     delete result.BookName
+            //     return result
+            // }
+            // return null
     }
 }
 export { ArrayGenerator, ColumnGenerator, NewsGenerator, BookGenerator }

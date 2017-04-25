@@ -30,14 +30,15 @@ async function checkToken(token, isLogin) {
         memberCode = tokenMode.MemberCode
         updateToken(tokenModel.TokenID)
     }
-    return { result, memberCode }
+    return { result, memberCode, token }
 }
 //token验证中间件
 
 function checkLogin(isLogin) {
     return async function(req, res, next) {
-        let { result, memberCode } = await checkToken(req.header('Token') || req.params.Token, isLogin)
+        let { result, memberCode, token } = await checkToken(req.header('Token') || req.params.Token, isLogin)
         req.memberCode = memberCode
+        req.token = token
         if (result === 0) next()
         else res.send(result)
     }

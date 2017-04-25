@@ -37,6 +37,7 @@ async function startMQ() {
     app.use('/v2.5/DriveWealth', require('./routes/drivewealth')(shareData))
     app.use('/v2.5/Video', require('./routes/video')(shareData))
     app.use('/v2.5/Game', require('./routes/stockcompetition')(shareData))
+    app.use('/v2.5/PaperTrade', require('./routes/paperTrade')(shareData))
     if (Config.test) app.use('/admin', require('./routes/admin')(shareData))
         /**全局错误处理 */
     app.use((err, req, res, next) => {

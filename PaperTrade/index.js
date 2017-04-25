@@ -25,10 +25,10 @@ async function startMQ() {
     channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "reset", listener: "paperTrade", symbols: stocksRef.array })))
     channel.consume('paperTrade', msg => {
         let { cmd, data } = JSON.parse(msg.content.toString())
-        let name = Config.getQueryName(data)
         switch (cmd) {
             case "create":
                 if (!orders.has(data.Id)) {
+                    let name = Config.getQueryName(data)
                     orders.set(data.Id, data)
                     if (stocksRef.addSymbol(name)) {
                         channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "add", listener: "paperTrade", symbols: [name] })))
@@ -36,7 +36,8 @@ async function startMQ() {
                 }
                 break;
             case "cancel":
-                if (orders.has(data.Id)) {
+                if (orders.has(data)) {
+                    let name = Config.getQueryName(orders.get(data))
                     if (stocksRef.removeSymbol(name))
                         channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "remove", listener: "paperTrade", symbols: [name] })))
                 }
@@ -58,7 +59,6 @@ async function startMQ() {
 startMQ()
 
 setInterval(async() => {
-    let marketIsOpen = await redisClient.getAsync("marketIsOpen")
-    marketIsOpen = JSON.parse(marketIsOpen)
+    let marketIsOpen = await singleton.marketIsOpen()
 
 }, 10000)
