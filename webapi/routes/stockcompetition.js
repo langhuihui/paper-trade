@@ -40,30 +40,38 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     const router = express.Router();
     /**打开首页判断是否登录过,如果登录过则显示排名信息 */
     router.get('/Login/:Token', ctt, wrap(async({ memberCode }, res) => {
+        let opendate = "2017-05-08 00:00:00"
         res.setHeader("Access-Control-Allow-Origin", config.ajaxOrigin);
         res.setHeader("Access-Control-Allow-Methods", "GET");
         let [result] = await mainDB.query("select membercode from wf_stockcompetitionmember where MemberCode=:memberCode", { replacements: { memberCode } })
         if (result.length) {
             let [result] = await mainDB.query("select a.HeadImage,b.RankValue,IFNULL(b.Rank,0)Rank from (select * from wf_member where MemberCode=:memberCode)a left join(select * from wf_drivewealth_practice_rank where wf_drivewealth_practice_rank.type = 'Amount')b on b.MemberCode = a.MemberCode ORDER BY b.RankId desc limit 1", { replacements: { memberCode } })
             if (result.length) {
-                result[0].OpenDate = "2017-05-08 00:00:00";
+                result[0].OpenDate = opendate
                 res.send({ Status: 0, Explain: "", result: result[0] })
             } else
-                res.send({ Status: 0, Explain: "", result: { Rank: 0, OpenDate: "2017-05-08 00:00:00" } })
-        } else res.send({ Status: 0, Explain: "", result: { Rank: -1, OpenDate: "2017-05-08 00:00:00" } }) //默认配置
+                res.send({ Status: 0, Explain: "", result: { Rank: 0, OpenDate: opendate } })
+        } else res.send({ Status: 0, Explain: "", result: { Rank: -1, OpenDate: opendate } }) //默认配置
     }))
 
     /**报名 */
     router.post('/Register/:Token', ctt, wrap(async({ memberCode, body }, res) => {
+        let opendate = "2017-05-08 00:00:00"
         res.setHeader("Access-Control-Allow-Origin", config.ajaxOrigin);
         res.setHeader("Access-Control-Allow-Methods", "POST");
         body.MemberCode = memberCode
         try {
             await mainDB.query(...sqlstr.insert2("wf_stockcompetitionmember", body, { CreateTime: "now()" }))
-            let result = await CreateParactice(memberCode, "")
-            res.send({ Status: 0, Explain: "", result: true })
+            let [result] = await mainDB.query("select TotalAmount from wf_drivewealth_practice_asset where MemberCode=:memberCode", { replacements: { memberCode } })
+            console.log((result[0].TotalAmount == 10000));
+            if (result.length && result[0].TotalAmount == 10000) {
+                res.send({ Status: 0, Explain: "", result: true, OpenDate: opendate })
+            } else {
+                let result = await CreateParactice(memberCode, "")
+                res.send({ Status: 0, Explain: "", result: true, OpenDate: opendate })
+            }
         } catch (ex) {
-            res.send({ Status: 0, Explain: "", result: false }) //默认配置
+            res.send({ Status: 0, Explain: "", result: true, OpenDate: opendate }) //默认配置
         }
     }))
     return router
