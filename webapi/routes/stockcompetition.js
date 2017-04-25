@@ -40,7 +40,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     const router = express.Router();
     /**打开首页判断是否登录过,如果登录过则显示排名信息 */
     router.get('/Login/:Token', ctt, wrap(async({ memberCode }, res) => {
-        let opendate = "2017-05-08 00:00:00"
+        let opendate = "2017-05-08"
         res.setHeader("Access-Control-Allow-Origin", config.ajaxOrigin);
         res.setHeader("Access-Control-Allow-Methods", "GET");
         let [result] = await mainDB.query("select membercode from wf_stockcompetitionmember where MemberCode=:memberCode", { replacements: { memberCode } })
@@ -56,7 +56,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
 
     /**报名 */
     router.post('/Register/:Token', ctt, wrap(async({ memberCode, body }, res) => {
-        let opendate = "2017-05-08 00:00:00"
+        let opendate = "2017-05-08"
         res.setHeader("Access-Control-Allow-Origin", config.ajaxOrigin);
         res.setHeader("Access-Control-Allow-Methods", "POST");
         body.MemberCode = memberCode
