@@ -17,6 +17,9 @@ let config = {
     pricesIndexMap: { hk: [2, 4, 5, 6, 3], sz: [1, 4, 5, 3, 2], sh: [1, 4, 5, 3, 2], gb_: [5, 6, 7, 1, 26] }, //开，高，低，新,昨收
     //chgFunc: { gb_: x => x[2], hk: x => x[8], sh: x => (x[3] - x[2]) / x[2], sz: x => (x[3] - x[2]) / x[2] },
     sina_qmap: { us: "gb_", hk: "hk", sh: "sh", sz: "sz" },
+    getQueryName({ SecuritiesType, SmallType, SecuritiesNo }) {
+        return this.sina_qmap[SmallType || SecuritiesType] + SecuritiesNo.toLowerCase().replace(".", "$")
+    },
     stockPatten: /(gb_|hk|sh|sz).+/,
     jpushType: "jpush108",
     ajaxOrigin: "*", //跨域访问

@@ -119,12 +119,16 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             res.send({ Status: 0, Explain: result2 })
             if (result[0].PriceNotify[0] == 1 && !replacements.PriceNotify) {
                 mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode } })))
+            } else if (result[0].PriceNotify[0] == 0 && replacements.PriceNotify) {
+                mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOn", data: { memberCode } })))
             }
         } else {
             let [result2] = await mainDB.query(...sqlstr.insert2("wf_system_setting", replacements))
             res.send({ Status: 0, Explain: result2 })
             if (!replacements.PriceNotify) {
                 mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOff", data: { memberCode } })))
+            } else {
+                mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "turnOn", data: { memberCode } })))
             }
         }
     }));

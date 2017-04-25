@@ -8,16 +8,12 @@ import StockRef from '../getSinaData/stocksRef'
 const { mainDB, redisClient, jpushClient } = singleton
 var stocksRef = new StockRef()
 var orders = new Map()
-    /**获取查询股票的代码sina */
-function getQueryName({ SmallType, SecuritiesNo }) {
-    return Config.sina_qmap[SmallType] + SecuritiesNo.toLowerCase().replace(".", "$")
-}
 async function getAllOrder() {
     stocksRef.clear()
     orders.clear()
     let [os] = await mainDB.query(jpushRegIDSql)
     for (let order of os) {
-        stocksRef.addSymbol(getQueryName(order))
+        stocksRef.addSymbol(Config.getQueryName(order))
     }
 }
 //rabitmq 通讯
@@ -29,7 +25,7 @@ async function startMQ() {
     channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "reset", listener: "paperTrade", symbols: stocksRef.array })))
     channel.consume('paperTrade', msg => {
         let { cmd, data } = JSON.parse(msg.content.toString())
-        let name = getQueryName(data)
+        let name = Config.getQueryName(data)
         switch (cmd) {
             case "create":
                 if (!orders.has(data.Id)) {
