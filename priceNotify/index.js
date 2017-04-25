@@ -20,16 +20,27 @@ AND (
 	OR a.IsOpenRise = 1
 	OR a.IsOpenFall = 1
 );`
+const someBodySql = `
+SELECT
+	a.*, b.JpushRegID,c.SecuritiesName
+FROM
+	wf_securities_remind a
+LEFT JOIN wf_im_jpush b ON a.MemberCode = b.MemberCode
+LEFT JOIN wf_securities_trade c ON a.SecuritiesNo = c.SecuritiesNo and a.SmallType = c.SmallType
+WHERE
+a.MemberCode = :memberCode
+AND (
+	a.IsOpenLower = 1
+	OR a.IsOpenUpper = 1
+	OR a.IsOpenRise = 1
+	OR a.IsOpenFall = 1
+);`
 import StockRef from '../getSinaData/stocksRef'
 var stocksRef = new StockRef()
 var notifies = new Map()
 
 function isAllClose({ IsOpenLower, IsOpenUpper, IsOpenRise, IsOpenFall }) {
     return !(IsOpenLower || IsOpenUpper || IsOpenRise || IsOpenFall)
-}
-/**获取查询股票的代码sina */
-function getQueryName({ SmallType, SecuritiesNo }) {
-    return Config.sina_qmap[SmallType] + SecuritiesNo.toLowerCase().replace(".", "$")
 }
 //rabitmq 通讯
 async function startMQ() {
@@ -43,7 +54,7 @@ async function startMQ() {
         switch (cmd) {
             case "update":
                 console.log("更新股价提醒", data)
-                let name = getQueryName(data)
+                let name = Config.getQueryName(data)
                 if (notifies.has(data.RemindId)) {
                     if (isAllClose(data)) {
                         if (stocksRef.removeSymbol(name))
@@ -73,14 +84,24 @@ async function startMQ() {
                 }
                 break;
             case "turnOff":
-                for (let notify of Array.from(notifies.values)) {
-                    if (notify.MemberCode == data.MemberCode) {
-                        let name = Config.sina_qmap[notify.SmallType] + notify.SecuritiesNo.toLowerCase()
+                console.log("关闭股价提醒", data.memberCode)
+                for (let notify of notifies.values()) {
+                    if (notify.MemberCode == data.memberCode) {
+                        let name = Config.getQueryName(notify)
                         if (stocksRef.removeSymbol(name)) {
                             channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "remove", listener: "priceNotify", symbols: [name] })))
                         }
                         notifies.delete(notify.RemindId)
                     }
+                }
+                break;
+            case "turnOn":
+                console.log("打开股价提醒", data.memberCode)
+                let [ns] = await mainDB.query(someBodySql, { replacements: data })
+                for (let n of ns) {
+                    Object.convertBuffer2Bool(n, "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall")
+                    notifies[n.RemindId] = n
+                    stocksRef.addSymbol(Config.getQueryName(n))
                 }
                 break;
         }
@@ -111,8 +132,7 @@ async function getAllNotify() {
     for (let n of ns) {
         Object.convertBuffer2Bool(n, "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall")
         notifies[n.RemindId] = n
-        stocksRef.addSymbol(getQueryName(n))
-            //console.log(n)
+        stocksRef.addSymbol(Config.getQueryName(n))
     }
 }
 
@@ -161,7 +181,7 @@ setInterval(async() => {
         if (!marketIsOpen[notify.SmallType]) {
             continue
         }
-        let name = getQueryName(notify)
+        let name = Config.getQueryName(notify)
         let sp = await redisClient.getAsync("lastPrice:" + name.toLowerCase())
         let [, , , price, pre, chg] = JSON.parse("[" + sp + "]")
         if (!chg) chg = pre ? (price - pre) * 100 / pre : 0
