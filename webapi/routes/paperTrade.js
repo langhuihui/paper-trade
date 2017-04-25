@@ -19,8 +19,9 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
 
         }
         let commission = account.Commission * lastPrice * orderQty
-        if (account.Status) {
-
+        if (account.Status != 1) {
+            res.send({ Status: 44002, Explain: "账号已停用" })
+            return
         }
         switch (ordType) {
             case 1: //市价单

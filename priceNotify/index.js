@@ -49,7 +49,7 @@ async function startMQ() {
     let ok = await channel.assertQueue('priceNotify')
     await getAllNotify()
     channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "reset", listener: "priceNotify", symbols: stocksRef.array })))
-    channel.consume('priceNotify', msg => {
+    channel.consume('priceNotify', async msg => {
         let { cmd, data } = JSON.parse(msg.content.toString())
         switch (cmd) {
             case "update":
