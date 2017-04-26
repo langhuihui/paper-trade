@@ -1,7 +1,7 @@
 import sqlstr from '../../common/sqlStr'
 import getStockPrice from '../../getSinaData/getPrice'
 import singleton from '../../common/singleton'
-import deal from '../../PaperTrade/deal'
+import deal from '../../paperTrade/deal'
 module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redisClient }) {
     function createAccount(data) {
         return mainDB.query(...sqlstr.insert2("wf_street_practice_account", data, { CreateTime: "now()" }))
