@@ -1,4 +1,5 @@
 import sqlstr from '../../common/sqlStr'
+import allowAccess from '../middles/allowAccess'
 import _config from '../config'
 const myMainListSql = `
 SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTime,'%Y-%m-%d %H:%i:%s') AS ShowTime FROM 
@@ -90,9 +91,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     router.get('/GetMyHomePage', ctt, wrap(({ memberCode }, res) => homePage(memberCode, res)));
     router.get('/GetHeHomePage/:memberCode', wrap(({ params: { memberCode } }, res) => homePage(memberCode, res)));
     /**我的每日收益 */
-    router.get('/MyProfitDaily/:memberCode/:startDate', wrap(async({ params: { memberCode, startDate } }, res) => {
-        res.setHeader("Access-Control-Allow-Origin", config.ajaxOrigin);
-        res.setHeader("Access-Control-Allow-Methods", "GET");
+    router.get('/MyProfitDaily/:memberCode/:startDate', allowAccess(), wrap(async({ params: { memberCode, startDate } }, res) => {
         startDate = new Date(startDate)
         let [result] = await mainDB.query("select TodayProfit*100/TotalAmount profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_drivewealth_practice_asset where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate } })
         res.send({ Status: 0, Explain: "", DataList: result })

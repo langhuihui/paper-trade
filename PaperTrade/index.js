@@ -45,9 +45,9 @@ async function startMQ() {
         }
     })
     await channel.assertExchange("broadcast", "fanout");
-    ok = await channel.assertQueue('sinaData');
-    ok = await channel.bindQueue('sinaData', 'broadcast', 'fanout');
-    channel.consume('sinaData', msg => {
+    ok = await channel.assertQueue('sinaData_paperTrade');
+    ok = await channel.bindQueue('sinaData_paperTrade', 'broadcast', 'fanout');
+    channel.consume('sinaData_paperTrade', msg => {
         switch (msg.content.toString()) {
             case "restart": //股票引擎重启信号
                 channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "reset", listener: "paperTrade", symbols: stocksRef.array })))

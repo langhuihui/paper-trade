@@ -42,9 +42,9 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
         let commission = OrderQty > 239 ? account.CommissionRate * OrderQty : 2.99 //佣金
         let replacements = Object.assign({ MemberCode: memberCode, Commission: commission }, body)
         replacements.Price = lastPrice
-        let delta = Side == "B" ? -commission - lastPrice * OrderQty : lastPrice * OrderQty - commission
         switch (OrdType) {
             case 1: //市价单
+                let delta = Side == "B" ? -commission - lastPrice * OrderQty : lastPrice * OrderQty - commission
                 if (account.Cash + delta < 0) {
                     res.send({ Status: 44001, Explain: "资金不足" })
                     return
@@ -81,11 +81,17 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
                 break;
             case 2: //限价单
                 {
-                    body.MemberCode = memberCode;
-                    body.execType = 0;
-                    let [result] = await mainDB.query(...sqlstr.insert2("wf_street_practice_order", body, { CreateTime: "now()" }))
-                    body.Id = result.insertId;
-                    mqChannel.sendToQueue("paperTrade", new Buffer(JSON.stringify({ cmd: "create", data: body })))
+                    delta = Side == "B" ? -commission - Price * OrderQty : Price * OrderQty - commission
+                    if (account.Cash + delta < 0) {
+                        res.send({ Status: 44001, Explain: "资金不足" })
+                        return
+                    } else {
+                        body.MemberCode = memberCode;
+                        body.execType = 0;
+                        let [result] = await mainDB.query(...sqlstr.insert2("wf_street_practice_order", body, { CreateTime: "now()" }))
+                        body.Id = result.insertId;
+                        mqChannel.sendToQueue("paperTrade", new Buffer(JSON.stringify({ cmd: "create", data: body })))
+                    }
                 }
                 break;
             case 3: //止损单
