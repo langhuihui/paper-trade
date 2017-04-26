@@ -1,5 +1,6 @@
 import sqlstr from '../../common/sqlStr'
 import _config from '../config'
+import allowAccess from '../middles/allowAccess'
 module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mqChannel, redisClient, rongcloud, wrap }) {
     const router = express.Router();
     /**是否开市*/
@@ -40,7 +41,7 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
         mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "update", data: replacements })))
     });
     /**排行榜 */
-    router.get('/RankList/:type', async(req, res) => {
+    router.get('/RankList/:type', allowAccess(), async(req, res) => {
         switch (req.params.type) {
             case "TotalAmount":
                 res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:totalAssets")} }`)
