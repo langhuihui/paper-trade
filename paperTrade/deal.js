@@ -28,7 +28,7 @@ export default async({ Id, Commission, delta, AccountNo, OrdType, Side, OrderQty
                 await mainDB.query(...sqlstr.insert2("wf_street_practice_positions", { Positions: OrderQty, SecuritiesType, SecuritiesNo, MemberCode, AccountNo }, { CreateTime: "now()" }, { transaction }))
             }
         }
-        await mainDB.query(...sqlstr.update2("wf_street_practice_order", { execType: 1, Commission, Price }, { TurnoverTime: "now()" }, { Id }, { transaction }))
+        await mainDB.query(...sqlstr.update2("wf_street_practice_order", { execType: 1, Commission, Price, Cash: Cash + delta }, { TurnoverTime: "now()" }, { Id }, { transaction }))
         await transaction.commit()
         return 0
     } catch (ex) {

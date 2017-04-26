@@ -60,7 +60,22 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
                 return
             }
         }
-        let [result] = await mainDB.query(...sqlstr.insert2("wf_street_practice_order", Object.assign({ execType: 0 }, body), { CreateTime: "now()" }))
+        let EndTime = new Date()
+        let [usResult] = await mainDB.query("select * from wf_system_opendate_bak where Type='us' and DealDate=CurDate()")
+        if (usResult.length) {
+            let EndTimePM = new Date(usResult[0].EndTimePM)
+            if (EndTime < EndTimePM) {
+                EndTime = EndTimePM
+            }
+            usResult = await mainDB.query("select * from wf_system_opendate_bak where Type='us' and id=:id", { replacements: { id: usResult[0].id + 1 } })
+            EndTime = new Date(usResult[0][0].EndTimePM)
+        } else {
+            usResult = await mainDB.query("select * from wf_system_opendate_bak where Type='us' and DealDate>now() order by Id desc limit 1")
+            EndTime = new Date(usResult[0][0].EndTimePM)
+        }
+
+        let [result] = await mainDB.query(...sqlstr.insert2("wf_street_practice_order", Object.assign({ execType: 0, EndTime }, body), { CreateTime: "now()" }))
+
         body.Id = result.insertId;
         body.CommissionLimit = account.CommissionLimit
         body.CommissionRate = account.CommissionRate
