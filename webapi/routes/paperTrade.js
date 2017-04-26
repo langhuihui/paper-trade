@@ -69,7 +69,7 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
     }));
     /**订单状态 */
     router.get('/Orders/:orderID', ctt, wrap(async({ memberCode, params: { orderID } }, res) => {
-        let [result] = await mainDB.query("select * from wf_street_practice_order where Id:orderID and MemberCode=:memberCode", { replacements: { memberCode, orderID } })
+        let [result] = await mainDB.query("select * from wf_street_practice_order where Id=:orderID and MemberCode=:memberCode", { replacements: { memberCode, orderID } })
         if (result.length) {
             res.send({ Status: 0, Explain: "", Data: result[0] });
         } else
