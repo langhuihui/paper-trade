@@ -45,6 +45,6 @@ export default {
         collection.ensureIndex({ RiseFallRange: 1 })
             //currentRankTable = currentRankTable == "wf_securities_rank_a" ? SecuritiesRankA : SecuritiesRankB
             //currentRankTable.truncate()
-        collection.insertMany(stockInfo.values())
+        collection.insertMany(Array.from(stockInfo.values()))
     }
 }
