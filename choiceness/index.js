@@ -7,14 +7,14 @@ async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
     await channel.assertExchange("broadcast", "fanout")
-    let ok = await channel.assertQueue('sinaData')
+    let ok = await channel.assertQueue('sinaData_choiceness')
     await channel.assertQueue('getSinaData')
-    ok = await channel.bindQueue('sinaData', 'broadcast', 'fanout')
+    ok = await channel.bindQueue('sinaData_choiceness', 'broadcast', 'fanout')
 
-    channel.consume('sinaData', msg => {
-        console.log(msg)
+    channel.consume('sinaData_choiceness', msg => {
         switch (msg.content.toString()) {
             case "restart": //股票引擎重启信号
+                console.log(new Date(), "sina restart")
                 getAllChocieness(channel)
                 break;
         }

@@ -17,69 +17,68 @@ async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
     await channel.assertExchange("broadcast", "fanout")
-    let ok = await channel.assertQueue('sinaData')
-    ok = await channel.assertQueue("getSinaData")
+        //let ok = await channel.assertQueue('sinaData')
+    let ok = await channel.assertQueue("getSinaData")
     channel.consume('getSinaData', async msg => {
-        var { symbols, listener, type } = JSON.parse(msg.content.toString())
-        if (!symbols) symbols = []
-        if (!listenerSymbol.has(listener)) listenerSymbol.set(listener, [])
-        let oldSymbols = listenerSymbol.get(listener)
-        let needAdd = [] //需要增加的股票
-        let needRemove = [] //需要删除的股票
-        switch (type) {
-            case "reset": //重置该订阅者所有股票
-                console.log(listener, type)
-                if (oldSymbols) {
-                    needRemove = oldSymbols.concat() //复制一份
-                    for (let s of symbols) { //查找已有的和没有的
-                        if (needRemove.contain(s)) { //已经存在
-                            needRemove.remove(s) //不进入移除列表
+            var { symbols, listener, type } = JSON.parse(msg.content.toString())
+            if (!symbols) symbols = []
+            if (!listenerSymbol.has(listener)) listenerSymbol.set(listener, [])
+            let oldSymbols = listenerSymbol.get(listener)
+            let needAdd = [] //需要增加的股票
+            let needRemove = [] //需要删除的股票
+            switch (type) {
+                case "reset": //重置该订阅者所有股票
+                    console.log(listener, type)
+                    if (oldSymbols) {
+                        needRemove = oldSymbols.concat() //复制一份
+                        for (let s of symbols) { //查找已有的和没有的
+                            if (needRemove.contain(s)) { //已经存在
+                                needRemove.remove(s) //不进入移除列表
+                            } else {
+                                needAdd.push(s)
+                            }
+                        }
+                    } else {
+                        needAdd = symbols
+                    }
+                    listenerSymbol.set(listener, symbols)
+                    break
+                case "add":
+                    while (symbols.length) {
+                        let symbol = symbols.pop()
+                        if (oldSymbols.contain(symbol)) {
+                            continue
                         } else {
-                            needAdd.push(s)
+                            needAdd.push(symbol)
+                            oldSymbols.push(symbol)
                         }
                     }
-                } else {
-                    needAdd = symbols
-                }
-                listenerSymbol.set(listener, symbols)
-                break
-            case "add":
-                while (symbols.length) {
-                    let symbol = symbols.pop()
-                    if (oldSymbols.contain(symbol)) {
-                        continue
-                    } else {
-                        needAdd.push(symbol)
-                        oldSymbols.push(symbol)
+                    break
+                case "remove":
+                    while (symbols.length) {
+                        let symbol = symbols.pop()
+                        if (oldSymbols.contain(symbol)) {
+                            needRemove.remove(symbol)
+                            oldSymbols.push(symbol)
+                        } else {
+                            continue
+                            needAdd.push(symbol)
+                        }
                     }
-                }
-                break
-            case "remove":
-                while (symbols.length) {
-                    let symbol = symbols.pop()
-                    if (oldSymbols.contain(symbol)) {
-                        needRemove.remove(symbol)
-                        oldSymbols.push(symbol)
-                    } else {
-                        continue
-                        needAdd.push(symbol)
-                    }
-                }
-                break
-        }
-        if (needRemove.length) {
-            stockRef.removeSymbols(needRemove)
-            redisClient.srem("watch_stocks", ...needRemove)
-        }
-        if (needAdd.length) {
-            stockRef.addSymbols(needAdd)
-            redisClient.sadd("watch_stocks", ...needAdd)
-        }
-        channel.ack(msg)
-    })
-    ok = await channel.bindQueue('sinaData', 'broadcast', 'fanout')
-    console.log(ok, channel.sendToQueue('sinaData', new Buffer("restart")))
-
+                    break
+            }
+            if (needRemove.length) {
+                stockRef.removeSymbols(needRemove)
+                redisClient.srem("watch_stocks", ...needRemove)
+            }
+            if (needAdd.length) {
+                stockRef.addSymbols(needAdd)
+                redisClient.sadd("watch_stocks", ...needAdd)
+            }
+            channel.ack(msg)
+        })
+        //ok = await channel.bindQueue('sinaData', 'broadcast', 'fanout')
+    console.log("广播restart：", channel.publish('broadcast', 'sinaData', new Buffer("restart")))
 }
 
 var intervalId;
