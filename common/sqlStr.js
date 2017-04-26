@@ -30,8 +30,10 @@ export default {
         let { names, argNames } = getNames(value, other)
         return `insert into ${table}(${names.join(',')}) values(${argNames.join(',')}) `
     },
-    insert2(table, value, other) {
-        return [this.insert(table, value, other), { replacements: value }]
+    insert2(table, value, other, option = null) {
+        if (!option) option = { replacements: value }
+        else Object.assign(option, { replacements: value })
+        return [this.insert(table, value, other), option]
     },
     update(table, value, other, where = "") {
         let { names, argNames } = getNames(value, other)
@@ -40,7 +42,18 @@ export default {
         }
         return `update ${table} set ${names.join(',')} ${where}`
     },
-    update2(table, value, other, where = "") {
-        return [this.update(table, value, other) + where, { replacements: value }]
+    update2(table, value, other, where = "", option = null) {
+        let replacements = value
+        if (typeof where == 'object') {
+            replacements = Object.assign(where, value)
+            if (!other) other = {}
+            for (let n in where) {
+                other[n] = null
+            }
+            where = "where " + Object.keys(where).map(n => `${n}=:${n}`).join(" and ")
+        }
+        if (!option) option = { replacements }
+        else Object.assign(option, { replacements })
+        return [this.update(table, value, other, where), option]
     }
 }

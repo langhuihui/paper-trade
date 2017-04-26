@@ -182,8 +182,7 @@ setInterval(async() => {
             continue
         }
         let name = Config.getQueryName(notify)
-        let sp = await redisClient.getAsync("lastPrice:" + name.toLowerCase())
-        let [, , , price, pre, chg] = JSON.parse("[" + sp + "]")
+        let [, , , price, pre, chg] = await singleton.getLastPrice(name)
         if (!chg) chg = pre ? (price - pre) * 100 / pre : 0
         chg = Number(chg.toFixed(2))
             //console.log(name, price, chg, notify)
