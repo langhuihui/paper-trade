@@ -5,13 +5,15 @@ import amqp from 'amqplib'
 import moment from 'moment-timezone'
 import singleton from '../common/singleton'
 import StockRef from '../getSinaData/stocksRef'
+import sqlstr from '../common/sqlstr'
+import deal from './deal'
 const { mainDB, redisClient, jpushClient } = singleton
 var stocksRef = new StockRef()
 var orders = new Map()
 async function getAllOrder() {
     stocksRef.clear()
     orders.clear()
-    let [os] = await mainDB.query(jpushRegIDSql)
+    let [os] = await mainDB.query("select o.*,a.CommissionLimit,a.CommissionRate from wf_street_practice_order o left join wf_street_practice_account a on o.AccountNo=a.AccountNo where execType=0")
     for (let order of os) {
         stocksRef.addSymbol(Config.getQueryName(order))
     }
@@ -60,5 +62,27 @@ startMQ()
 
 setInterval(async() => {
     let marketIsOpen = await singleton.marketIsOpen()
-
+    for (let order of orders.values()) {
+        if (!marketIsOpen[order.SecuritiesType]) {
+            continue
+        }
+        let name = Config.getQueryName(order)
+        let { AccountNo, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, CommissionRate, CommissionLimit } = order
+        let [, , , price, pre, chg] = await singleton.getLastPrice(name)
+        let Commission = Math.max(CommissionRate * OrderQty, CommissionLimit) //佣金
+        let delta = Side == "B" ? -Commission - price * OrderQty : price * OrderQty - Commission
+        if (OrdType == 1) {
+            let x = Object.assign(Object.assign({ delta }, order), { Commission, Price: price })
+            let result = await deal(x)
+        } else if (Side == (OrdType == 2 ? "S" : "B") ? (Price > price) : (Price < price)) {
+            let x = Object.assign(Object.assign({ delta }, order), { Commission, Price: price })
+            let result = await deal(x)
+            if (result === 0) {
+                orders.delete(order.Id)
+                continue
+            } else {
+                console.log(new Date(), result)
+            }
+        }
+    }
 }, 10000)

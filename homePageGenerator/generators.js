@@ -100,7 +100,7 @@ class BookGenerator extends ArrayGenerator {
                 Books: this.data.map(d => {
                     let r = Object.assign({}, d)
                     r.Pic = d.Pic2
-                    delete r.Pic
+                    delete r.Pic2
                     return r
                 })
             }, this.data[0]);

@@ -1,105 +1,71 @@
 import sqlstr from '../../common/sqlStr'
 import getStockPrice from '../../getSinaData/getPrice'
 import singleton from '../../common/singleton'
+import deal from '../../PaperTrade/deal'
 module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redisClient }) {
     function createAccount(data) {
         return mainDB.query(...sqlstr.insert2("wf_street_practice_account", data, { CreateTime: "now()" }))
     }
 
-    function getAccount(memberCode) {
-        return mainDB.query("select * from wf_street_practice_account where MemberCode=:memberCode", { replacements: { memberCode } })
+    function getAccount(AccountNo) {
+        return mainDB.query("select * from wf_street_practice_account where AccountNo=:AccountNo", { replacements: { AccountNo } })
     }
     mqChannel.assertQueue('paperTrade');
     const router = express.Router();
     /**创建订单 */
     router.post('/Orders', ctt, wrap(async({ memberCode, body }, res) => {
-        let { OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo } = body
-        if (OrdType == 1 && !await singleton.marketIsOpen(SecuritiesType)) {
-            res.send({ Status: 44003, Explain: "未开盘：" + SecuritiesType })
+        let { AccountNo, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo } = body
+        if (OrdType != 1 && OrdType != 2 && OrdType != 3) { //1市价单、2限价单、3止损单
+            return res.send({ Status: -2, Explain: "OrdType 必须是1、2、3 而当前值为：" + OrdType })
         }
-        let [account] = await getAccount(memberCode)
+        if (Side != "S" && Side != "B") {
+            return res.send({ Status: -2, Explain: "Side 必须是S、B 而当前值为：" + Side })
+        }
+        if (OrdType == 1 && !await singleton.marketIsOpen(SecuritiesType)) {
+            return res.send({ Status: 44003, Explain: "未开盘：" + SecuritiesType })
+        }
+        let [account] = await getAccount(AccountNo)
         if (account.length == 0) {
-            await createAccount({ memberCode, TranAmount: config.practiceInitFun, Cash: config.practiceInitFun });
-            ([account] = await getAccount(memberCode));
+            await createAccount({ AccountNo, memberCode, TranAmount: config.practiceInitFun, Cash: config.practiceInitFun });
+            ([account] = await getAccount(AccountNo));
         }
         account = account[0]
         if (account.Status != 1) {
             res.send({ Status: 44002, Explain: "账号已停用" })
             return
         }
-        let [postions] = await mainDB.query("select * from wf_street_practice_positions  where MemberCode=:memberCode and SecuritiesType=:SecuritiesType and SecuritiesNo=:SecuritiesNo", { replacements: { memberCode, SecuritiesType, SecuritiesNo } })
+        let [postions] = await mainDB.query("select * from wf_street_practice_positions  where AccountNo=:AccountNo and SecuritiesType=:SecuritiesType and SecuritiesNo=:SecuritiesNo", { replacements: { AccountNo, SecuritiesType, SecuritiesNo } })
         let Positions = postions.length ? postions[0].Positions : 0
         if (Side == "S" && Positions < OrderQty) {
             res.send({ Status: 44004, Explain: "持仓不足:" + Positions + "<" + OrderQty })
             return
         }
         let sinaName = config.getQueryName(body)
-        let lastPrice = await redisClient.sismemberAsync("watch_stocks", sinaName) ? JSON.parse("[" + await redisClient.getAsync("lastPrice:" + sinaName) + "]") : (await getStockPrice(sinaName))[sinaName][4]
+        let [, , , , lastPrice] = await singleton.getLastPrice(sinaName)
         if (!lastPrice) {
             res.send({ Status: -1, Explain: lastPrice })
             return
         }
-        let commission = OrderQty > 239 ? account.CommissionRate * OrderQty : 2.99 //佣金
-        let replacements = Object.assign({ MemberCode: memberCode, Commission: commission }, body)
-        replacements.Price = lastPrice
-        switch (OrdType) {
-            case 1: //市价单
-                let delta = Side == "B" ? -commission - lastPrice * OrderQty : lastPrice * OrderQty - commission
-                if (account.Cash + delta < 0) {
-                    res.send({ Status: 44001, Explain: "资金不足" })
-                    return
-                } else {
-                    let t = await mainDB.transaction();
-                    body.execType = 1
-                    try {
-                        await mainDB.query(sqlstr.insert("wf_street_practice_order", replacements, { CreateTime: "now()", TurnoverTime: "now()" }), { replacements, transaction: t })
-                        await mainDB.query(sqlstr.update("wf_street_practice_account", { Cash: account.Cash }, null, "where MemberCode=:memberCode"), { replacements: { Cash: account.Cash + delta, memberCode }, transaction: t })
-                        if (Side == "S") {
-                            Positions -= OrderQty
-                            replacements.Positions = Positions
-                            if (Positions > 0)
-                                await mainDB.query(sqlstr.update("wf_street_practice_positions", { Positions }, null, "where MemberCode=:memberCode and  SecuritiesType=:SecuritiesType and SecuritiesNo=:SecuritiesNo"), { replacements, transaction: t })
-                            else await mainDB.query("delete from wf_street_practice_positions where  MemberCode=:memberCode and  SecuritiesType=:SecuritiesType and SecuritiesNo=:SecuritiesNo", { replacements, transaction: t })
-                        } else {
-                            if (Positions) {
-                                Positions += OrderQty
-                                replacements.Positions = Positions
-                                await mainDB.query(sqlstr.update("wf_street_practice_positions", { Positions }, null, "where MemberCode=:memberCode and  SecuritiesType=:SecuritiesType and SecuritiesNo=:SecuritiesNo"), { replacements, transaction: t })
-                            } else {
-                                Object.assign(replacements, { Positions: OrderQty, SecuritiesType, SecuritiesNo })
-                                await mainDB.query(sqlstr.insert("wf_street_practice_positions", { Positions, SecuritiesType, SecuritiesNo, MemberCode: memberCode }, { CreateTime: "now()" }), { replacements, transaction: t })
-                            }
-                        }
-                    } catch (ex) {
-                        await t.rollback()
-                        res.send({ Status: -1, Explain: ex.stack })
-                        return
-                    }
-                    await t.commit()
-                    res.send({ Status: 0, Explain: "成功" })
-                }
-                break;
-            case 2: //限价单
-                {
-                    delta = Side == "B" ? -commission - Price * OrderQty : Price * OrderQty - commission
-                    if (account.Cash + delta < 0) {
-                        res.send({ Status: 44001, Explain: "资金不足" })
-                        return
-                    } else {
-                        body.MemberCode = memberCode;
-                        body.execType = 0;
-                        let [result] = await mainDB.query(...sqlstr.insert2("wf_street_practice_order", body, { CreateTime: "now()" }))
-                        body.Id = result.insertId;
-                        mqChannel.sendToQueue("paperTrade", new Buffer(JSON.stringify({ cmd: "create", data: body })))
-                    }
-                }
-                break;
-            case 3: //止损单
-
-                break;
+        let Commission = Math.max(account.CommissionRate * OrderQty, account.CommissionLimit) //佣金
+        let p = OrdType == 1 ? lastPrice : Price
+        let delta = Side == "B" ? -Commission - p * OrderQty : p * OrderQty - Commission
+        body.MemberCode = memberCode
+        if (account.Cash + delta < 0) {
+            res.send({ Status: 44001, Explain: "资金不足" })
+            return
         }
-
-
+        if (OrdType != 1) {
+            if (Side == (OrdType == 2 ? "B" : "S") ? (Price > lastPrice) : (Price < lastPrice)) {
+                res.send({ Status: 44005, Explain: "价格设置不正确" })
+                return
+            }
+        }
+        let [result] = await mainDB.query(...sqlstr.insert2("wf_street_practice_order", Object.assign({ execType: 0 }, body), { CreateTime: "now()" }))
+        body.Id = result.insertId;
+        body.CommissionLimit = account.CommissionLimit
+        body.CommissionRate = account.CommissionRate
+        mqChannel.sendToQueue("paperTrade", new Buffer(JSON.stringify({ cmd: "create", data: body })))
+        res.send({ Status: 0, Explain: "ok" })
     }));
     /**订单状态 */
     router.get('/Orders/:orderID', ctt, wrap(async({ memberCode, params: { orderID } }, res) => {
@@ -120,7 +86,7 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
     }));
     /**持仓 */
     router.get('/Position', ctt, wrap(async({ memberCode }, res) => {
-        let [result] = await mainDB.query("select * from wf_street_practice_positions  where MemberCode=:memberCode", { replacements: { memberCode } })
+        let [result] = await mainDB.query("select * from wf_street_practice_positions where MemberCode=:memberCode", { replacements: { memberCode } })
         res.send({ Status: 0, Explain: "", DataList: result });
     }));
     /**今日委托 */
@@ -145,8 +111,8 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
     }));
     /**我的账户详情 */
     router.get('/Account', ctt, wrap(async({ memberCode }, res) => {
-        let [result] = await getAccount(memberCode)
-        res.send({ Status: 0, Explain: "", Data: result });
+        let [result] = await mainDB.query("select * from wf_street_practice_account where MemberCode=:memberCode", { replacements: { memberCode } })
+        res.send({ Status: 0, Explain: "", DataList: result });
     }));
     return router
 }

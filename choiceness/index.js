@@ -58,8 +58,7 @@ async function caculateAvgDelta(target) {
     for (let c of target) {
         let allDelta = 0;
         for (let s of c.Stocks) {
-            let sp = await redisClient.getAsync("lastPrice:" + s)
-            sp = JSON.parse("[" + sp + "]")
+            let sp = await singleton.getLastPrice(s)
             if (sp[5]) {
                 allDelta += sp[5]; //涨跌幅
             } else if (sp[5] !== 0) {
