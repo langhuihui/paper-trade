@@ -95,6 +95,12 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
         let result = await realDB.collection(currentSRT).find({ ShowType: req.params.type }, { _id: 0 }).sort({ RiseFallRange: req.params.order == "desc" ? -1 : 1 }).toArray()
             //let [result] = await mainDB.query("select * from " + currentSRT + " where ShowType=:type order by RiseFallRange " + req.params.order, { replacements: req.params })
         res.send({ Status: 0, Explain: "", DataList: result })
-    }))
+    }));
+    //用中文搜索股票
+    router.get('/SearchStock/:searchword', wrap(async(req, res) => {
+        let searchword = "%" + req.params.searchword + "%"
+        let [result] = await mainDB.query("SELECT SecuritiesNo,SecuritiesName from wf_securities_trade where Remark='DW' and SecuritiesName like :searchword or PinYin like :searchword", { replacements: { searchword } })
+        res.send({ Status: 0, Explain: "", DataList: result })
+    }));
     return router
 }
