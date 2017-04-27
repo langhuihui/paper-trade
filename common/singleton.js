@@ -6,12 +6,14 @@ import JPush from 'jpush-sdk'
 import mongodb from 'mongodb'
 import rongcloudSDK from 'rongcloud-sdk'
 import getStockPrice from '../getSinaData/getPrice'
+import sqlStr from './sqlStr'
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 var _mainDB = null;
 var _redisClient = null;
 var _jpushClient = null;
 var _realDB = null;
+const EMPTY = {};
 rongcloudSDK.init(Config.Rong_Appkey, Config.Rong_Secret);
 let o = {
     get mainDB() {
@@ -41,12 +43,12 @@ let o = {
         return rongcloudSDK;
     },
     async marketIsOpen(market) {
-        let marketIsOpen = await _redisClient.getAsync("marketIsOpen")
+        let marketIsOpen = await this.redisClient.getAsync("marketIsOpen")
         marketIsOpen = JSON.parse(marketIsOpen)
         return market ? marketIsOpen[market] : marketIsOpen
     },
     async getLastPrice(sinaName) {
-        let sp = await _redisClient.hgetAsync("lastPrice", sinaName)
+        let sp = await this.redisClient.hgetAsync("lastPrice", sinaName)
         if (sp)
             sp = JSON.parse("[" + sp + "]")
         else
@@ -54,6 +56,25 @@ let o = {
         let [, , , price, pre, chg] = sp
         if (!chg) sp[5] = pre ? (price - pre) * 100 / pre : 0
         return sp
+    },
+    async insertMainDB(...args) {
+        let [result] = await this.mainDB.query(...sqlStr.insert2(...args))
+        return result
+    },
+    async updateMainDB(...args) {
+        let [result] = await this.mainDB.query(...sqlStr.update2(...args))
+        return result
+    },
+    async selectMainDB(...args) {
+        let [result] = await this.mainDB.query(...sqlStr.select2(...args))
+        return result
+    },
+    async selectMainDB0(...args) {
+        let [result] = await this.mainDB.query(...sqlStr.select2(...args))
+        return result.length ? result[0] : EMPTY
+    },
+    isEMPTY(value) {
+        return value === EMPTY
     }
 }
 export default o

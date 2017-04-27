@@ -64,13 +64,9 @@ async function startMQ() {
                 } else {
                     if (!isAllClose(data)) {
                         notifies.set(data.RemindId, data)
-                        mainDB.query('select JpushRegID from wf_im_jpush where MemberCode=:MemberCode', { replacements: data }).then(result => {
-                            if (result[0].length) data.JpushRegID = result[0][0]["JpushRegID"]
-                        })
+                        data.JpushRegID = (await mainDB.query('select JpushRegID from wf_im_jpush where MemberCode=:MemberCode', { replacements: data }))[0][0].JpushRegID;
                         if (stocksRef.addSymbol(name)) {
-                            mainDB.query('select SecuritiesName from wf_securities_trade where SecuritiesNo =:SecuritiesNo and SmallType = :SmallType', { replacements: data }).then(result => {
-                                if (result[0].length) data.SecuritiesName = result[0][0]["SecuritiesName"]
-                            })
+                            data.SecuritiesName = (await mainDB.query('select SecuritiesName from wf_securities_trade where SecuritiesNo =:SecuritiesNo and SmallType = :SmallType', { replacements: data }))[0][0].SecuritiesName
                             channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "add", listener: "priceNotify", symbols: [name] })))
                         }
                     }

@@ -1,14 +1,14 @@
 import sqlstr from '../../common/sqlStr'
 import getStockPrice from '../../getSinaData/getPrice'
 import singleton from '../../common/singleton'
-import deal from '../../PaperTrade/deal'
+import deal from '../../paperTrade/deal'
 module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redisClient }) {
     function createAccount(data) {
         return mainDB.query(...sqlstr.insert2("wf_street_practice_account", data, { CreateTime: "now()" }))
     }
 
     function getAccount(AccountNo) {
-        return mainDB.query("select * from wf_street_practice_account where AccountNo=:AccountNo", { replacements: { AccountNo } })
+        return singleton.selectMainDB0("wf_street_practice_account", { AccountNo })
     }
     mqChannel.assertQueue('paperTrade');
     const router = express.Router();
@@ -24,24 +24,22 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
         if (OrdType == 1 && !await singleton.marketIsOpen(SecuritiesType)) {
             return res.send({ Status: 44003, Explain: "未开盘：" + SecuritiesType })
         }
-        let [account] = await getAccount(AccountNo)
-        if (account.length == 0) {
+        let account = await getAccount(AccountNo)
+        if (singleton.isEMPTY(account)) {
             await createAccount({ AccountNo, memberCode, TranAmount: config.practiceInitFun, Cash: config.practiceInitFun });
-            ([account] = await getAccount(AccountNo));
+            account = await getAccount(AccountNo);
         }
-        account = account[0]
         if (account.Status != 1) {
             res.send({ Status: 44002, Explain: "账号已停用" })
             return
         }
-        let [postions] = await mainDB.query("select * from wf_street_practice_positions  where AccountNo=:AccountNo and SecuritiesType=:SecuritiesType and SecuritiesNo=:SecuritiesNo", { replacements: { AccountNo, SecuritiesType, SecuritiesNo } })
-        let Positions = postions.length ? postions[0].Positions : 0
+        let { Positions = 0 } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo })
         if (Side == "S" && Positions < OrderQty) {
             res.send({ Status: 44004, Explain: "持仓不足:" + Positions + "<" + OrderQty })
             return
         }
         let sinaName = config.getQueryName(body)
-        let [, , , , lastPrice] = await singleton.getLastPrice(sinaName)
+        let [, , , , lastPrice] = await singleton.getLastPrice(sinaName);
         if (!lastPrice) {
             res.send({ Status: -1, Explain: lastPrice })
             return
@@ -60,16 +58,33 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
                 return
             }
         }
-        let [result] = await mainDB.query(...sqlstr.insert2("wf_street_practice_order", Object.assign({ execType: 0 }, body), { CreateTime: "now()" }))
-        body.Id = result.insertId;
-        body.CommissionLimit = account.CommissionLimit
-        body.CommissionRate = account.CommissionRate
-        mqChannel.sendToQueue("paperTrade", new Buffer(JSON.stringify({ cmd: "create", data: body })))
+        let EndTime = new Date()
+        let [usResult] = await mainDB.query("select * from wf_system_opendate_bak where Type='us' and DealDate=CurDate()");
+        if (usResult.length) {
+            let [{ EndTimePM, id }] = usResult
+            EndTimePM = new Date(EndTimePM)
+            if (EndTime < EndTimePM) {
+                EndTime = EndTimePM
+            } else {
+                id++
+                ({ EndTimePM } = await singleton.selectMainDB0("wf_system_opendate_bak", { id }, { Type: "'us'" }));
+                EndTime = new Date(EndTimePM)
+            }
+        } else {
+            usResult = await mainDB.query("select * from wf_system_opendate_bak where Type='us' and DealDate>now() order by Id desc limit 1")
+            EndTime = new Date(usResult[0][0].EndTimePM)
+        }
+
+        let { insertId } = await singleton.insertMainDB("wf_street_practice_order", Object.assign({ execType: 0, EndTime }, body), { CreateTime: "now()" })
+        body.Id = insertId;
+        body.CommissionLimit = account.CommissionLimit;
+        body.CommissionRate = account.CommissionRate;
+        mqChannel.sendToQueue("paperTrade", new Buffer(JSON.stringify({ cmd: "create", data: body })));
         res.send({ Status: 0, Explain: "ok" })
     }));
     /**订单状态 */
     router.get('/Orders/:orderID', ctt, wrap(async({ memberCode, params: { orderID } }, res) => {
-        let [result] = await mainDB.query("select * from wf_street_practice_order where Id:orderID and MemberCode=:memberCode", { replacements: { memberCode, orderID } })
+        let [result] = await mainDB.query("select * from wf_street_practice_order where Id=:orderID and MemberCode=:memberCode", { replacements: { memberCode, orderID } })
         if (result.length) {
             res.send({ Status: 0, Explain: "", Data: result[0] });
         } else

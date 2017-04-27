@@ -5,7 +5,7 @@ import amqp from 'amqplib'
 import moment from 'moment-timezone'
 import singleton from '../common/singleton'
 import StockRef from '../getSinaData/stocksRef'
-import sqlstr from '../common/sqlstr'
+import sqlstr from '../common/sqlStr'
 import deal from './deal'
 const { mainDB, redisClient, jpushClient } = singleton
 var stocksRef = new StockRef()
@@ -63,6 +63,12 @@ startMQ()
 setInterval(async() => {
     let marketIsOpen = await singleton.marketIsOpen()
     for (let order of orders.values()) {
+        if (new Date(order.EndTime) > new Date()) {
+            let { Id } = order
+            await mainDB.query(...sqlstr.update2("wf_street_practice_order", { execType: 3, Reason: 3 }, null, { Id }))
+            orders.delete(Id)
+            continue
+        }
         if (!marketIsOpen[order.SecuritiesType]) {
             continue
         }
@@ -74,7 +80,7 @@ setInterval(async() => {
         if (OrdType == 1) {
             let x = Object.assign(Object.assign({ delta }, order), { Commission, Price: price })
             let result = await deal(x)
-        } else if (Side == (OrdType == 2 ? "S" : "B") ? (Price > price) : (Price < price)) {
+        } else if (Side == (OrdType == 2 ? "B" : "S") ? (Price > price) : (Price < price)) {
             let x = Object.assign(Object.assign({ delta }, order), { Commission, Price: price })
             let result = await deal(x)
             if (result === 0) {

@@ -69,7 +69,7 @@ async function startMQ() {
         }
         if (needRemove.length) {
             stockRef.removeSymbols(needRemove)
-            redisClient.hdel(lastPrice, ...needRemove)
+            redisClient.hdel("lastPrice", ...needRemove)
         }
         if (needAdd.length) {
             stockRef.addSymbols(needAdd)

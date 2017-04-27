@@ -4,14 +4,12 @@ const { mainDB, redisClient, jpushClient } = singleton
 export default async({ Id, Commission, delta, AccountNo, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, MemberCode }) => {
     let transaction = await mainDB.transaction();
     try {
-        let [account] = await mainDB.query("select * from wf_street_practice_account where AccountNo=:AccountNo", { replacements: { AccountNo } })
-        let Cash = account[0].Cash
+        let [{ Cash }] = await singleton.selectMainDB("wf_street_practice_account", { AccountNo }, null, { transaction })
         if (Cash + delta < 0) {
             throw 1
         }
         await mainDB.query(...sqlstr.update2("wf_street_practice_account", { Cash: Cash + delta }, null, { AccountNo }, { transaction }))
-        let [postions] = await mainDB.query("select * from wf_street_practice_positions  where AccountNo=:AccountNo and SecuritiesType=:SecuritiesType and SecuritiesNo=:SecuritiesNo", { replacements: { AccountNo, SecuritiesType, SecuritiesNo } })
-        let Positions = postions.length ? postions[0].Positions : 0
+        let { Positions = 0, CostPrice } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo }, null, { transaction })
         if (Side == "S") {
             Positions -= OrderQty
             if (Positions > 0)
@@ -22,13 +20,15 @@ export default async({ Id, Commission, delta, AccountNo, OrdType, Side, OrderQty
             }
         } else {
             if (Positions) {
+                let Cost = Positions * CostPrice + OrderQty * Price;
                 Positions += OrderQty
-                await mainDB.query(...sqlstr.update2("wf_street_practice_positions", { Positions }, null, { AccountNo, SecuritiesType, SecuritiesNo }, { transaction }))
+                CostPrice = Cost / Positions
+                await mainDB.query(...sqlstr.update2("wf_street_practice_positions", { Positions, CostPrice }, null, { AccountNo, SecuritiesType, SecuritiesNo }, { transaction }))
             } else {
-                await mainDB.query(...sqlstr.insert2("wf_street_practice_positions", { Positions: OrderQty, SecuritiesType, SecuritiesNo, MemberCode, AccountNo }, { CreateTime: "now()" }, { transaction }))
+                await mainDB.query(...sqlstr.insert2("wf_street_practice_positions", { Positions: OrderQty, CostPrice: Price, SecuritiesType, SecuritiesNo, MemberCode, AccountNo }, { CreateTime: "now()" }, { transaction }))
             }
         }
-        await mainDB.query(...sqlstr.update2("wf_street_practice_order", { execType: 1, Commission, Price }, { TurnoverTime: "now()" }, { Id }, { transaction }))
+        await mainDB.query(...sqlstr.update2("wf_street_practice_order", { execType: 1, Commission, Price, Cash: Cash + delta }, { TurnoverTime: "now()" }, { Id }, { transaction }))
         await transaction.commit()
         return 0
     } catch (ex) {
