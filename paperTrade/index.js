@@ -80,7 +80,7 @@ setInterval(async() => {
         if (OrdType == 1) {
             let x = Object.assign(Object.assign({ delta }, order), { Commission, Price: price })
             let result = await deal(x)
-        } else if (Side == (OrdType == 2 ? "S" : "B") ? (Price > price) : (Price < price)) {
+        } else if (Side == (OrdType == 2 ? "B" : "S") ? (Price > price) : (Price < price)) {
             let x = Object.assign(Object.assign({ delta }, order), { Commission, Price: price })
             let result = await deal(x)
             if (result === 0) {
