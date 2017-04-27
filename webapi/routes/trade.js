@@ -99,7 +99,7 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
     //用中文搜索股票
     router.get('/SearchStock/:searchword', wrap(async(req, res) => {
         let searchword = "%" + req.params.searchword + "%"
-        let [result] = await mainDB.query("SELECT SecuritiesNo,SecuritiesName from wf_securities_trade where Remark='DW' and SecuritiesName like :searchword or PinYin like :searchword", { replacements: { searchword } })
+        let [result] = await mainDB.query("SELECT SecuritiesNo,SecuritiesName from wf_securities_trade where Remark='DW' and (SecuritiesName like :searchword or PinYin like :searchword)", { replacements: { searchword } })
         res.send({ Status: 0, Explain: "", DataList: result })
     }));
     return router

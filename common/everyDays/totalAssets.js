@@ -48,7 +48,23 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
                 let MtmPL = positions.reduce((acc, val) => acc + val.mtmPL, 0) //总的持仓浮动盈亏
                 let replacements = { UserId, MemberCode, AccountID: accountID, Balance: cash, Positions, TotalAmount: cash + Positions, MtmPL }
                 let [result] = await mainDB.query('select TotalAmount from wf_drivewealth_practice_asset where UserId=:UserId and EndDate<CurDate() order by EndDate desc limit 1', { replacements })
+                switch (moment().day()) {
+                    case 1:
+                    case 0: //周日和周一取上周二的数据
+                        let LastDate = moment().day(-5);
+                        break;
+                    case 2: //周二到周六取本周二的数据
+                    case 3:
+                    case 4:
+                    case 5:
+                    case 6:
+                        let LastDate = moment().day(2);
+                        break;
+                }
+                let [weekresult] = await mainDB.query('select TotalAmount from wf_drivewealth_practice_asset where UserId=:UserId and EndDate<:LastDate order by EndDate desc limit 1', { replacements: { LastDate } })
                 replacements.TodayProfit = replacements.TotalAmount - (result.length ? result[0].TotalAmount : Config.practiceInitFun)
+                replacements.WeekProfit = replacements.TotalAmount - (weekresult.length ? weekresult[0].TotalAmount : Config.practiceInitFun)
+                replacements.WeekYield = replacements.WeekProfit / replacements.TotalAmount * 100
                 await mainDB.query(sqlstr.insert("wf_drivewealth_practice_asset", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
             } else {
                 let replacements = { UserId, MemberCode, AccountID: accountID, Balance: cash, Positions: 0, TotalAmount: cash, MtmPL: 0, TodayProfit: 0 }
