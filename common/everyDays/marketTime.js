@@ -7,11 +7,15 @@ export default new EveryDay('marketTime', "00:00:00", async function() {
     let [usResult2] = await mainDB.query("select * from wf_system_opendate_bak where Type='us' and DealDate=DATE_ADD(CURDATE(),INTERVAL 1 day)")
     let [hsResult] = await mainDB.query("select * from wf_system_opendate_bak where Type='hs' and DealDate=CurDate()")
     let [hkResult] = await mainDB.query("select * from wf_system_opendate_bak where Type='hk' and DealDate=CurDate()")
-    let isUsOpen = now => (usResult.length > 0 && now < usResult[0].EndTimePM) || (usResult2.length > 0 && now > usResult2[0].StartTimeAM)
-    let isHsOpen = now => hsResult.length > 0 && (now > hsResult[0].StartTimeAM && now < hsResult[0].EndTimeAM || now > hsResult[0].StartTimePM && now < hsResult[0].EndTimPM)
-    let isHkOpen = now => hkResult.length > 0 && (now > hkResult[0].StartTimeAM && now < hkResult[0].EndTimeAM || now > hkResult[0].StartTimePM && now < hkResult[0].EndTimPM)
+    let usTime = [usResult.length > 0 ? new Date(usResult[0].EndTimePM) : false, usResult2.length > 0 ? new Date(usResult2[0].StartTimeAM) : false]
+    let hsTime = hsResult.length > 0 ? [new Date(hsResult[0].StartTimeAM), new Date(hsResult[0].EndTimeAM), new Date(hsResult[0].StartTimePM), new Date(hsResult[0].EndTimePM)] : false
+    let hkTime = hkResult.length > 0 ? [new Date(hkResult[0].StartTimeAM), new Date(hkResult[0].EndTimeAM), new Date(hkResult[0].StartTimePM), new Date(hkResult[0].EndTimePM)] : false
+    let isUsOpen = now => (usTime[0] && now < usTime[0]) || (usTime[1] && now > usTime[1])
+    let isHsOpen = now => hsTime && (now > hsTime[0] && now < hsTime[1] || now > hsTime[2] && now < hsTime[3])
+    let isHkOpen = now => hkTime && (now > hkTime[0] && now < hkTime[1] || now > hkTime[2] && now < hkTime[3])
     this.setRedis = now => {
         let hs = isHsOpen(now)
-        redisClient.set('marketIsOpen', JSON.stringify({ us: isUsOpen(now), hk: isHkOpen(now), sh: hs, sz: hs }))
+        let result = JSON.stringify({ us: isUsOpen(now), hk: isHkOpen(now), sh: hs, sz: hs })
+        redisClient.set('marketIsOpen', result)
     }
 })
