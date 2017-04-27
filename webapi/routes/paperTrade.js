@@ -2,6 +2,14 @@ import sqlstr from '../../common/sqlStr'
 import getStockPrice from '../../getSinaData/getPrice'
 import singleton from '../../common/singleton'
 import deal from '../../paperTrade/deal'
+
+function ConvertAccountNo(req, res, next) {
+    let { query: { AccountNo } } = req
+    if (AccountNo) AccountNo = "and AccountNo='" + AccountNo + "'"
+    else AccountNo = ""
+    req.AccountNo = AccountNo
+    next()
+}
 module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redisClient }) {
     function createAccount(data) {
         return mainDB.query(...sqlstr.insert2("wf_street_practice_account", data, { CreateTime: "now()" }))
@@ -12,6 +20,7 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
     }
     mqChannel.assertQueue('paperTrade');
     const router = express.Router();
+
     /**创建订单 */
     router.post('/Orders', ctt, wrap(async({ memberCode, body }, res) => {
         let { AccountNo, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo } = body
@@ -100,33 +109,44 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
             res.send({ Status: -1, Explain: "该订单不存在" });
     }));
     /**持仓 */
-    router.get('/Position', ctt, wrap(async({ memberCode }, res) => {
-        let [result] = await mainDB.query("select * from wf_street_practice_positions where MemberCode=:memberCode", { replacements: { memberCode } })
+    router.get('/Position', ctt, wrap(async({ memberCode: MemberCode }, res) => {
+        let result = await singleton.selectMainDB("wf_street_practice_positions", { MemberCode })
         res.send({ Status: 0, Explain: "", DataList: result });
     }));
+    /**某个账号的持仓 */
+    router.get('/Position/:AccountNo', ctt, wrap(async({ memberCode: MemberCode, params: { AccountNo } }, res) => {
+        let Positions = await singleton.selectMainDB("wf_street_practice_positions", { MemberCode, AccountNo })
+        let TotalProfit = 0
+        for (let p of Positions) {
+            p.LastPrice = (await singleton.getLastPrice(config.getQueryName(p)))[4]
+            p.Profit = (p.LastPrice - p.CostPrice) * p.Positions
+            TotalProfit += p.Profit
+        }
+        res.send({ Status: 0, Explain: "", Positions, TotalProfit });
+    }));
     /**今日委托 */
-    router.get('/TodayOrders', ctt, wrap(async({ memberCode }, res) => {
-        let [result] = await mainDB.query("select * from wf_street_practice_order where MemberCode=:memberCode and substr(CreateTime,1,10)=CurDate()", { replacements: { memberCode } })
+    router.get('/TodayOrders', ctt, ConvertAccountNo, wrap(async({ memberCode, AccountNo }, res) => {
+        let [result] = await mainDB.query(`select * from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and substr(CreateTime,1,10)=CurDate()`, { replacements: { memberCode } })
         res.send({ Status: 0, Explain: "", DataList: result });
     }));
     /**今日成交 */
-    router.get('/TodayDeals', ctt, wrap(async({ memberCode }, res) => {
-        let [result] = await mainDB.query("select * from wf_street_practice_order where MemberCode=:memberCode and substr(TurnoverTime,1,10)=CurDate() and execType=1", { replacements: { memberCode } })
+    router.get('/TodayDeals', ctt, ConvertAccountNo, wrap(async({ memberCode, AccountNo }, res) => {
+        let [result] = await mainDB.query(`select * from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and substr(TurnoverTime,1,10)=CurDate() and execType=1`, { replacements: { memberCode } })
         res.send({ Status: 0, Explain: "", DataList: result });
     }));
     /**历史委托 */
-    router.get('/Orders/:startDate/:endDate', ctt, wrap(async({ memberCode, params: { startDate, endDate } }, res) => {
-        let [result] = await mainDB.query("select * from wf_street_practice_order where MemberCode=:memberCode and CreateTime>=startDate and CreateTime<=endDate and execType=1", { replacements: { memberCode, startDate, endDate } })
+    router.get('/Orders/:startDate/:endDate', ctt, ConvertAccountNo, wrap(async({ memberCode, params: { startDate, endDate }, AccountNo }, res) => {
+        let [result] = await mainDB.query(`select * from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and CreateTime>=startDate and CreateTime<=endDate and execType=1`, { replacements: { memberCode, startDate, endDate } })
         res.send({ Status: 0, Explain: "", DataList: result });
     }));
     /**历史成交 */
-    router.get('/Deals/:startDate/:endDate', ctt, wrap(async({ memberCode, params: { startDate, endDate } }, res) => {
-        let [result] = await mainDB.query("select * from wf_street_practice_order where MemberCode=:memberCode and TurnoverTime>=startDate and TurnoverTime<=endDate and execType=1", { replacements: { memberCode, startDate, endDate } })
+    router.get('/Deals/:startDate/:endDate', ctt, ConvertAccountNo, wrap(async({ memberCode, params: { startDate, endDate }, AccountNo }, res) => {
+        let [result] = await mainDB.query(`select * from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and TurnoverTime>=startDate and TurnoverTime<=endDate and execType=1`, { replacements: { memberCode, startDate, endDate } })
         res.send({ Status: 0, Explain: "", DataList: result });
     }));
     /**我的账户详情 */
-    router.get('/Account', ctt, wrap(async({ memberCode }, res) => {
-        let [result] = await mainDB.query("select * from wf_street_practice_account where MemberCode=:memberCode", { replacements: { memberCode } })
+    router.get('/Account', ctt, ConvertAccountNo, wrap(async({ memberCode, AccountNo }, res) => {
+        let [result] = await mainDB.query(`select * from wf_street_practice_account where MemberCode=:memberCode ${AccountNo}`, { replacements: { memberCode } })
         res.send({ Status: 0, Explain: "", DataList: result });
     }));
     return router

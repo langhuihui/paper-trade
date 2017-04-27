@@ -57,21 +57,25 @@ let o = {
         if (!chg) sp[5] = pre ? (price - pre) * 100 / pre : 0
         return sp
     },
-    async insertMainDB(...args) {
-        let [result] = await this.mainDB.query(...sqlStr.insert2(...args))
+    async insertMainDB(table, value, other, option) {
+        let [result] = await this.mainDB.query(...sqlStr.insert2(table, value, other, option))
         return result
     },
-    async updateMainDB(...args) {
-        let [result] = await this.mainDB.query(...sqlStr.update2(...args))
+    async updateMainDB(table, value, other, where = "", option) {
+        let [result] = await this.mainDB.query(...sqlStr.update2(table, value, other, where, option))
         return result
     },
-    async selectMainDB(...args) {
-        let [result] = await this.mainDB.query(...sqlStr.select2(...args))
+    async selectMainDB(table, value, other, option) {
+        let [result] = await this.mainDB.query(...sqlStr.select2(table, value, other, option))
         return result
     },
-    async selectMainDB0(...args) {
-        let [result] = await this.mainDB.query(...sqlStr.select2(...args))
+    async selectMainDB0(table, value, other, option) {
+        let [result] = await this.mainDB.query(...sqlStr.select2(table, value, other, option))
         return result.length ? result[0] : EMPTY
+    },
+    async deleteMainDB(table, value, other, option) {
+        let [result] = await this.mainDB.query(...sqlStr.delete2(table, value, other, option))
+        return result
     },
     isEMPTY(value) {
         return value === EMPTY

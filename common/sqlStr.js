@@ -29,18 +29,25 @@ function getNames(value, other) {
     return { names, argNames, equres }
 }
 export default {
-    select2(table, value, other, option = null) {
+    select2(table, value, other, option) {
         let replacements = value
         if (!option) option = { replacements }
         else Object.assign(option, { replacements })
         let { equres } = getNames(value, other)
         return [`select * from ${table} where ${equres.join(" and ")}`, option]
     },
+    delete2(table, value, other, option) {
+        let replacements = value
+        if (!option) option = { replacements }
+        else Object.assign(option, { replacements })
+        let { equres } = getNames(value, other)
+        return [`delete from ${table} where ${equres.join(" and ")}`, option]
+    },
     insert(table, value, other) {
         let { names, argNames } = getNames(value, other)
         return `insert into ${table}(${names}) values(${argNames}) `
     },
-    insert2(table, value, other, option = null) {
+    insert2(table, value, other, option) {
         if (!option) option = { replacements: value }
         else Object.assign(option, { replacements: value })
         return [this.insert(table, value, other), option]
@@ -49,7 +56,7 @@ export default {
         let { equres } = getNames(value, other)
         return `update ${table} set ${equres.join(",")} ${where}`
     },
-    update2(table, value, other, where = "", option = null) {
+    update2(table, value, other, where = "", option) {
         let replacements = value
         if (typeof where == 'object') {
             replacements = Object.assign(Object.assign({}, where), value)

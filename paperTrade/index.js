@@ -18,6 +18,35 @@ async function getAllOrder() {
         stocksRef.addSymbol(Config.getQueryName(order))
     }
 }
+async function sendStock({ rate, SecuritiesType, SecuritiesNo, time }) {
+    let [result] = await mainDB.query("select * from wf_street_practice_positionshistory where Id in (select max(Id) from wf_street_practice_positionshistory where SecuritiesNo=:SecuritiesNo and SecuritiesType=:SecuritiesType and CreateTime <:time group by AccountNO)")
+    if (result.length) {
+        let transaction = await mainDB.transaction();
+        try {
+            let t = { transaction }
+            for (let p of result) {
+                let { Positions: beforeSendPos, AccountNo, SecuritiesType, SecuritiesNo } = p
+                let addP = beforeSendPos * rate
+                let { Positions = 0, CostPrice, MemberCode } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo })
+                if (Positions == 0) {
+                    //todo CostPrice
+                    await singleton.insertMainDB("wf_street_practice_positions", { Positions: addP, CostPrice, SecuritiesType, SecuritiesNo, MemberCode, AccountNo }, { CreateTime: "now()" }, t)
+                    await singleton.insertMainDB("wf_street_practice_positionshistory", { MemberCode, AccountNo, OldPositions: Positions, Positions: addP, SecuritiesType, SecuritiesNo, Reason: 1 }, { CreateTime: "now()" }, t)
+                } else {
+                    //todo CostPrice
+                    await singleton.updateMainDB("wf_street_practice_positions", { Positions: Positions + addP, CostPrice }, null, { AccountNo, SecuritiesType, SecuritiesNo }, t)
+                    await singleton.insertMainDB("wf_street_practice_positionshistory", { MemberCode, AccountNo, OldPositions: Positions, Positions: Positions + addP, SecuritiesType, SecuritiesNo, Reason: 1 }, { CreateTime: "now()" }, t)
+                }
+            }
+            await transaction.commit()
+        } catch (ex) {
+            await transaction.rollback()
+        }
+    }
+}
+async function bonus({ rate, SecuritiesType, SecuritiesNo, time }) {
+
+}
 //rabitmq 通讯
 async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
@@ -43,6 +72,12 @@ async function startMQ() {
                     if (stocksRef.removeSymbol(name))
                         channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "remove", listener: "paperTrade", symbols: [name] })))
                 }
+                break;
+            case "sendStock": //派股
+                sendStock(data)
+                break;
+            case "bonus": //分红
+                bonus(data)
                 break;
         }
     })
