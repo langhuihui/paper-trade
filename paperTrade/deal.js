@@ -4,14 +4,12 @@ const { mainDB, redisClient, jpushClient } = singleton
 export default async({ Id, Commission, delta, AccountNo, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, MemberCode }) => {
     let transaction = await mainDB.transaction();
     try {
-        let [account] = await mainDB.query("select * from wf_street_practice_account where AccountNo=:AccountNo", { replacements: { AccountNo } })
-        let Cash = account[0].Cash
+        let [{ Cash }] = await singleton.selectMainDB("wf_street_practice_account", { AccountNo }, null, { transaction })
         if (Cash + delta < 0) {
             throw 1
         }
         await mainDB.query(...sqlstr.update2("wf_street_practice_account", { Cash: Cash + delta }, null, { AccountNo }, { transaction }))
-        let [postions] = await mainDB.query("select * from wf_street_practice_positions  where AccountNo=:AccountNo and SecuritiesType=:SecuritiesType and SecuritiesNo=:SecuritiesNo", { replacements: { AccountNo, SecuritiesType, SecuritiesNo } })
-        let Positions = postions.length ? postions[0].Positions : 0
+        let { Positions = 0 } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo }, null, { transaction })
         if (Side == "S") {
             Positions -= OrderQty
             if (Positions > 0)

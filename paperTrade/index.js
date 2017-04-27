@@ -63,9 +63,10 @@ startMQ()
 setInterval(async() => {
     let marketIsOpen = await singleton.marketIsOpen()
     for (let order of orders.values()) {
-        if (order.EndTime > new Date()) {
-            await mainDB.query(...sqlstr.update2("wf_street_practice_order", { execType: 3, Reason: 3 }, null, { Id }, { transaction }))
-            orders.delete(order.Id)
+        if (new Date(order.EndTime) > new Date()) {
+            let { Id } = order
+            await mainDB.query(...sqlstr.update2("wf_street_practice_order", { execType: 3, Reason: 3 }, null, { Id }))
+            orders.delete(Id)
             continue
         }
         if (!marketIsOpen[order.SecuritiesType]) {

@@ -23,12 +23,22 @@ function getNames(value, other) {
                 }
             }
         }
-    return { names, argNames }
+    let equres = names.map((n, i) => n + "=" + argNames[i])
+    names = names.join(",")
+    argNames = argNames.join(",")
+    return { names, argNames, equres }
 }
 export default {
+    select2(table, value, other, option = null) {
+        let replacements = value
+        if (!option) option = { replacements }
+        else Object.assign(option, { replacements })
+        let { equres } = getNames(value, other)
+        return [`select * from ${table} where ${equres.join(" and ")}`, option]
+    },
     insert(table, value, other) {
         let { names, argNames } = getNames(value, other)
-        return `insert into ${table}(${names.join(',')}) values(${argNames.join(',')}) `
+        return `insert into ${table}(${names}) values(${argNames}) `
     },
     insert2(table, value, other, option = null) {
         if (!option) option = { replacements: value }
@@ -36,20 +46,13 @@ export default {
         return [this.insert(table, value, other), option]
     },
     update(table, value, other, where = "") {
-        let { names, argNames } = getNames(value, other)
-        for (let i = 0; i < names.length; i++) {
-            names[i] = names[i] + "=" + argNames[i]
-        }
-        return `update ${table} set ${names.join(',')} ${where}`
+        let { equres } = getNames(value, other)
+        return `update ${table} set ${equres.join(",")} ${where}`
     },
     update2(table, value, other, where = "", option = null) {
         let replacements = value
         if (typeof where == 'object') {
-            replacements = Object.assign(where, value)
-            if (!other) other = {}
-            for (let n in where) {
-                other[n] = null
-            }
+            replacements = Object.assign(Object.assign({}, where), value)
             where = "where " + Object.keys(where).map(n => `${n}=:${n}`).join(" and ")
         }
         if (!option) option = { replacements }
