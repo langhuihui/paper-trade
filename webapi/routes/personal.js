@@ -2,7 +2,7 @@ import sqlstr from '../../common/sqlStr'
 import allowAccess from '../middles/allowAccess'
 import _config from '../config'
 const myMainListSql = `
-SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTime,'%Y-%m-%d %H:%i:%s') AS ShowTime,
+SELECT *,case when isnull(a.SelectPicture) or a.SelectPicture='' then '' else CONCAT(:picBaseURL,a.SelectPicture) end AS SelectPicture,DATE_FORMAT(ShowTime,'%Y-%m-%d %H:%i:%s') AS ShowTime,
 CONCAT(:picBaseURL,case when isnull(a.HeadImage) or a.HeadImage='' then :defaultHeadImage else a.HeadImage end)nHeadImage  FROM 
 	(SELECT
 		'video' AS Type,

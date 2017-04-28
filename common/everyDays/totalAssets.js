@@ -77,6 +77,8 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
             continue;
         }
     }
+
+
     //缓存总资产排行
     let [totalAmountResult] = await mainDB.query("select dw.MemberCode,round(dw.TotalAmount) TotalAmount,wf_member.Nickname,concat(:picBaseURL,wf_member.HeadImage) HeadImage from wf_drivewealth_practice_asset as dw left join wf_member on dw.MemberCode=wf_member.MemberCode where dw.EndDate=CurDate() order by dw.TotalAmount desc limit 100", { replacements: { picBaseURL: Config.picBaseURL } })
     redisClient.set("RankList:totalAssets", JSON.stringify(totalAmountResult))
