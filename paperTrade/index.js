@@ -19,6 +19,7 @@ async function getAllOrder() {
     }
 }
 async function sendStock({ rate, SecuritiesType, SecuritiesNo, time }) {
+    let lastPrice = await singleton.getLastPrice(Config.getQueryName({ SecuritiesType, SecuritiesNo }))
     let [result] = await mainDB.query("select * from wf_street_practice_positionshistory where Id in (select max(Id) from wf_street_practice_positionshistory where SecuritiesNo=:SecuritiesNo and SecuritiesType=:SecuritiesType and CreateTime <:time group by AccountNO)")
     if (result.length) {
         let transaction = await mainDB.transaction();
@@ -29,11 +30,11 @@ async function sendStock({ rate, SecuritiesType, SecuritiesNo, time }) {
                 let addP = beforeSendPos * rate
                 let { Positions = 0, CostPrice, MemberCode } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo })
                 if (Positions == 0) {
-                    //todo CostPrice
+                    CostPrice = lastPrice[4]
                     await singleton.insertMainDB("wf_street_practice_positions", { Positions: addP, CostPrice, SecuritiesType, SecuritiesNo, MemberCode, AccountNo }, { CreateTime: "now()" }, t)
                     await singleton.insertMainDB("wf_street_practice_positionshistory", { MemberCode, AccountNo, OldPositions: Positions, Positions: addP, SecuritiesType, SecuritiesNo, Reason: 1 }, { CreateTime: "now()" }, t)
                 } else {
-                    //todo CostPrice
+                    CostPrice = CostPrice / (1 + addP / (Positions + addP))
                     await singleton.updateMainDB("wf_street_practice_positions", { Positions: Positions + addP, CostPrice }, null, { AccountNo, SecuritiesType, SecuritiesNo }, t)
                     await singleton.insertMainDB("wf_street_practice_positionshistory", { MemberCode, AccountNo, OldPositions: Positions, Positions: Positions + addP, SecuritiesType, SecuritiesNo, Reason: 1 }, { CreateTime: "now()" }, t)
                 }
@@ -45,7 +46,23 @@ async function sendStock({ rate, SecuritiesType, SecuritiesNo, time }) {
     }
 }
 async function bonus({ rate, SecuritiesType, SecuritiesNo, time }) {
-
+    let [result] = await mainDB.query("select * from wf_street_practice_positionshistory where Id in (select max(Id) from wf_street_practice_positionshistory where SecuritiesNo=:SecuritiesNo and SecuritiesType=:SecuritiesType and CreateTime <:time group by AccountNO)")
+    if (result.length) {
+        let transaction = await mainDB.transaction();
+        try {
+            let t = { transaction }
+            for (let p of result) {
+                let { Positions: beforeSendPos, AccountNo, SecuritiesType, SecuritiesNo, MemberCode } = p
+                let addCash = beforeSendPos * rate
+                let [{ Cash }] = await singleton.selectMainDB0("wf_street_practice_account", { AccountNo }, null, t)
+                await singleton.updateMainDB("wf_street_practice_account", { Cash: Cash + addCash }, null, t)
+                await singleton.insertMainDB("wf_street_practice_cashhistory", { MemberCode, AccountNo, OldCash: Cash, Cash: Cash + addCash, Reason: 1 }, { CreateTime: "now()" }, t)
+            }
+            await transaction.commit()
+        } catch (ex) {
+            await transaction.rollback()
+        }
+    }
 }
 //rabitmq 通讯
 async function startMQ() {
