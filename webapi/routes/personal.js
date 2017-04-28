@@ -18,7 +18,8 @@ CONCAT(:picBaseURL,case when isnull(a.HeadImage) or a.HeadImage='' then :default
         wf_member.HeadImage,
         case when ISNULL(vg.MemberCode) OR vg.MemberCode='' then 0 else  1 end as ClickLike,
         wf_live_video.GoodNumber LikesCount,
-        wf_live_video.CommentNumber CommentCount
+        wf_live_video.CommentNumber CommentCount,
+        wf_live_video.MemberCode
 	FROM
 		wf_live_video
 	LEFT JOIN wf_member ON wf_live_video.MemberCode = wf_member.MemberCode
@@ -41,7 +42,8 @@ CONCAT(:picBaseURL,case when isnull(a.HeadImage) or a.HeadImage='' then :default
          wf_member.HeadImage,
           case when ISNULL(nl.CreateUser) OR nl.CreateUser='' then 0 else  1 end as ClickLike,
           wf_news.LikesCount,
-          wf_news.CommentCount
+          wf_news.CommentCount,
+          wf_News.CreateUser MemberCode
 	FROM
 		wf_News
 	LEFT JOIN wf_member ON wf_News.CreateUser = wf_member.MemberCode
@@ -66,7 +68,8 @@ CONCAT(:picBaseURL,case when isnull(a.HeadImage) or a.HeadImage='' then :default
         wf_member.HeadImage,
         case when ISNULL(il.CreateUser) or il.CreateUser='' then 0 else 1 end as ClickLike,
         wf_imagetext.LikeCount,
-        wf_imagetext.CommentCount
+        wf_imagetext.CommentCount,
+        wf_imagetext.MemberCode
 	FROM
 		wf_imagetext
 	LEFT JOIN wf_member ON wf_imagetext.MemberCode = wf_member.MemberCode
