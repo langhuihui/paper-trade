@@ -81,9 +81,15 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
 
     //缓存总资产排行
     let [totalAmountResult] = await mainDB.query("select dw.MemberCode,round(dw.TotalAmount) TotalAmount,wf_member.Nickname,concat(:picBaseURL,wf_member.HeadImage) HeadImage from wf_drivewealth_practice_asset as dw left join wf_member on dw.MemberCode=wf_member.MemberCode where dw.EndDate=CurDate() order by dw.TotalAmount desc limit 100", { replacements: { picBaseURL: Config.picBaseURL } })
-    redisClient.set("RankList:totalAssets", JSON.stringify(totalAmountResult))
-        //缓存日收益排行
+    redisClient.set("RankList:totalAssets", JSON.stringify(totalAmountResult));
+    //缓存日收益排行
     let [todayProfitResult] = await mainDB.query("select dw.MemberCode,round(dw.TodayProfit) TodayProfit,wf_member.Nickname,concat(:picBaseURL,wf_member.HeadImage) HeadImage from wf_drivewealth_practice_asset as dw left join wf_member on dw.MemberCode=wf_member.MemberCode  where dw.EndDate=CurDate() order by dw.TodayProfit desc limit 100", { replacements: { picBaseURL: Config.picBaseURL } })
-    redisClient.set("RankList:todayProfit", JSON.stringify(todayProfitResult))
+    redisClient.set("RankList:todayProfit", JSON.stringify(todayProfitResult));
+    //缓存炒股大赛总资产排行
+    let [matchTotalProfitReulst] = await mainDB.query("", { replacements: { picBaseURL: Config.picBaseURL } })
+    redisClient.set("RankList:matchTotalProfit", JSON.stringify(matchTotalProfitReulst));
+    //缓存炒股大赛总资产排行
+    let [matchWeekProfitReulst] = await mainDB.query("", { replacements: { picBaseURL: Config.picBaseURL } })
+    redisClient.set("RankList:matchWeekProfit", JSON.stringify(matchWeekProfitReulst))
     mainDB.query('CALL PRC_WF_PRACTICE_RANK();')
 })
