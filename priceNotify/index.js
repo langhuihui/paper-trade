@@ -42,40 +42,50 @@ var notifies = new Map()
 function isAllClose({ IsOpenLower, IsOpenUpper, IsOpenRise, IsOpenFall }) {
     return !(IsOpenLower || IsOpenUpper || IsOpenRise || IsOpenFall)
 }
+
 //rabitmq 通讯
 async function startMQ() {
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
     let ok = await channel.assertQueue('priceNotify')
+    async function updateNotify(data) {
+        let { RemindId } = data
+        let name = Config.getQueryName(data)
+        if (notifies.has(RemindId)) {
+            if (isAllClose(data)) {
+                notifies.delete(RemindId)
+                if (stocksRef.removeSymbol(name))
+                    channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "remove", listener: "priceNotify", symbols: [name] })))
+            } else {
+                let notify = notifies.get(data.RemindId)
+                Object.assign(notify, data)
+                data = notify
+            }
+
+        } else {
+            if (!isAllClose(data)) {
+                data.JpushRegID = (await mainDB.query('select JpushRegID from wf_im_jpush where MemberCode=:MemberCode', { replacements: data }))[0][0].JpushRegID;
+                if (stocksRef.addSymbol(name)) {
+                    data.SecuritiesName = (await mainDB.query('select SecuritiesName from wf_securities_trade where SecuritiesNo =:SecuritiesNo and SmallType = :SmallType', { replacements: data }))[0][0].SecuritiesName
+                    channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "add", listener: "priceNotify", symbols: [name] })))
+                }
+                notifies.set(RemindId, data)
+            }
+        }
+        console.log("更新股价提醒", data)
+    }
     await getAllNotify()
     channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "reset", listener: "priceNotify", symbols: stocksRef.array })))
     channel.consume('priceNotify', async msg => {
         let { cmd, data } = JSON.parse(msg.content.toString())
         switch (cmd) {
             case "update":
-                console.log("更新股价提醒", data)
-                let name = Config.getQueryName(data)
-                if (notifies.has(data.RemindId)) {
-                    if (isAllClose(data)) {
-                        if (stocksRef.removeSymbol(name))
-                            channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "remove", listener: "priceNotify", symbols: [name] })))
-                    } else
-                        Object.assign(notifies.get(data.RemindId), data)
-                } else {
-                    if (!isAllClose(data)) {
-                        notifies.set(data.RemindId, data)
-                        data.JpushRegID = (await mainDB.query('select JpushRegID from wf_im_jpush where MemberCode=:MemberCode', { replacements: data }))[0][0].JpushRegID;
-                        if (stocksRef.addSymbol(name)) {
-                            data.SecuritiesName = (await mainDB.query('select SecuritiesName from wf_securities_trade where SecuritiesNo =:SecuritiesNo and SmallType = :SmallType', { replacements: data }))[0][0].SecuritiesName
-                            channel.sendToQueue("getSinaData", new Buffer(JSON.stringify({ type: "add", listener: "priceNotify", symbols: [name] })))
-                        }
-                    }
-                }
+                updateNotify(data)
                 break;
             case "changeJpush":
                 console.log("更新Jpush", data)
                 let { MemberCode, JpushRegID } = data
-                for (let notify of notifies.values) {
+                for (let notify of notifies.values()) {
                     if (notify.MemberCode == MemberCode) notify.JpushRegID = JpushRegID
                 }
                 break;
@@ -95,9 +105,7 @@ async function startMQ() {
                 console.log("打开股价提醒", data.memberCode)
                 let [ns] = await mainDB.query(someBodySql, { replacements: data })
                 for (let n of ns) {
-                    Object.convertBuffer2Bool(n, "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall")
-                    notifies[n.RemindId] = n
-                    stocksRef.addSymbol(Config.getQueryName(n))
+                    updateNotify(Object.convertBuffer2Bool(n, "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall"))
                 }
                 break;
         }
@@ -127,8 +135,7 @@ async function getAllNotify() {
     stocksRef.clear()
     let [ns] = await mainDB.query(jpushRegIDSql)
     for (let n of ns) {
-        Object.convertBuffer2Bool(n, "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall")
-        notifies[n.RemindId] = n
+        notifies.set(n.RemindId, Object.convertBuffer2Bool(n, "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall"))
         stocksRef.addSymbol(Config.getQueryName(n))
     }
 }
