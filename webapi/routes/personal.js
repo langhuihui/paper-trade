@@ -2,7 +2,8 @@ import sqlstr from '../../common/sqlStr'
 import allowAccess from '../middles/allowAccess'
 import _config from '../config'
 const myMainListSql = `
-SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTime,'%Y-%m-%d %H:%i:%s') AS ShowTime FROM 
+SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTime,'%Y-%m-%d %H:%i:%s') AS ShowTime,
+CONCAT(:picBaseURL,case when isnull(a.HeadImage) or a.HeadImage='' then :defaultHeadImage else a.HeadImage end)nHeadImage  FROM 
 	(SELECT
 		'video' AS Type,
 		wf_live_video.VideoCode AS Code,
@@ -14,10 +15,14 @@ SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTi
 		'' SecuritiesType,
 		0 LikeCount,
 		0 CommentCount,
-        -1 ImageTextType
+        -1 ImageTextType,
+        wf_member.Nickname,
+        wf_member.HeadImage,
+        case when ISNULL(vg.MemberCode) OR vg.MemberCode='' then 0 else  1 end as ClickLike
 	FROM
 		wf_live_video
 	LEFT JOIN wf_member ON wf_live_video.MemberCode = wf_member.MemberCode
+    LEFT JOIN (select * from wf_video_good where MemberCode=:memberCode)vg on vg.VideoCode=wf_live_video.VideoCode 
 	WHERE
 		wf_live_video.\`Status\` = '0'
 	AND wf_live_video.MemberCode = :memberCode
@@ -33,10 +38,14 @@ SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTi
 		wf_News.SecuritiesType,
 		0 LikeCount,
 		0 CommentCount,
-         -1 ImageTextType
+         -1 ImageTextType,
+         wf_member.Nickname,
+         wf_member.HeadImage,
+          case when ISNULL(nl.CreateUser) OR nl.CreateUser='' then 0 else  1 end as ClickLike
 	FROM
 		wf_News
 	LEFT JOIN wf_member ON wf_News.CreateUser = wf_member.MemberCode
+    LEFT JOIN (select * from wf_news_likes where CreateUser=:memberCode)nl on nl.NewsCode=wf_News.Code 
 	WHERE
 		Type = '9'
 	AND NOW() > ShowTime
@@ -54,10 +63,14 @@ SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTi
 		'' SecuritiesType,
 		wf_imagetext.LikeCount,
 		wf_imagetext.CommentCount,
-        wf_imagetext.Type ImageTextType
+        wf_imagetext.Type ImageTextType,
+        wf_member.Nickname,
+        wf_member.HeadImage,
+        case when ISNULL(il.CreateUser) or il.CreateUser='' then 0 else 1 end as ClickLike
 	FROM
 		wf_imagetext
 	LEFT JOIN wf_member ON wf_imagetext.MemberCode = wf_member.MemberCode
+    left join (select * from wf_imagetext_likes where CreateUser=:memberCode)il on wf_imagetext.Code=il.ITCode 
 	WHERE
 		wf_imagetext.Status = 1
 	AND wf_imagetext.MemberCode = :memberCode
@@ -71,7 +84,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         if (pageSize < 0) pageSize = 10
         if (pageNum < 0) pageNum = 0
         if (pageNum == 0 || !mainListCache[memberCode]) {
-            let [result] = await mainDB.query(myMainListSql, { replacements: { memberCode, picBaseURL: config.picBaseURL } })
+            let [result] = await mainDB.query(myMainListSql, { replacements: { memberCode, picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage } })
             mainListCache[memberCode] = result
         }
         let result = mainListCache[memberCode].slice(pageNum * pageSize, (pageNum + 1) * pageSize)

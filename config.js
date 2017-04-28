@@ -26,7 +26,7 @@ let config = {
     apns_production: false, //ios JPUSH配置
     picBaseURL: "http://apitest.wolfstreet.tv",
     adminHostURL: "http://admin.wolfstreet.tv",
-
+    defaultHeadImage: "/UploadFile/Default/default_headerimage.png",
     driveWealthHost: {
         apiHost: "https://api.drivewealth.net",
         appsHost: "https://apps.drivewealth.com",
