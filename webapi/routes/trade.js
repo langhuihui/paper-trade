@@ -49,6 +49,12 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
             case "TodayProfit":
                 res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:todayProfit")} }`)
                 break
+            case "TotalPrifitV":
+                res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:totalAssets")} }`)
+                break
+            case "WeekProfitV":
+                res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:totalAssets")} }`)
+                break
             default:
                 res.send({ Status: 40003, Explain: "未知类型" })
         }

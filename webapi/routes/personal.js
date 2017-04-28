@@ -13,7 +13,8 @@ SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTi
 		'' SecuritiesNo,
 		'' SecuritiesType,
 		0 LikeCount,
-		0 CommentCount
+		0 CommentCount,
+        -1 ImageTextType
 	FROM
 		wf_live_video
 	LEFT JOIN wf_member ON wf_live_video.MemberCode = wf_member.MemberCode
@@ -31,7 +32,8 @@ SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTi
 		wf_News.SecuritiesNo,
 		wf_News.SecuritiesType,
 		0 LikeCount,
-		0 CommentCount
+		0 CommentCount,
+         -1 ImageTextType
 	FROM
 		wf_News
 	LEFT JOIN wf_member ON wf_News.CreateUser = wf_member.MemberCode
@@ -51,7 +53,8 @@ SELECT *,CONCAT(:picBaseURL,a.SelectPicture) AS SelectPicture,DATE_FORMAT(ShowTi
 		'' SecuritiesNo,
 		'' SecuritiesType,
 		wf_imagetext.LikeCount,
-		wf_imagetext.CommentCount
+		wf_imagetext.CommentCount,
+        wf_imagetext.Type ImageTextType
 	FROM
 		wf_imagetext
 	LEFT JOIN wf_member ON wf_imagetext.MemberCode = wf_member.MemberCode
