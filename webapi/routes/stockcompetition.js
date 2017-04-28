@@ -45,7 +45,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         res.setHeader("Access-Control-Allow-Methods", "GET");
         let [result] = await mainDB.query("select membercode from wf_stockcompetitionmember where MemberCode=:memberCode", { replacements: { memberCode } })
         if (result.length) {
-            let [result] = await mainDB.query("select a.HeadImage,b.RankValue,IFNULL(b.Rank,0)Rank from (select * from wf_member where MemberCode=:memberCode)a left join(select * from wf_drivewealth_practice_rank where wf_drivewealth_practice_rank.type = 'Amount')b on b.MemberCode = a.MemberCode ORDER BY b.RankId desc limit 1", { replacements: { memberCode } })
+            let [result] = await mainDB.query("select a.HeadImage,b.RankValue,IFNULL(b.Rank,0)Rank from (select * from wf_member where MemberCode=:memberCode)a left join(select * from wf_drivewealth_practice_rank where wf_drivewealth_practice_rank.type = 11)b on b.MemberCode = a.MemberCode ORDER BY b.RankId desc limit 1", { replacements: { memberCode } })
             if (result.length) {
                 result[0].OpenDate = opendate
                 if (!result[0].HeadImage) {
