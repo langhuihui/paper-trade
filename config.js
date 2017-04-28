@@ -22,6 +22,7 @@ let config = {
     },
     stockPatten: /(gb_|hk|sh|sz).+/,
     jpushType: "jpush108",
+    jpushType_paperTrade: "jpush110",
     ajaxOrigin: "*", //跨域访问
     apns_production: false, //ios JPUSH配置
     picBaseURL: "http://apitest.wolfstreet.tv",

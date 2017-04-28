@@ -18,9 +18,10 @@ async function getAllOrder() {
         stocksRef.addSymbol(Config.getQueryName(order))
     }
 }
+//除权
 async function sendStock({ rate, SecuritiesType, SecuritiesNo, time }) {
     let lastPrice = await singleton.getLastPrice(Config.getQueryName({ SecuritiesType, SecuritiesNo }))
-    let [result] = await mainDB.query("select * from wf_street_practice_positionshistory where Id in (select max(Id) from wf_street_practice_positionshistory where SecuritiesNo=:SecuritiesNo and SecuritiesType=:SecuritiesType and CreateTime <:time group by AccountNO)")
+    let [result] = await mainDB.query("select * from wf_street_practice_positionshistory where Id in (select max(Id) from wf_street_practice_positionshistory where SecuritiesNo=:SecuritiesNo and SecuritiesType=:SecuritiesType and CreateTime <:time group by AccountNO)", { replacements: { SecuritiesType, SecuritiesNo, time } })
     if (result.length) {
         let transaction = await mainDB.transaction();
         try {
@@ -41,12 +42,14 @@ async function sendStock({ rate, SecuritiesType, SecuritiesNo, time }) {
             }
             await transaction.commit()
         } catch (ex) {
+            console.error(ex)
             await transaction.rollback()
         }
     }
 }
+//除息
 async function bonus({ rate, SecuritiesType, SecuritiesNo, time }) {
-    let [result] = await mainDB.query("select * from wf_street_practice_positionshistory where Id in (select max(Id) from wf_street_practice_positionshistory where SecuritiesNo=:SecuritiesNo and SecuritiesType=:SecuritiesType and CreateTime <:time group by AccountNO)")
+    let [result] = await mainDB.query("select * from wf_street_practice_positionshistory where Id in (select max(Id) from wf_street_practice_positionshistory where SecuritiesNo=:SecuritiesNo and SecuritiesType=:SecuritiesType and CreateTime <:time group by AccountNO)", { replacements: { SecuritiesType, SecuritiesNo, time } })
     if (result.length) {
         let transaction = await mainDB.transaction();
         try {
@@ -54,12 +57,13 @@ async function bonus({ rate, SecuritiesType, SecuritiesNo, time }) {
             for (let p of result) {
                 let { Positions: beforeSendPos, AccountNo, SecuritiesType, SecuritiesNo, MemberCode } = p
                 let addCash = beforeSendPos * rate
-                let [{ Cash }] = await singleton.selectMainDB0("wf_street_practice_account", { AccountNo }, null, t)
-                await singleton.updateMainDB("wf_street_practice_account", { Cash: Cash + addCash }, null, t)
+                let { Cash } = await singleton.selectMainDB0("wf_street_practice_account", { AccountNo }, null, t)
+                await singleton.updateMainDB("wf_street_practice_account", { Cash: Cash + addCash }, null, { AccountNo }, t)
                 await singleton.insertMainDB("wf_street_practice_cashhistory", { MemberCode, AccountNo, OldCash: Cash, Cash: Cash + addCash, Reason: 1 }, { CreateTime: "now()" }, t)
             }
             await transaction.commit()
         } catch (ex) {
+            console.error(ex)
             await transaction.rollback()
         }
     }
@@ -112,15 +116,36 @@ async function startMQ() {
 }
 startMQ()
 
+async function sendNotify(order) {
+    let JpushRegID = (await mainDB.query('select JpushRegID from wf_im_jpush where MemberCode=:MemberCode', { replacements: order }))[0][0].JpushRegID;
+    let SecuritiesName = (await mainDB.query('select SecuritiesName from wf_securities_trade where SecuritiesNo =:SecuritiesNo and SecuritiesType = :SecuritiesType', { replacements: order }))[0][0].SecuritiesName
+    jpushClient.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(JpushRegID))
+        //sendno, time_to_live, override_msg_id, apns_production, big_push_duration
+        .setOptions(null, null, null, Config.apns_production)
+        .setNotification('成交提醒', JPush.ios(msg, 'sound', 0, false, { AlertType: Config.jpushType_paperTrade, SecuritiesName, order }), JPush.android(msg, title, 1, { AlertType: Config.jpushType, SecuritiesName, order }))
+        .send(async(err, res) => {
+            if (err) {
+                if (err instanceof JPush.APIConnectionError) {
+                    console.log(err.message)
+                } else if (err instanceof JPush.APIRequestError) {
+                    console.log(err.message)
+                }
+            } else {
+
+            }
+        })
+}
 setInterval(async() => {
     let marketIsOpen = await singleton.marketIsOpen()
     for (let order of orders.values()) {
+        //拒绝超时订单
         if (new Date(order.EndTime) > new Date()) {
             let { Id } = order
             await mainDB.query(...sqlstr.update2("wf_street_practice_order", { execType: 3, Reason: 3 }, null, { Id }))
             orders.delete(Id)
             continue
         }
+        //未开盘则直接跳过
         if (!marketIsOpen[order.SecuritiesType]) {
             continue
         }
@@ -129,15 +154,13 @@ setInterval(async() => {
         let [, , , price, pre, chg] = await singleton.getLastPrice(name)
         let Commission = Math.max(CommissionRate * OrderQty, CommissionLimit) //佣金
         let delta = Side == "B" ? -Commission - price * OrderQty : price * OrderQty - Commission
-        if (OrdType == 1) {
-            let x = Object.assign(Object.assign({ delta }, order), { Commission, Price: price })
-            let result = await deal(x)
-        } else if (Side == (OrdType == 2 ? "B" : "S") ? (Price > price) : (Price < price)) {
+        if (OrdType == 1 || (Side == "BS" [OrdType - 2] ? (Price > price) : (Price < price))) {
             let x = Object.assign(Object.assign({ delta }, order), { Commission, Price: price })
             let result = await deal(x)
             if (result === 0) {
+                sendNotify(order)
+                    //处理完毕
                 orders.delete(order.Id)
-                continue
             } else {
                 console.log(new Date(), result)
             }

@@ -62,7 +62,7 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
             return
         }
         if (OrdType != 1) {
-            if (Side == (OrdType == 2 ? "B" : "S") ? (Price > lastPrice) : (Price < lastPrice)) {
+            if (Side == "BS" [OrdType - 2] ? (Price > lastPrice) : (Price < lastPrice)) {
                 res.send({ Status: 44005, Explain: "价格设置不正确" })
                 return
             }
