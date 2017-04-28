@@ -50,10 +50,10 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
                 res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:todayProfit")} }`)
                 break
             case "TotalPrifitV":
-                res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:totalAssets")} }`)
+                res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:TotalPrifitV")} }`)
                 break
             case "WeekProfitV":
-                res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:totalAssets")} }`)
+                res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:WeekProfitV")} }`)
                 break
             default:
                 res.send({ Status: 40003, Explain: "未知类型" })
@@ -105,7 +105,7 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
     //用中文搜索股票
     router.get('/SearchStock/:searchword', wrap(async(req, res) => {
         let searchword = "%" + req.params.searchword + "%"
-        let [result] = await mainDB.query("SELECT SecuritiesNo,SecuritiesName from wf_securities_trade where Remark='DW' and (SecuritiesName like :searchword or PinYin like :searchword)", { replacements: { searchword } })
+        let [result] = await mainDB.query("SELECT SecuritiesNo,SecuritiesName from wf_securities_trade where Remark='DW' and (UPPER(SecuritiesName) like :searchword or UPPER(PinYin) like UPPER(:searchword) or UPPER(SecuritiesNo) like UPPER(:searchword))", { replacements: { searchword } })
         res.send({ Status: 0, Explain: "", DataList: result })
     }));
     return router
