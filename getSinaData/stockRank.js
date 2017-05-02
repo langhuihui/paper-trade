@@ -1,6 +1,8 @@
 import singleton from '../common/singleton'
 const { mainDB, redisClient } = singleton
 var stockInfo = new Map()
+const ranka = "wf_securities_rank_a"
+const rankb = "wf_securities_rank_b"
     /**获取查询股票的代码sina */
 function getQueryName({ QueryUrlCode, SecuritiesNo }) {
     return QueryUrlCode + SecuritiesNo.toLowerCase().replace(".", "$")
@@ -27,24 +29,25 @@ export default {
         if (stockInfo.has(stockName)) {
             let info = stockInfo.get(stockName);
             info.RiseFallRange = RiseFallRange;
-            info.LastPrice = LastPrice;
+            info.NewPrice = LastPrice;
         }
     },
     async insertRank() {
         //获取和设置当前使用的表
         let currentRankTable = await redisClient.getAsync("currentSRT")
         if (!currentRankTable) {
-            currentRankTable = "wf_securities_rank_a"
-            redisClient.set("currentSRT", "wf_securities_rank_b")
+            currentRankTable = ranka
+            redisClient.set("currentSRT", rankb)
         } else {
-            await redisClient.setAsync("currentSRT", currentRankTable == "wf_securities_rank_a" ? "wf_securities_rank_b" : "wf_securities_rank_a")
+            await redisClient.setAsync("currentSRT", currentRankTable == ranka ? rankb : ranka)
                 //mainDB.query("truncate table " + currentRankTable);
         }
         let collection = (await singleton.getRealDB()).collection(currentRankTable);
-        collection.drop((err, reply) => {})
-        collection.ensureIndex({ RiseFallRange: 1 })
+        await collection.drop()
+        await collection.createIndex("RiseFallRange", "RiseFallRange")
+            //collection.ensureIndex({ RiseFallRange: 1 })
             //currentRankTable = currentRankTable == "wf_securities_rank_a" ? SecuritiesRankA : SecuritiesRankB
             //currentRankTable.truncate()
-        collection.insertMany(Array.from(stockInfo.values()))
+        return collection.insertMany(Array.from(stockInfo.values()))
     }
 }

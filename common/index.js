@@ -1,5 +1,6 @@
 //import Config from '../config'
 import totalAssets from './everyDays/totalAssets'
+import profitRank from './everyDays/profitRank'
 import marketTime from './everyDays/marketTime'
 import singleton from './singleton'
 const { redisClient } = singleton
@@ -19,11 +20,11 @@ const { redisClient } = singleton
 
 //每天执行函数
 let everyDayFuns = [
-    totalAssets, marketTime
+    totalAssets, marketTime, profitRank
 ]
 async function initEveryDayFuns() {
     for (let f of everyDayFuns) {
-        let flag = await redisClient.getAsync('timeRunFlag:' + f.name)
+        let flag = await redisClient.hgetAsync('timeRunFlag', f.name)
         if (flag) {
             f.lastRun = new Date(flag)
         }
@@ -34,7 +35,7 @@ setInterval(() => {
     let now = new Date()
     for (let f of everyDayFuns) {
         if (f.checkAndRun(now)) {
-            redisClient.set('timeRunFlag:' + f.name, now)
+            redisClient.hset('timeRunFlag', f.name, now)
         }
     }
     if (marketTime.setRedis) marketTime.setRedis(now)
