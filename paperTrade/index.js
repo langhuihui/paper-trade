@@ -153,8 +153,25 @@ setInterval(async() => {
         let { AccountNo, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, CommissionRate, CommissionLimit } = order
         let [, , , price, pre, chg] = await singleton.getLastPrice(name)
         let Commission = Math.max(CommissionRate * OrderQty, CommissionLimit) //佣金
-        let delta = Side == "B" ? -Commission - price * OrderQty : price * OrderQty - Commission
-        if (OrdType == 1 || (Side == "BS" [OrdType - 2] ? (Price > price) : (Price < price))) {
+        let delta = OrdType < 4 ? Side == "B" ? -Commission - price * OrderQty : price * OrderQty - Commission : -Commission
+        let trigge = false
+        switch (OrdType) {
+            case 1:
+                trigge = true;
+                break;
+            case 2:
+            case 3:
+                trigge = Side == "BS" [OrdType - 2] ? (Price >= price) : (Price <= price)
+                break;
+            case 4:
+                trigge = true;
+                break;
+            case 5:
+            case 6:
+                trigge = Side == "BS" [6 - OrdType] ? (Price >= price) : (Price <= price)
+                break;
+        }
+        if (trigge) {
             let x = Object.assign(Object.assign({ delta }, order), { Commission, Price: price })
             let result = await deal(x)
             if (result === 0) {

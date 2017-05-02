@@ -25,10 +25,16 @@ export default new EveryDay('profitRank', "05:00:00", async() => {
                     let TotalAssets = 0
                     for (let p of positions) {
                         p.LastPrice = (await singleton.getLastPrice(Config.getQueryName(p)))[4]
-                        p.Mtm = p.LastPrice * p.Positions
-                        p.Profit = (p.LastPrice - p.CostPrice) * p.Positions
-                        MtmPL += p.Profit
-                        TotalAssets += p.Mtm
+                        if (p.Type == 1) {
+                            p.Mtm = p.LastPrice * p.Positions
+                            p.Profit = (p.LastPrice - p.CostPrice) * p.Positions
+                            MtmPL += p.Profit
+                            TotalAssets += p.Mtm
+                        } else if (p.Type == 2) { //空单仓
+                            p.Profit = (p.CostPrice - p.LastPrice) * p.Positions
+                            MtmPL += p.Profit
+                            TotalAssets += p.Profit
+                        }
                     }
                     let TotalAmount = Cash + TotalAssets
                     let newRecord = {
@@ -38,19 +44,22 @@ export default new EveryDay('profitRank', "05:00:00", async() => {
                         TotalAmount,
                         TotalYield: TotalAmount * 100 / TranAmount,
                         MtmPL,
+                        Positions: TotalAssets
                     };
 
-                    function setProfit(daysAgo, type) {
+                    async function setProfit(daysAgo, type) {
                         if (daysAgo)
-                            ({ profit: newRecord[type + "Profit"], yield: newRecord[type + "Yield"] } = getProfitInfo(daysAgo, AccountNo, TotalAmount));
+                            ({ profit: newRecord[type + "Profit"], yield: newRecord[type + "Yield"] } = await getProfitInfo(daysAgo, AccountNo, TotalAmount));
                         else
                             ({ TodayProfit: newRecord[type + "Profit"], TodayYield: newRecord[type + "Yield"] } = newRecord);
                     }
-                    ({ profit: newRecord.TodayProfit, yield: newRecord.TodayYield } = getProfitInfo(0, AccountNo, TotalAmount));
+                    ({ profit: newRecord.TodayProfit, yield: newRecord.TodayYield } = await getProfitInfo(0, AccountNo, TotalAmount));
                     let yestoday = moment().subtract(1, 'days'); //昨天相当于美股的今天
-                    setProfit(yestoday.day() ? yestoday.day() - 1 : 6, "Week")
-                    setProfit(yestoday.date() - 1, "Month")
-                    setProfit(yestoday.dayOfYear() - 1, "Year")
+                    let promises = []
+                    promises.push(setProfit(yestoday.day() ? yestoday.day() - 1 : 6, "Week"))
+                    promises.push(setProfit(yestoday.date() - 1, "Month"))
+                    promises.push(setProfit(yestoday.dayOfYear() - 1, "Year"))
+                    await Promise.all(promises)
                         // let daysAgo = yestoday.day() ? yestoday.day() - 1 : 6
                         // if (daysAgo)
                         //     ({ profit: newRecord.WeekProfit, yield: newRecord.WeekYield } = getProfitInfo(daysAgo, AccountNo, TotalAmount));
@@ -66,7 +75,7 @@ export default new EveryDay('profitRank', "05:00:00", async() => {
                         //     ({ profit: newRecord.YearProfit, yield: newRecord.YearYield } = getProfitInfo(daysAgo, AccountNo, TotalAmount));
                         // else
                         //     ({ TodayProfit: newRecord.YearProfit, TodayYield: newRecord.YearYield } = newRecord);
-                    singleton.insertMainDB("wf_street_practice_asset", newRecord)
+                    singleton.insertMainDB("wf_street_practice_asset", newRecord, { CreateTime: "now()", EndDate: "curDate()" })
                 } else {
                     singleton.insertMainDB("wf_street_practice_asset", { MemberCode, AccountNo, Balance: Cash, TotalAmount: Cash }, { CreateTime: "now()", EndDate: "curDate()" })
                 }
