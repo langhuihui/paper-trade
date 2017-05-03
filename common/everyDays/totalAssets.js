@@ -67,6 +67,8 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
                 replacements.TodayProfit = replacements.TotalAmount - (result.length ? result[0].TotalAmount : Config.practiceInitFun)
                 replacements.WeekProfit = replacements.TotalAmount - (weekresult.length ? weekresult[0].TotalAmount : Config.practiceInitFun)
                 replacements.WeekYield = replacements.WeekProfit / replacements.TotalAmount * 100
+                replacements.TotalProfit = replacements.TotalAmount - Config.practiceInitFun
+                replacements.TotalYield = replacements.TotalProfit / Config.practiceInitFun * 100
                 await mainDB.query(sqlstr.insert("wf_drivewealth_practice_asset", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
             } else {
                 let replacements = { UserId, MemberCode, AccountID: accountID, Balance: cash, Positions: 0, TotalAmount: cash, MtmPL: 0, TodayProfit: 0 }
@@ -87,12 +89,14 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
     //缓存日收益排行
     let [todayProfitResult] = await mainDB.query("select dw.MemberCode,round(dw.TodayProfit) TodayProfit,wf_member.Nickname,concat(:picBaseURL,wf_member.HeadImage) HeadImage from wf_drivewealth_practice_asset as dw left join wf_member on dw.MemberCode=wf_member.MemberCode  where dw.EndDate=CurDate() order by dw.TodayProfit desc limit 100", { replacements: { picBaseURL: Config.picBaseURL } })
     redisClient.set("RankList:todayProfit", JSON.stringify(todayProfitResult));
+
+    mainDB.query('CALL PRC_WF_PRACTICE_RANK();')
+    await mainDB.query('CALL PRC_WF_PRACTICE_RANK_V();')
+
     //缓存炒股大赛总排行
-    let [matchTotalProfitReulst] = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue totalamount,b.RankValue totalprofit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank a ,wf_drivewealth_practice_rank b where a.MemberCode = b.MemberCode and a.Type = 11 and b.Type = 10 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: Config.picBaseURL, defaultHeadImage: Config.defaultHeadImage } })
+    let [matchTotalProfitReulst] = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue totalamount,b.RankValue totalprofit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank_v a ,wf_drivewealth_practice_rank_v b where a.MemberCode = b.MemberCode and a.Type = 11 and b.Type = 10 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: Config.picBaseURL, defaultHeadImage: Config.defaultHeadImage } })
     redisClient.set("RankList:matchTotalProfit", JSON.stringify(matchTotalProfitReulst));
     //缓存炒股大赛周排行
-    let [matchWeekProfitReulst] = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue totalamount,b.RankValue totalprofit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank a ,wf_drivewealth_practice_rank b where a.MemberCode = b.MemberCode and a.Type = 3 and b.Type = 4 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: Config.picBaseURL, defaultHeadImage: Config.defaultHeadImage } })
+    let [matchWeekProfitReulst] = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue totalamount,b.RankValue totalprofit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank_v a ,wf_drivewealth_practice_rank_v b where a.MemberCode = b.MemberCode and a.Type = 3 and b.Type = 4 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: Config.picBaseURL, defaultHeadImage: Config.defaultHeadImage } })
     redisClient.set("RankList:matchWeekProfit", JSON.stringify(matchWeekProfitReulst))
-    mainDB.query('CALL PRC_WF_PRACTICE_RANK();')
-    mainDB.query('CALL PRC_WF_PRACTICE_RANK_V();')
 })
