@@ -5,7 +5,6 @@ import amqp from 'amqplib'
 import moment from 'moment-timezone'
 import singleton from '../common/singleton'
 import StockRef from '../getSinaData/stocksRef'
-import sqlstr from '../common/sqlStr'
 import deal from './deal'
 const { mainDB, redisClient, jpushClient } = singleton
 var stocksRef = new StockRef()
@@ -118,7 +117,7 @@ startMQ()
 
 async function sendNotify(order) {
     let JpushRegID = (await mainDB.query('select JpushRegID from wf_im_jpush where MemberCode=:MemberCode', { replacements: order }))[0][0].JpushRegID;
-    let SecuritiesName = (await mainDB.query('select SecuritiesName from wf_securities_trade where SecuritiesNo =:SecuritiesNo and SecuritiesType = :SecuritiesType', { replacements: order }))[0][0].SecuritiesName
+    let SecuritiesName = (await mainDB.query('select SecuritiesName from wf_securities_trade where SecuritiesNo =:SecuritiesNo and SmallType = :SecuritiesType', { replacements: order }))[0][0].SecuritiesName
     jpushClient.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(JpushRegID))
         //sendno, time_to_live, override_msg_id, apns_production, big_push_duration
         .setOptions(null, null, null, Config.apns_production)
@@ -138,19 +137,18 @@ async function sendNotify(order) {
 setInterval(async() => {
     let marketIsOpen = await singleton.marketIsOpen()
     for (let order of orders.values()) {
+        let { Id, AccountNo, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, CommissionRate, CommissionLimit } = order
         //拒绝超时订单
         if (new Date(order.EndTime) > new Date()) {
-            let { Id } = order
-            await mainDB.query(...sqlstr.update2("wf_street_practice_order", { execType: 3, Reason: 3 }, null, { Id }))
+            await singleton.updateMainDB("wf_street_practice_order", { execType: 3, Reason: 3 }, null, { Id })
             orders.delete(Id)
             continue
         }
         //未开盘则直接跳过
-        if (!marketIsOpen[order.SecuritiesType]) {
+        if (!marketIsOpen[SecuritiesType]) {
             continue
         }
         let name = Config.getQueryName(order)
-        let { AccountNo, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, CommissionRate, CommissionLimit } = order
         let [, , , price, pre, chg] = await singleton.getLastPrice(name)
         let Commission = Math.max(CommissionRate * OrderQty, CommissionLimit) //佣金
         let delta = OrdType < 4 ? Side == "B" ? -Commission - price * OrderQty : price * OrderQty - Commission : -Commission
@@ -177,7 +175,7 @@ setInterval(async() => {
             if (result === 0) {
                 sendNotify(order)
                     //处理完毕
-                orders.delete(order.Id)
+                orders.delete(Id)
             } else {
                 console.log(new Date(), result)
             }
