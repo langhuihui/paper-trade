@@ -49,7 +49,7 @@ startMQ();
 
 /**客户端初始化配置 */
 app.get('/System/GetConfig', checkEmpty('version'), wrap(async({ query: { version, dbVersion, memberCode, UUID, IMEI = "" } }, res) => {
-    let setting = Object.assign({}, version && config.clientInit[version] ? config.clientInit[version] : config.clientInitDefault)
+    let setting = version && config.clientInit[version] ? Object.assign({}, config.clientInit[version]) : Object.assign(Object.assign({}, config.clientInitDefault), config.clientInitAll)
     if (dbVersion) {
         let [dbResult] = await mainDB.query('select * from wf_securities_version where Versions>:dbVersion order by Versions asc', { replacements: { dbVersion } })
         if (dbResult.length) {

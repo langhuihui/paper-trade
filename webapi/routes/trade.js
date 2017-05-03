@@ -5,9 +5,9 @@ import allowAccess from '../middles/allowAccess'
 module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mqChannel, redisClient, rongcloud, wrap }) {
     const router = express.Router();
     /**是否开市*/
-    router.get('/:type/IsOpen', async({ params: { type } }, res) => {
+    router.get('/:type/IsOpen', wrap(async({ params: { type } }, res) => {
         res.send({ Status: 0, Explain: "", IsOpen: await singleton.marketIsOpen(type) })
-    });
+    }));
     // /**是否已经绑定（创建）嘉维账户 */
     // router.get('/IsDwAccCreated', ctt, async(req, res) => {
     //     let memberCode = req.memberCode

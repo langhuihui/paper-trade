@@ -57,7 +57,12 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
         let p = (OrdType == 1 || OrdType == 4) ? lastPrice : Price
         let delta = OrdType < 4 ? (Side == "B" ? -Commission - p * OrderQty : p * OrderQty - Commission) : -Commission
         body.MemberCode = memberCode
-        if (account.Cash + delta < 0) {
+        if (OrdType > 3) {
+            if (Side == "S" && account.Cash + delta - p * OrderQty < 0) {
+                res.send({ Status: 44001, Explain: "资金不足" })
+                return
+            }
+        } else if (account.Cash + delta < 0) {
             res.send({ Status: 44001, Explain: "资金不足" })
             return
         }
