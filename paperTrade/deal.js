@@ -12,12 +12,11 @@ export default async({ Id: OrderId, Commission, delta, AccountNo, OrdType, Side,
             //做多判断是否是卖，做空判断是否是买
         if (Side == "SB" [Type - 1]) {
             Positions -= OrderQty
+            if (Type == 2) delta += OrderQty * (CostPrice - Price)
             if (Positions > 0) {
                 await singleton.updateMainDB("wf_street_practice_positions", { Positions }, null, { Id }, t)
-                delta += OrderQty * (CostPrice - Price)
             } else if (Positions == 0) {
                 await singleton.deleteMainDB("wf_street_practice_positions", { Id }, null, t)
-                delta += OrderQty * (CostPrice - Price)
             } else {
                 throw 2
             }
