@@ -1,6 +1,7 @@
 import sqlstr from '../../common/sqlStr'
 import request from 'request-promise'
 import Config from '../../config'
+import allowAccess from '../middles/allowAccess'
 import { dwUrls } from '../../common/driveWealth'
 module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, mqChannel, wrap }) {
 
@@ -39,10 +40,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
 
     const router = express.Router();
     /**打开首页判断是否登录过,如果登录过则显示排名信息 */
-    router.get('/Login/:Token', ctt, wrap(async({ memberCode }, res) => {
+    router.get('/Login/:Token', ctt, allowAccess(), wrap(async({ memberCode }, res) => {
         let opendate = "2017-05-08"
-        res.setHeader("Access-Control-Allow-Origin", config.ajaxOrigin);
-        res.setHeader("Access-Control-Allow-Methods", "GET");
         let [result] = await mainDB.query("select membercode from wf_stockcompetitionmember where MemberCode=:memberCode", { replacements: { memberCode } })
         if (result.length) {
             let [result] = await mainDB.query("select a.HeadImage,b.RankValue,IFNULL(b.Rank,0)Rank from (select * from wf_member where MemberCode=:memberCode)a left join(select * from wf_drivewealth_practice_rank where wf_drivewealth_practice_rank.type = 11)b on b.MemberCode = a.MemberCode ORDER BY b.RankId desc limit 1", { replacements: { memberCode } })
@@ -58,10 +57,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }))
 
     /**报名 */
-    router.post('/Register/:Token', ctt, wrap(async({ memberCode, body }, res) => {
+    router.post('/Register/:Token', ctt, allowAccess(), wrap(async({ memberCode, body }, res) => {
         let opendate = "2017-05-08"
-        res.setHeader("Access-Control-Allow-Origin", config.ajaxOrigin);
-        res.setHeader("Access-Control-Allow-Methods", "POST");
         body.MemberCode = memberCode
         try {
             await mainDB.query(...sqlstr.insert2("wf_stockcompetitionmember", body, { CreateTime: "now()" }))
