@@ -6,7 +6,7 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
     const router = express.Router();
     /**是否开市*/
     router.get('/:type/IsOpen', async({ params: { type } }, res) => {
-        res.send({ Status: 0, Explain: "", IsOpen: singleton.marketIsOpen(type) })
+        res.send({ Status: 0, Explain: "", IsOpen: await singleton.marketIsOpen(type) })
     });
     // /**是否已经绑定（创建）嘉维账户 */
     // router.get('/IsDwAccCreated', ctt, async(req, res) => {
