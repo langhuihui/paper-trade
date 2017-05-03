@@ -18,8 +18,8 @@ async function getAllOrder() {
     }
 }
 //除权
-async function sendStock({ rate, SecuritiesType, SecuritiesNo, time }) {
-    let lastPrice = await singleton.getLastPrice(Config.getQueryName({ SecuritiesType, SecuritiesNo }))
+async function sendStock({ rate, newPirce, SecuritiesType, SecuritiesNo, time }) {
+    // let lastPrice = await singleton.getLastPrice(Config.getQueryName({ SecuritiesType, SecuritiesNo }))
     let [result] = await mainDB.query("select * from wf_street_practice_positionshistory where Id in (select max(Id) from wf_street_practice_positionshistory where SecuritiesNo=:SecuritiesNo and SecuritiesType=:SecuritiesType and CreateTime <:time group by AccountNO)", { replacements: { SecuritiesType, SecuritiesNo, time } })
     if (result.length) {
         let transaction = await mainDB.transaction();
@@ -28,15 +28,40 @@ async function sendStock({ rate, SecuritiesType, SecuritiesNo, time }) {
             for (let p of result) {
                 let { Positions: beforeSendPos, AccountNo, SecuritiesType, SecuritiesNo } = p
                 let addP = beforeSendPos * rate
-                let { Positions = 0, CostPrice, MemberCode } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo })
+                let { Positions = 0, CostPrice, MemberCode } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo, Type: 1 })
                 if (Positions == 0) {
-                    CostPrice = lastPrice[4]
+                    CostPrice = newPirce
                     await singleton.insertMainDB("wf_street_practice_positions", { Positions: addP, CostPrice, SecuritiesType, SecuritiesNo, MemberCode, AccountNo }, { CreateTime: "now()" }, t)
                     await singleton.insertMainDB("wf_street_practice_positionshistory", { MemberCode, AccountNo, OldPositions: Positions, Positions: addP, SecuritiesType, SecuritiesNo, Reason: 1 }, { CreateTime: "now()" }, t)
                 } else {
                     CostPrice = CostPrice / (1 + addP / (Positions + addP))
-                    await singleton.updateMainDB("wf_street_practice_positions", { Positions: Positions + addP, CostPrice }, null, { AccountNo, SecuritiesType, SecuritiesNo }, t)
+                    await singleton.updateMainDB("wf_street_practice_positions", { Positions: Positions + addP, CostPrice }, null, { AccountNo, SecuritiesType, SecuritiesNo, Type: 1 }, t)
                     await singleton.insertMainDB("wf_street_practice_positionshistory", { MemberCode, AccountNo, OldPositions: Positions, Positions: Positions + addP, SecuritiesType, SecuritiesNo, Reason: 1 }, { CreateTime: "now()" }, t)
+                }
+            }
+            await transaction.commit()
+        } catch (ex) {
+            console.error(ex)
+            await transaction.rollback()
+        }
+    }
+    let [short] = await mainDB.query("select * from wf_street_practice_positionshistory_short where Id in (select max(Id) from wf_street_practice_positionshistory where SecuritiesNo=:SecuritiesNo and SecuritiesType=:SecuritiesType and CreateTime <:time group by AccountNO)", { replacements: { SecuritiesType, SecuritiesNo, time } })
+    if (short.length) {
+        let transaction = await mainDB.transaction();
+        try {
+            let t = { transaction }
+            for (let p of result) {
+                let { Positions: beforeSendPos, AccountNo, SecuritiesType, SecuritiesNo } = p
+                let addP = beforeSendPos * rate
+                let { Positions = 0, CostPrice, MemberCode } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo, Type: 2 })
+                if (Positions == 0) {
+                    CostPrice = newPirce
+                    await singleton.insertMainDB("wf_street_practice_positions", { Positions: addP, CostPrice, SecuritiesType, SecuritiesNo, MemberCode, AccountNo }, { CreateTime: "now()" }, t)
+                    await singleton.insertMainDB("wf_street_practice_positionshistory_short", { MemberCode, AccountNo, OldPositions: Positions, Positions: addP, SecuritiesType, SecuritiesNo, Reason: 1 }, { CreateTime: "now()" }, t)
+                } else {
+                    CostPrice = CostPrice / (1 + addP / (Positions + addP))
+                    await singleton.updateMainDB("wf_street_practice_positions", { Positions: Positions + addP, CostPrice }, null, { AccountNo, SecuritiesType, SecuritiesNo, Type: 2 }, t)
+                    await singleton.insertMainDB("wf_street_practice_positionshistory_short", { MemberCode, AccountNo, OldPositions: Positions, Positions: Positions + addP, SecuritiesType, SecuritiesNo, Reason: 1 }, { CreateTime: "now()" }, t)
                 }
             }
             await transaction.commit()

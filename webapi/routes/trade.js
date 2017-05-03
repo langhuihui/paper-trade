@@ -1,13 +1,12 @@
 import sqlstr from '../../common/sqlStr'
+import singleton from '../../common/singleton'
 import _config from '../config'
 import allowAccess from '../middles/allowAccess'
 module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mqChannel, redisClient, rongcloud, wrap }) {
     const router = express.Router();
     /**是否开市*/
-    router.get('/:type/IsOpen', async(req, res) => {
-        let type = req.params.type
-        let marketIsOpen = await redisClient.getAsync('marketIsOpen')
-        res.send({ Status: 0, Explain: "", IsOpen: marketIsOpen[type] })
+    router.get('/:type/IsOpen', async({ params: { type } }, res) => {
+        res.send({ Status: 0, Explain: "", IsOpen: await singleton.marketIsOpen(type) })
     });
     // /**是否已经绑定（创建）嘉维账户 */
     // router.get('/IsDwAccCreated', ctt, async(req, res) => {
