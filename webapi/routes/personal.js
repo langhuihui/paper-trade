@@ -87,7 +87,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         if (pageSize < 0) pageSize = 10
         if (pageNum < 0) pageNum = 0
         if (pageNum == 0 || !mainListCache[memberCode]) {
-            let [result] = await mainDB.query(myMainListSql, { replacements: { memberCode, picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage } })
+            let [result] = await mainDB.query(myMainListSql, { replacements: { memberCode, picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage, myMemberCode } })
             mainListCache[memberCode] = result
         }
         let result = mainListCache[memberCode].slice(pageNum * pageSize, (pageNum + 1) * pageSize)
