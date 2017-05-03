@@ -23,7 +23,7 @@ CONCAT(:picBaseURL,case when isnull(a.HeadImage) or a.HeadImage='' then :default
 	FROM
 		wf_live_video
 	LEFT JOIN wf_member ON wf_live_video.MemberCode = wf_member.MemberCode
-    LEFT JOIN (select * from wf_video_good where MemberCode=:memberCode)vg on vg.VideoCode=wf_live_video.VideoCode 
+    LEFT JOIN (select * from wf_video_good where MemberCode=:myMemberCode)vg on vg.VideoCode=wf_live_video.VideoCode 
 	WHERE
 		wf_live_video.\`Status\` = '0'
 	AND wf_live_video.MemberCode = :memberCode
@@ -47,7 +47,7 @@ CONCAT(:picBaseURL,case when isnull(a.HeadImage) or a.HeadImage='' then :default
 	FROM
 		wf_News
 	LEFT JOIN wf_member ON wf_News.CreateUser = wf_member.MemberCode
-    LEFT JOIN (select * from wf_news_likes where CreateUser=:memberCode)nl on nl.NewsCode=wf_News.Code 
+    LEFT JOIN (select * from wf_news_likes where CreateUser=:myMemberCode)nl on nl.NewsCode=wf_News.Code 
 	WHERE
 		Type = '9'
 	AND NOW() > ShowTime
@@ -73,7 +73,7 @@ CONCAT(:picBaseURL,case when isnull(a.HeadImage) or a.HeadImage='' then :default
 	FROM
 		wf_imagetext
 	LEFT JOIN wf_member ON wf_imagetext.MemberCode = wf_member.MemberCode
-    left join (select * from wf_imagetext_likes where CreateUser=:memberCode)il on wf_imagetext.Code=il.ITCode 
+    left join (select * from wf_imagetext_likes where CreateUser=:myMemberCode)il on wf_imagetext.Code=il.ITCode 
 	WHERE
 		wf_imagetext.Status = 1
 	AND wf_imagetext.MemberCode = :memberCode
@@ -83,7 +83,7 @@ CONCAT(:picBaseURL,case when isnull(a.HeadImage) or a.HeadImage='' then :default
 let mainListCache = {}
 
 module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, mqChannel, wrap }) {
-    async function mainList({ memberCode, pageNum, pageSize, res }) {
+    async function mainList({ memberCode, pageNum, pageSize, res, myMemberCode }) {
         if (pageSize < 0) pageSize = 10
         if (pageNum < 0) pageNum = 0
         if (pageNum == 0 || !mainListCache[memberCode]) {
@@ -104,9 +104,9 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }
     const router = express.Router();
     /**个人主页我的发布或者他人主页中的发布列表 */
-    router.get('/GetMyMainList', ctt, checkNum('pageNum', 'pageSize'), wrap(({ query: { pageNum = 0, pageSize = 10 }, memberCode }, res) => mainList({ memberCode, pageNum, pageSize, res })));
+    router.get('/GetMyMainList', ctt, checkNum('pageNum', 'pageSize'), wrap(({ query: { pageNum = 0, pageSize = 10 }, memberCode }, res) => mainList({ memberCode, pageNum, pageSize, res, myMemberCode: memberCode })));
     /**他人主页 */
-    router.get('/GetHeMainList', checkEmpty('memberCode'), checkNum('pageNum', 'pageSize'), wrap(({ query: { pageNum = 0, pageSize = 10, memberCode } }, res) => mainList({ memberCode, pageNum, pageSize, res })));
+    router.get('/GetHeMainList', ctt, checkEmpty('memberCode'), checkNum('pageNum', 'pageSize'), wrap(({ query: { pageNum = 0, pageSize = 10, memberCode }, memberCode: myMemberCode }, res) => mainList({ myMemberCode, memberCode, pageNum, pageSize, res })));
     router.get('/GetMyHomePage', ctt, wrap(({ memberCode }, res) => homePage(memberCode, res)));
     router.get('/GetHeHomePage/:memberCode', wrap(({ params: { memberCode } }, res) => homePage(memberCode, res)));
     /**我的每日收益 */
