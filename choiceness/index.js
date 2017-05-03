@@ -39,11 +39,7 @@ async function getAllChocieness(channel) {
             if (c.State == 1) bannerChoice.push(choicenessMap[c.Id])
             else normalChoice.push(choicenessMap[c.Id])
         }
-        let stock = ""
-        if (c.SecuritiesType == "us") {
-            stock = "gb_" + c.SecuritiesNo.replace(".", "$")
-        } else stock = c.SecuritiesType + c.SecuritiesNo
-        stock = stock.toLowerCase()
+        let stock = Config.getQueryName(c)
         choicenessMap[c.Id].Stocks.push(stock)
         if (!allStock.contain(stock)) allStock.push(stock)
     }

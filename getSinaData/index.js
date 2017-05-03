@@ -8,7 +8,7 @@ import sqlstr from '../common/sqlStr'
 import stockRank from './stockRank'
 import singleton from '../common/singleton'
 const { mainDB, redisClient } = singleton
-
+var ignoreMarket = true
 var stockRef = new StockRef()
 var listenerSymbol = new Map() //订阅者关注的股票
 
@@ -66,6 +66,9 @@ async function startMQ() {
                     }
                 }
                 break
+            case "ignoreMarket":
+                ignoreMarket = true
+                break
         }
         if (needRemove.length) {
             stockRef.removeSymbols(needRemove)
@@ -84,15 +87,19 @@ async function startMQ() {
 var intervalId;
 var pageSize = 1000;
 
-
 function start() {
     intervalId = setInterval(async() => {
         let marketIsOpen = await singleton.marketIsOpen()
         let stocks = []
             //筛选出当前在开盘的股票
-        for (var market in marketIsOpen) {
-            if (marketIsOpen[market])
-                stocks.push(...stockRef[market])
+        if (ignoreMarket) {
+            ignoreMarket = false
+            stocks = stockRef.array
+        } else {
+            for (var market in marketIsOpen) {
+                if (marketIsOpen[market])
+                    stocks.push(...stockRef[market])
+            }
         }
         let l = stocks.length;
         if (l && redisClient.connected) {
@@ -108,7 +115,7 @@ function start() {
                     stocks_name = stocks.slice(i, i + l).join(",")
                     l = 0
                 }
-                request.get({ encoding: null, url: Config.sina_realjs + stocks_name.toLowerCase() }, (error, response, body) => {
+                request.get({ encoding: null, url: Config.sina_realjs + stocks_name }, (error, response, body) => {
                     let rawData = Iconv.decode(body, 'gb2312')
 
                     function getStockPrice(stockName, x) {

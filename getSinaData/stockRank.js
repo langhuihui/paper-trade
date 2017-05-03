@@ -44,7 +44,7 @@ export default {
         }
         let collection = (await singleton.getRealDB()).collection(currentRankTable);
         await collection.drop()
-        await collection.createIndex("RiseFallRange", "RiseFallRange")
+        await collection.createIndex("RiseFallRange")
             //collection.ensureIndex({ RiseFallRange: 1 })
             //currentRankTable = currentRankTable == "wf_securities_rank_a" ? SecuritiesRankA : SecuritiesRankB
             //currentRankTable.truncate()
