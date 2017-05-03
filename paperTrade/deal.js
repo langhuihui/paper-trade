@@ -5,10 +5,11 @@ export default async({ Id: OrderId, Commission, delta, AccountNo, OrdType, Side,
     let transaction = await mainDB.transaction();
     try {
         let t = { transaction }
-        let Type = ((OrdType - 1) / 3 >> 0) + 1
+        let Type = ((OrdType - 1) / 3 >> 0) + 1 //1，2，3=>1做多；4，5，6=>2做空
         let { Cash } = await singleton.selectMainDB0("wf_street_practice_account", { AccountNo }, null, t)
         let { Positions = 0, CostPrice, Id } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo, Type }, null, t)
         let OldPositions = Positions
+            //做多判断是否是卖，做空判断是否是买
         if (Side == "SB" [Type - 1]) {
             Positions -= OrderQty
             if (Positions > 0) {

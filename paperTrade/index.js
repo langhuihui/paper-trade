@@ -100,6 +100,7 @@ async function startMQ() {
                 bonus(data)
                 break;
         }
+        channel.ack(msg)
     })
     await channel.assertExchange("broadcast", "fanout");
     ok = await channel.assertQueue('sinaData_paperTrade');
@@ -118,6 +119,8 @@ startMQ()
 async function sendNotify(order) {
     let JpushRegID = (await mainDB.query('select JpushRegID from wf_im_jpush where MemberCode=:MemberCode', { replacements: order }))[0][0].JpushRegID;
     let SecuritiesName = (await mainDB.query('select SecuritiesName from wf_securities_trade where SecuritiesNo =:SecuritiesNo and SmallType = :SecuritiesType', { replacements: order }))[0][0].SecuritiesName
+    let msg = `您买的股票${SecuritiesName}（${order.SecuritiesNo}）已经成交`
+    let title = `您买的股票${SecuritiesName}（${order.SecuritiesNo}）已经成交`
     jpushClient.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(JpushRegID))
         //sendno, time_to_live, override_msg_id, apns_production, big_push_duration
         .setOptions(null, null, null, Config.apns_production)
