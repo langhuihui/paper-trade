@@ -89,17 +89,19 @@ var pageSize = 1000;
 
 function start() {
     intervalId = setInterval(async() => {
-        let marketIsOpen = await singleton.marketIsOpen()
         let stocks = []
+        let updateRank = true
             //筛选出当前在开盘的股票
         if (ignoreMarket) {
             ignoreMarket = false
             stocks = stockRef.array
         } else {
+            let marketIsOpen = await singleton.marketIsOpen()
             for (var market in marketIsOpen) {
                 if (marketIsOpen[market])
                     stocks.push(...stockRef[market])
             }
+            updateRank = marketIsOpen.us //只对美股进行计算涨跌幅排行榜
         }
         let l = stocks.length;
         if (l && redisClient.connected) {
@@ -124,10 +126,10 @@ function start() {
                         if (Number.isNaN(price[4])) price[4] = 0;
                         price[5] = price[4] ? (price[3] - price[4]) * 100 / price[4] : 0;
                         redisClient.hset("lastPrice", stockName, price.join(","));
-                        if (marketIsOpen.us) stockRank.updatePrice(stockName, ...price)
+                        if (updateRank) stockRank.updatePrice(stockName, ...price)
                     }
                     eval(rawData + 'stocks.forEach(stockName=>getStockPrice(stockName,eval("hq_str_" + stockName).split(",")))')
-                    if (marketIsOpen.us) stockRank.insertRank()
+                    if (updateRank) stockRank.insertRank()
                 })
             }
         }

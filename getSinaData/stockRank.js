@@ -40,14 +40,10 @@ export default {
             redisClient.set("currentSRT", rankb)
         } else {
             await redisClient.setAsync("currentSRT", currentRankTable == ranka ? rankb : ranka)
-                //mainDB.query("truncate table " + currentRankTable);
         }
         let collection = (await singleton.getRealDB()).collection(currentRankTable);
-        await collection.drop()
-        await collection.createIndex("RiseFallRange")
-            //collection.ensureIndex({ RiseFallRange: 1 })
-            //currentRankTable = currentRankTable == "wf_securities_rank_a" ? SecuritiesRankA : SecuritiesRankB
-            //currentRankTable.truncate()
-        return collection.insertMany(Array.from(stockInfo.values()))
+        try { await collection.drop() } catch (ex) {}
+        await collection.insertMany(Array.from(stockInfo.values()))
+        return collection.createIndex("RiseFallRange")
     }
 }
