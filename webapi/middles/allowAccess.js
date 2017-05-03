@@ -3,8 +3,8 @@ import Config from '../../config'
 
 function allowAccess(method = "GET") {
     return function(req, res, next) {
-        res.setHeader("Access-Control-Allow-Origin", Config.ajaxOrigin);
-        res.setHeader("Access-Control-Allow-Methods", method);
+        res.set("Access-Control-Allow-Origin", Config.ajaxOrigin);
+        res.set("Access-Control-Allow-Methods", method);
         next()
     }
 }

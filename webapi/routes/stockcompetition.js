@@ -57,7 +57,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }))
 
     /**报名 */
-    router.post('/Register/:Token', ctt, allowAccess(), wrap(async({ memberCode, body }, res) => {
+    router.post('/Register/:Token', ctt, allowAccess('POST'), wrap(async({ memberCode, body }, res) => {
         let opendate = "2017-05-08"
         body.MemberCode = memberCode
         try {
