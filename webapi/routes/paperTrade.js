@@ -43,7 +43,7 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
             return
         }
         let { Positions = 0 } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo, Type: ((OrdType - 1) / 3 >> 0) + 1 })
-        if (Side == "S" && Positions < OrderQty) {
+        if (Side == "S" && Positions < OrderQty && OrdType < 4) {
             res.send({ Status: 44004, Explain: "持仓不足:" + Positions + "<" + OrderQty })
             return
         }

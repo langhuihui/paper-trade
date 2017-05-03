@@ -122,8 +122,11 @@ function start() {
 
                     function getStockPrice(stockName, x) {
                         let q = Config.stockPatten.exec(stockName)[1];
-                        let price = Config.pricesIndexMap[q].map(y => Number(x[y]));
-                        if (Number.isNaN(price[4])) price[4] = 0;
+                        let price = Config.pricesIndexMap[q].map(y => {
+                            let p = Number(x[y])
+                            if (Number.isNaN(p)) p = 0;
+                            return p
+                        });
                         price[5] = price[4] ? (price[3] - price[4]) * 100 / price[4] : 0;
                         redisClient.hset("lastPrice", stockName, price.join(","));
                         if (updateRank) stockRank.updatePrice(stockName, ...price)

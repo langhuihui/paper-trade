@@ -5,8 +5,9 @@ export default async({ Id: OrderId, Commission, delta, AccountNo, OrdType, Side,
     let transaction = await mainDB.transaction();
     try {
         let t = { transaction }
+        let Type = ((OrdType - 1) / 3 >> 0) + 1
         let { Cash } = await singleton.selectMainDB0("wf_street_practice_account", { AccountNo }, null, t)
-        let { Positions = 0, CostPrice, Id, Type } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo, Type: ((OrdType - 1) / 3 >> 0) + 1 }, null, t)
+        let { Positions = 0, CostPrice, Id } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo, Type }, null, t)
         let OldPositions = Positions
         if (Side == "SB" [Type - 1]) {
             Positions -= OrderQty
@@ -26,14 +27,14 @@ export default async({ Id: OrderId, Commission, delta, AccountNo, OrdType, Side,
                 CostPrice = Cost / Positions
                 await singleton.updateMainDB("wf_street_practice_positions", { Positions, CostPrice }, null, { Id }, t)
             } else {
-                await singleton.insertMainDB("wf_street_practice_positions", { Positions: OrderQty, CostPrice: Price, SecuritiesType, SecuritiesNo, MemberCode, AccountNo }, { CreateTime: "now()" }, t)
+                await singleton.insertMainDB("wf_street_practice_positions", { Positions: OrderQty, CostPrice: Price, SecuritiesType, SecuritiesNo, MemberCode, AccountNo, Type }, { CreateTime: "now()" }, t)
             }
         }
         if (Cash + delta < 0) {
             throw 1
         }
         await singleton.updateMainDB("wf_street_practice_account", { Cash: Cash + delta }, null, { AccountNo }, t)
-        await singleton.insertMainDB("wf_street_practice_positionshistory", { OrderId, MemberCode, AccountNo, OldPositions, Positions, SecuritiesType, SecuritiesNo }, { CreateTime: "now()" }, t)
+        await singleton.insertMainDB("wf_street_practice_positionshistory" + (Type == 2 ? "_short" : ""), { OrderId, MemberCode, AccountNo, OldPositions, Positions, SecuritiesType, SecuritiesNo }, { CreateTime: "now()" }, t)
         await singleton.insertMainDB("wf_street_practice_cashhistory", { OrderId, MemberCode, AccountNo, OldCash: Cash, Cash: Cash + delta }, { CreateTime: "now()" }, t)
         await singleton.updateMainDB("wf_street_practice_order", { execType: 1, Commission, Price }, { TurnoverTime: "now()" }, { Id: OrderId }, t)
         await transaction.commit()

@@ -4,7 +4,7 @@ module.exports = function({ mainDB, statistic, ctt, express, config, wrap }) {
     router.get('/Detail/:code', ctt, wrap(async({ params: replacements, memberCode }, res) => {
         replacements.memberCode = memberCode
         replacements.picBaseURL = config.picBaseURL
-        let [result] = await mainDB.query("select *,LikeCount LikesCount,concat(:picBaseURL,Thumbnail) Composite_Image from wf_imagetext where Status=1 and `Code`=:code", { replacements })
+        let [result] = await mainDB.query("select *,LikeCount LikesCount,concat(:picBaseURL,Original_Image) Composite_Image from wf_imagetext where Status=1 and `Code`=:code", { replacements })
         if (result.length) {
             let [it] = result
             //点赞数和我是否已经点赞
