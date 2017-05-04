@@ -8,7 +8,21 @@ import singleton from '../singleton'
 const { mainDB, redisClient } = singleton
 
 export default new EveryDay('totalAssets', "05:00:00", async() => {
-    let [result] = await mainDB.query('select * from wf_drivewealth_practice_account')
+    let LastDate = ""
+    switch (moment().day()) {
+        case 1:
+        case 0: //周日和周一取上周二的数据
+            LastDate = moment().day(-5).format();
+            break;
+        case 2: //周二到周六取本周二的数据
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+            LastDate = moment().day(2).format();
+            break;
+    }
+    let [result] = await mainDB.query('select * from wf_drivewealth_practice_account where MemberCode not in (select MemberCode from wf_stockcompetitionmember where Source=1)')
     for (let { UserId, MemberCode, username, password, emailAddress1 }
         of result) {
         try {
@@ -45,24 +59,12 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
                 json: true
             })
             if (positions) {
-                let LastDate = ""
+
                 let Positions = positions.reduce((acc, val) => acc + val.mtm, 0) //总的持仓资产
                 let MtmPL = positions.reduce((acc, val) => acc + val.mtmPL, 0) //总的持仓浮动盈亏
                 let replacements = { UserId, MemberCode, AccountID: accountID, Balance: cash, Positions, TotalAmount: cash + Positions, MtmPL }
                 let [result] = await mainDB.query('select TotalAmount from wf_drivewealth_practice_asset where UserId=:UserId and EndDate<CurDate() order by EndDate desc limit 1', { replacements })
-                switch (moment().day()) {
-                    case 1:
-                    case 0: //周日和周一取上周二的数据
-                        LastDate = moment().day(-5).format();
-                        break;
-                    case 2: //周二到周六取本周二的数据
-                    case 3:
-                    case 4:
-                    case 5:
-                    case 6:
-                        LastDate = moment().day(2).format();
-                        break;
-                }
+
                 let [weekresult] = await mainDB.query('select TotalAmount from wf_drivewealth_practice_asset where UserId=:UserId and EndDate<:LastDate order by EndDate desc limit 1', { replacements: { LastDate, UserId } })
                 replacements.TodayProfit = replacements.TotalAmount - (result.length ? result[0].TotalAmount : Config.practiceInitFun)
                 replacements.WeekProfit = replacements.TotalAmount - (weekresult.length ? weekresult[0].TotalAmount : Config.practiceInitFun)
@@ -80,8 +82,28 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
         }
     }
 
-    //活动期间将假数据插入wf_drivewealth_practice_asset_v
-    await mainDB.query("insert into wf_drivewealth_practice_asset_v(UserId,AccountID,Balance,MtmPL,Positions,TodayProfit,TodayYield,WeekProfit,WeekYield,MonthProfit,MonthYield,YearProfit,YearYield,TotalProfit,TotalYield,TotalAmount,MemberCode,EndDate,CreateTime) select UserId,AccountID,Balance,MtmPL,Positions,TodayProfit,TodayYield,WeekProfit,WeekYield,MonthProfit,MonthYield,YearProfit,YearYield,TotalProfit,TotalYield,TotalAmount,MemberCode,EndDate,CreateTime from wf_drivewealth_practice_asset where EndDate=CurDate() and MemberCode in(select MemberCode from wf_stockcompetitionmember)");
+    //活动期间将真数据插入wf_drivewealth_practice_asset_v
+    await mainDB.query("insert into wf_drivewealth_practice_asset_v(UserId,AccountID,Balance,MtmPL,Positions,TodayProfit,TodayYield,WeekProfit,WeekYield,MonthProfit,MonthYield,YearProfit,YearYield,TotalProfit,TotalYield,TotalAmount,MemberCode,EndDate,CreateTime) select UserId,AccountID,Balance,MtmPL,Positions,TodayProfit,TodayYield,WeekProfit,WeekYield,MonthProfit,MonthYield,YearProfit,YearYield,TotalProfit,TotalYield,TotalAmount,MemberCode,EndDate,CreateTime from wf_drivewealth_practice_asset where EndDate=CurDate() and MemberCode in(select MemberCode from wf_stockcompetitionmember where Source<>1)");
+
+    let [fakemembercoderesult] = await mainDB.query("select MemberCode from wf_stockcompetitionmember where Source=1", { replacements });
+    if (fakemembercoderesult.length) {
+        for (let { MemberCode }
+            of fakemembercoderesult) {
+            replacements.MemberCode = MemberCode
+            let [fakeresult] = await mainDB.query('select TotalAmount from wf_drivewealth_practice_asset_v where MemberCode=:MemberCode and EndDate<CurDate() order by EndDate desc limit 1', { replacements })
+            let [fakeweekresult] = await mainDB.query("select TotalAmount from wf_drivewealth_practice_asset_v where MemberCode=:MemberCode and EndDate<:LastDate order by EndDate desc limit 1 ", { replacements: { LastDate, MemberCode } });
+            let rand = 1 + Math.random() * Config.randmax / 100
+            rand = rand.toFixed(4)
+            replacements.TotalAmount = fakeresult.length ? fakeresult[0].TotalAmount * rand : Config.practiceInitFun * rand
+            replacements.WeekProfit = replacements.TotalAmount - (fakeweekresult.length ? fakeweekresult[0].TotalAmount : Config.practiceInitFun)
+            replacements.WeekYield = replacements.WeekProfit / replacements.TotalAmount * 100
+            replacements.TotalProfit = replacements.TotalAmount - Config.practiceInitFun
+            replacements.TotalYield = replacements.TotalProfit / Config.practiceInitFun * 100
+            await mainDB.query(sqlstr.insert("wf_drivewealth_practice_asset_v", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
+        }
+    }
+
+
 
     //缓存总资产排行
     let [totalAmountResult] = await mainDB.query("select dw.MemberCode,round(dw.TotalAmount) TotalAmount,wf_member.Nickname,concat(:picBaseURL,wf_member.HeadImage) HeadImage from wf_drivewealth_practice_asset as dw left join wf_member on dw.MemberCode=wf_member.MemberCode where dw.EndDate=CurDate() order by dw.TotalAmount desc limit 100", { replacements: { picBaseURL: Config.picBaseURL } })
