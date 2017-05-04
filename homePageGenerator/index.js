@@ -21,7 +21,6 @@ const homePageSqls = [
     var amqpConnection = await amqp.connect(Config.amqpConn)
     let channel = await amqpConnection.createChannel()
     let ok = await channel.assertQueue('homepageGenerate')
-    console.log(ok)
     channel.consume('homepageGenerate', msg => {
         //var data = JSON.parse(Iconv.decode(msg.content, 'utf-8'))
         GenerateHomePage()

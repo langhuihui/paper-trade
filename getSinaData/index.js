@@ -96,7 +96,7 @@ function start() {
             ignoreMarket = false
             stocks = stockRef.array
         } else {
-            let marketIsOpen = await singleton.marketIsOpen()
+            let marketIsOpen = await singleton.marketIsOpen2()
             for (var market in marketIsOpen) {
                 if (marketIsOpen[market])
                     stocks.push(...stockRef[market])

@@ -130,6 +130,7 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
         for (let p of Positions) {
             p.LastPrice = (await singleton.getLastPrice(config.getQueryName(p)))[4]
             p.Profit = (p.LastPrice - p.CostPrice) * p.Positions
+            if (p.Type == 2) p.Profit = -p.Profit
             TotalProfit += p.Profit
         }
         res.send({ Status: 0, Explain: "", Positions, TotalProfit });

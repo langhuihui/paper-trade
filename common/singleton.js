@@ -47,6 +47,11 @@ let o = {
         marketIsOpen = JSON.parse(marketIsOpen)
         return market ? marketIsOpen[market] : marketIsOpen
     },
+    async marketIsOpen2(market) { //延迟1分钟收盘
+        let marketIsOpen = await this.redisClient.getAsync("marketIsOpen2")
+        marketIsOpen = JSON.parse(marketIsOpen)
+        return market ? marketIsOpen[market] : marketIsOpen
+    },
     async getLastPrice(sinaName) {
         let sp = await this.redisClient.hgetAsync("lastPrice", sinaName)
         if (sp)

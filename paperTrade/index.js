@@ -19,12 +19,13 @@ async function getAllOrder() {
 }
 //除权
 async function sendStock({ rate, newPirce, SecuritiesType, SecuritiesNo, time }) {
-    // let lastPrice = await singleton.getLastPrice(Config.getQueryName({ SecuritiesType, SecuritiesNo }))
-    let [result] = await mainDB.query("select * from wf_street_practice_positionshistory where Id in (select max(Id) from wf_street_practice_positionshistory where SecuritiesNo=:SecuritiesNo and SecuritiesType=:SecuritiesType and CreateTime <:time group by AccountNO)", { replacements: { SecuritiesType, SecuritiesNo, time } })
-    if (result.length) {
-        let transaction = await mainDB.transaction();
-        try {
-            let t = { transaction }
+    let bonus = await singleton.selectMainDB0("wf_street_practice_bonus", { SecuritiesType, SecuritiesNo, Type: 1, RealityTime: time }, null, t)
+    if (!singleton.isEMPTY(bonus)) continue
+    let transaction = await mainDB.transaction();
+    let t = { transaction }
+    try {
+        let [result] = await mainDB.query("select * from wf_street_practice_positionshistory where Positions>0 and Id in (select max(Id) from wf_street_practice_positionshistory where SecuritiesNo=:SecuritiesNo and SecuritiesType=:SecuritiesType and CreateTime <:time group by AccountNO)", { replacements: { SecuritiesType, SecuritiesNo, time } })
+        if (result.length) {
             for (let p of result) {
                 let { Positions: beforeSendPos, AccountNo, SecuritiesType, SecuritiesNo } = p
                 let addP = beforeSendPos * rate
@@ -39,18 +40,10 @@ async function sendStock({ rate, newPirce, SecuritiesType, SecuritiesNo, time })
                     await singleton.insertMainDB("wf_street_practice_positionshistory", { MemberCode, AccountNo, OldPositions: Positions, Positions: Positions + addP, SecuritiesType, SecuritiesNo, Reason: 1 }, { CreateTime: "now()" }, t)
                 }
             }
-            await transaction.commit()
-        } catch (ex) {
-            console.error(ex)
-            await transaction.rollback()
         }
-    }
-    let [short] = await mainDB.query("select * from wf_street_practice_positionshistory_short where Id in (select max(Id) from wf_street_practice_positionshistory where SecuritiesNo=:SecuritiesNo and SecuritiesType=:SecuritiesType and CreateTime <:time group by AccountNO)", { replacements: { SecuritiesType, SecuritiesNo, time } })
-    if (short.length) {
-        let transaction = await mainDB.transaction();
-        try {
-            let t = { transaction }
-            for (let p of result) {
+        let [short] = await mainDB.query("select * from wf_street_practice_positionshistory_short where Positions>0 and Id in (select max(Id) from wf_street_practice_positionshistory where SecuritiesNo=:SecuritiesNo and SecuritiesType=:SecuritiesType and CreateTime <:time group by AccountNO)", { replacements: { SecuritiesType, SecuritiesNo, time } })
+        if (short.length) {
+            for (let p of short) {
                 let { Positions: beforeSendPos, AccountNo, SecuritiesType, SecuritiesNo } = p
                 let addP = beforeSendPos * rate
                 let { Positions = 0, CostPrice, MemberCode } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo, Type: 2 })
@@ -64,15 +57,18 @@ async function sendStock({ rate, newPirce, SecuritiesType, SecuritiesNo, time })
                     await singleton.insertMainDB("wf_street_practice_positionshistory_short", { MemberCode, AccountNo, OldPositions: Positions, Positions: Positions + addP, SecuritiesType, SecuritiesNo, Reason: 1 }, { CreateTime: "now()" }, t)
                 }
             }
-            await transaction.commit()
-        } catch (ex) {
-            console.error(ex)
-            await transaction.rollback()
         }
+        await singleton.insertMainDB("wf_street_practice_bonus", { SecuritiesType, SecuritiesNo, Percentage: rate, Type: 1, RealityTime: time }, { CreateTime: "now()" }, t)
+        await transaction.commit()
+    } catch (ex) {
+        console.error(ex)
+        await transaction.rollback()
     }
 }
 //除息
 async function bonus({ rate, SecuritiesType, SecuritiesNo, time }) {
+    let bonus = await singleton.selectMainDB0("wf_street_practice_bonus", { SecuritiesType, SecuritiesNo, Type: 2, RealityTime: time }, null, t)
+    if (!singleton.isEMPTY(bonus)) continue
     let [result] = await mainDB.query("select * from wf_street_practice_positionshistory where Id in (select max(Id) from wf_street_practice_positionshistory where SecuritiesNo=:SecuritiesNo and SecuritiesType=:SecuritiesType and CreateTime <:time group by AccountNO)", { replacements: { SecuritiesType, SecuritiesNo, time } })
     if (result.length) {
         let transaction = await mainDB.transaction();
@@ -85,6 +81,7 @@ async function bonus({ rate, SecuritiesType, SecuritiesNo, time }) {
                 await singleton.updateMainDB("wf_street_practice_account", { Cash: Cash + addCash }, null, { AccountNo }, t)
                 await singleton.insertMainDB("wf_street_practice_cashhistory", { MemberCode, AccountNo, OldCash: Cash, Cash: Cash + addCash, Reason: 1 }, { CreateTime: "now()" }, t)
             }
+            await singleton.insertMainDB("wf_street_practice_bonus", { SecuritiesType, SecuritiesNo, Percentage: rate, Type: 2, RealityTime: time }, { CreateTime: "now()" }, t)
             await transaction.commit()
         } catch (ex) {
             console.error(ex)

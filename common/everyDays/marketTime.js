@@ -13,9 +13,15 @@ export default new EveryDay('marketTime', "00:00:00", async function() {
     let isUsOpen = now => (usTime[0] && now < usTime[0]) || (usTime[1] && now > usTime[1])
     let isHsOpen = now => hsTime && (now > hsTime[0] && now < hsTime[1] || now > hsTime[2] && now < hsTime[3])
     let isHkOpen = now => hkTime && (now > hkTime[0] && now < hkTime[1] || now > hkTime[2] && now < hkTime[3])
+
+    let isUsOpen2 = now => (usTime[0] && now < usTime[0].getTime() + 60 * 1000) || (usTime[1] && now > usTime[1])
+    let isHsOpen2 = now => hsTime && (now > hsTime[0] && now < hsTime[1].getTime() + 60 * 1000 || now > hsTime[2] && now < hsTime[3].getTime() + 60 * 1000)
+    let isHkOpen2 = now => hkTime && (now > hkTime[0] && now < hkTime[1].getTime() + 60 * 1000 || now > hkTime[2] && now < hkTime[3].getTime() + 60 * 1000)
     this.setRedis = now => {
         let hs = isHsOpen(now)
         let result = JSON.stringify({ us: isUsOpen(now), hk: isHkOpen(now), sh: hs, sz: hs })
         redisClient.set('marketIsOpen', result)
+        result = JSON.stringify({ us: isUsOpen2(now), hk: isHkOpen2(now), sh: isHsOpen2(now), sz: isHsOpen2(now) })
+        redisClient.set('marketIsOpen2', result)
     }
 })
