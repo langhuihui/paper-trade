@@ -85,13 +85,14 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
     //活动期间将真数据插入wf_drivewealth_practice_asset_v
     await mainDB.query("insert into wf_drivewealth_practice_asset_v(UserId,AccountID,Balance,MtmPL,Positions,TodayProfit,TodayYield,WeekProfit,WeekYield,MonthProfit,MonthYield,YearProfit,YearYield,TotalProfit,TotalYield,TotalAmount,MemberCode,EndDate,CreateTime) select UserId,AccountID,Balance,MtmPL,Positions,TodayProfit,TodayYield,WeekProfit,WeekYield,MonthProfit,MonthYield,YearProfit,YearYield,TotalProfit,TotalYield,TotalAmount,MemberCode,EndDate,CreateTime from wf_drivewealth_practice_asset where EndDate=CurDate() and MemberCode in(select MemberCode from wf_stockcompetitionmember where Source<>1)");
 
-    let [fakemembercoderesult] = await mainDB.query("select MemberCode from wf_stockcompetitionmember where Source=1", { replacements });
+    let [fakemembercoderesult] = await mainDB.query("select a.MemberCode,b.UserId  from wf_stockcompetitionmember a left join wf_drivewealth_practice_account b on a.MemberCode=b.MemberCode  where Source=1", { replacements });
     if (fakemembercoderesult.length) {
-        for (let { MemberCode }
+        for (let { MemberCode,UserId }
             of fakemembercoderesult) {
+            replacements.UserId = UserId
             replacements.MemberCode = MemberCode
-            let [fakeresult] = await mainDB.query('select TotalAmount from wf_drivewealth_practice_asset_v where MemberCode=:MemberCode and EndDate<CurDate() order by EndDate desc limit 1', { replacements })
-            let [fakeweekresult] = await mainDB.query("select TotalAmount from wf_drivewealth_practice_asset_v where MemberCode=:MemberCode and EndDate<:LastDate order by EndDate desc limit 1 ", { replacements: { LastDate, MemberCode } });
+            let [fakeresult] = await mainDB.query('select TotalAmount from wf_drivewealth_practice_asset_v where UserId=:UserId and EndDate<CurDate() order by EndDate desc limit 1', { replacements })
+            let [fakeweekresult] = await mainDB.query("select TotalAmount from wf_drivewealth_practice_asset_v where UserId=:UserId and EndDate<:LastDate order by EndDate desc limit 1 ", { replacements: { LastDate, UserId } });
             let rand = 1 + Math.random() * Config.randmax / 100
             rand = rand.toFixed(4)
             replacements.TotalAmount = fakeresult.length ? fakeresult[0].TotalAmount * rand : Config.practiceInitFun * rand
