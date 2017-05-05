@@ -20,7 +20,7 @@ async function getAllOrder() {
 //除权
 async function sendStock({ rate, newPirce, SecuritiesType, SecuritiesNo, time }) {
     let bonus = await singleton.selectMainDB0("wf_street_practice_bonus", { SecuritiesType, SecuritiesNo, Type: 1, RealityTime: time }, null, t)
-    if (!singleton.isEMPTY(bonus)) continue
+    if (!singleton.isEMPTY(bonus)) return
     let transaction = await mainDB.transaction();
     let t = { transaction }
     try {
@@ -68,12 +68,10 @@ async function sendStock({ rate, newPirce, SecuritiesType, SecuritiesNo, time })
 //除息
 async function bonus({ rate, SecuritiesType, SecuritiesNo, time }) {
     let bonus = await singleton.selectMainDB0("wf_street_practice_bonus", { SecuritiesType, SecuritiesNo, Type: 2, RealityTime: time }, null, t)
-    if (!singleton.isEMPTY(bonus)) continue
+    if (!singleton.isEMPTY(bonus)) return
     let [result] = await mainDB.query("select * from wf_street_practice_positionshistory where Id in (select max(Id) from wf_street_practice_positionshistory where SecuritiesNo=:SecuritiesNo and SecuritiesType=:SecuritiesType and CreateTime <:time group by AccountNO)", { replacements: { SecuritiesType, SecuritiesNo, time } })
     if (result.length) {
-        let transaction = await mainDB.transaction();
-        try {
-            let t = { transaction }
+        let tResult = await singleton.transaction(async t => {
             for (let p of result) {
                 let { Positions: beforeSendPos, AccountNo, SecuritiesType, SecuritiesNo, MemberCode } = p
                 let addCash = beforeSendPos * rate
@@ -82,10 +80,9 @@ async function bonus({ rate, SecuritiesType, SecuritiesNo, time }) {
                 await singleton.insertMainDB("wf_street_practice_cashhistory", { MemberCode, AccountNo, OldCash: Cash, Cash: Cash + addCash, Reason: 1 }, { CreateTime: "now()" }, t)
             }
             await singleton.insertMainDB("wf_street_practice_bonus", { SecuritiesType, SecuritiesNo, Percentage: rate, Type: 2, RealityTime: time }, { CreateTime: "now()" }, t)
-            await transaction.commit()
-        } catch (ex) {
-            console.error(ex)
-            await transaction.rollback()
+        })
+        if (tResult) {
+            console.error(tResult)
         }
     }
 }
@@ -139,10 +136,21 @@ async function startMQ() {
 startMQ()
 
 async function sendNotify(order) {
+    let description = ""
+    switch (order.execType) {
+        case 1:
+            description = "已经成交"
+            break;
+        case 3:
+            description = "被拒绝:" + [null, "资金不足", "仓位不足", "超时失效"][order.Reason]
+            break;
+        case 0:
+            return
+    }
     let JpushRegID = (await mainDB.query('select JpushRegID from wf_im_jpush where MemberCode=:MemberCode', { replacements: order }))[0][0].JpushRegID;
     let SecuritiesName = (await mainDB.query('select SecuritiesName from wf_securities_trade where SecuritiesNo =:SecuritiesNo and SmallType = :SecuritiesType', { replacements: order }))[0][0].SecuritiesName
-    let msg = `您买的股票${SecuritiesName}（${order.SecuritiesNo}）已经成交`
-    let title = `您买的股票${SecuritiesName}（${order.SecuritiesNo}）已经成交`
+    let msg = `您${order.Side=="B"?"买入的":"卖出的"}股票${SecuritiesName}（${order.SecuritiesNo}）${description}`
+    let title = `您${order.Side=="B"?"买入的":"卖出的"}股票${SecuritiesName}（${order.SecuritiesNo}）${description}`
     jpushClient.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(JpushRegID))
         //sendno, time_to_live, override_msg_id, apns_production, big_push_duration
         .setOptions(null, null, null, Config.apns_production)
@@ -165,8 +173,19 @@ setInterval(async() => {
         let { Id, AccountNo, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, CommissionRate, CommissionLimit } = order
         //拒绝超时订单
         if (new Date(order.EndTime) > new Date()) {
-            await singleton.updateMainDB("wf_street_practice_order", { execType: 3, Reason: 3 }, null, { Id })
-            orders.delete(Id)
+            let result = await singleton.transaction(async t => {
+                await singleton.updateMainDB("wf_street_practice_order", { execType: 3, Reason: 3 }, null, { Id }, t)
+                let Type = ((OrdType - 1) / 3 >> 0) + 1 //1，2，3=>1做多；4，5，6=>2做空
+                if (Side == "SB" [Type - 1]) {
+                    let { TradAble, Id: PositionsId } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, Type })
+                    TradAble += OrderQty //修改可交易仓位
+                    await singleton.updateMainDB("wf_street_practice_positions", { TradAble }, null, { Id: PositionsId }, t)
+                }
+            })
+            if (result == 0)
+                orders.delete(Id)
+            else console.error(result)
+            sendNotify(order)
             continue
         }
         //未开盘则直接跳过
@@ -198,12 +217,12 @@ setInterval(async() => {
             let x = Object.assign(Object.assign({ delta }, order), { Commission, Price: price })
             let result = await deal(x)
             if (result === 0) {
-                sendNotify(order)
-                    //处理完毕
+                //处理完毕
                 orders.delete(Id)
             } else {
                 console.log(new Date(), result)
             }
+            sendNotify(order)
         }
     }
 }, 10000)

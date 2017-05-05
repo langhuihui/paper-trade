@@ -59,10 +59,9 @@ async function startMQ() {
                     let symbol = symbols.pop()
                     if (oldSymbols.contain(symbol)) {
                         needRemove.remove(symbol)
-                        oldSymbols.push(symbol)
+                        oldSymbols.remove(symbol)
                     } else {
                         continue
-                        needAdd.push(symbol)
                     }
                 }
                 break

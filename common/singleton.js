@@ -84,6 +84,17 @@ let o = {
     },
     isEMPTY(value) {
         return value === EMPTY
+    },
+    async transaction(action) {
+        let transaction = await this.mainDB.transaction();
+        try {
+            await action({ transaction })
+            await transaction.commit();
+            return 0
+        } catch (ex) {
+            await transaction.rollback()
+            return ex
+        }
     }
 }
 export default o
