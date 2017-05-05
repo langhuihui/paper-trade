@@ -69,7 +69,6 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         } else {
             await mainDB.query(...sqlstr.insert2("wf_stockcompetitionmember", body, { CreateTime: "now()" }))
             let [result] = await mainDB.query("select TotalAmount from wf_drivewealth_practice_asset_v where MemberCode=:memberCode order by AssetId desc limit 1", { replacements: { memberCode } })
-            console.log((result[0].TotalAmount == 10000));
             if (result.length && result[0].TotalAmount == 10000) {
                 res.send({ Status: 0, Explain: "", result: true, OpenDate: opendate })
             } else {
