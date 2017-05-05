@@ -24,6 +24,7 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
     /**创建订单 */
     router.post('/Orders', ctt, wrap(async({ memberCode, body }, res) => {
         let { AccountNo, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo } = body
+        let Type = ((OrdType - 1) / 3 >> 0) + 1 //1，2，3=>1做多；4，5，6=>2做空
         if (OrdType < 1 || OrdType > 6) { //1市价单、2限价单、3止损单
             return res.send({ Status: -2, Explain: "OrdType 必须是1~6 而当前值为：" + OrdType })
         }
@@ -39,13 +40,11 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
             account = await getAccount(AccountNo);
         }
         if (account.Status != 1) {
-            res.send({ Status: 44002, Explain: "账号已停用" })
-            return
+            return res.send({ Status: 44002, Explain: "账号已停用" })
         }
-        let { Positions = 0 } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo, Type: ((OrdType - 1) / 3 >> 0) + 1 })
-        if (Side == "S" && Positions < OrderQty && OrdType < 4) {
-            res.send({ Status: 44004, Explain: "持仓不足:" + Positions + "<" + OrderQty })
-            return
+        let { Positions = 0, TradAble = 0, Id: PositionsId } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo, Type: ((OrdType - 1) / 3 >> 0) + 1 })
+        if (Side == "SB" [Type - 1] && TradAble < OrderQty) {
+            return res.send({ Status: 44004, Explain: "可交易仓位不足:" + TradAble + "<" + OrderQty })
         }
         let sinaName = config.getQueryName(body)
         let [, , , , lastPrice] = await singleton.getLastPrice(sinaName);
@@ -67,12 +66,12 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
             return
         }
         if (OrdType == 2 || OrdType == 3) {
-            if (Side == "BS" [OrdType - 2] ? (Price > lastPrice) : (Price < lastPrice)) {
+            if (Side == "BS" [OrdType - 2] ? (Price < lastPrice) : (Price > lastPrice)) {
                 res.send({ Status: 44005, Explain: "价格设置不正确" })
                 return
             }
         } else if (OrdType == 5 || OrdType == 6) {
-            if (Side == "BS" [6 - OrdType] ? (Price > lastPrice) : (Price < lastPrice)) {
+            if (Side == "BS" [6 - OrdType] ? (Price < lastPrice) : (Price > lastPrice)) {
                 res.send({ Status: 44005, Explain: "价格设置不正确" })
                 return
             }
@@ -93,9 +92,17 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
             usResult = await mainDB.query("select * from wf_system_opendate_bak where Type='us' and DealDate>now() order by Id desc limit 1")
             EndTime = new Date(usResult[0][0].EndTimePM)
         }
-
-        let { insertId } = await singleton.insertMainDB("wf_street_practice_order", Object.assign({ execType: 0, EndTime }, body), { CreateTime: "now()" })
-        body.Id = insertId;
+        let result = await singleton.transaction(async transaction => {
+            let { insertId } = await singleton.insertMainDB("wf_street_practice_order", Object.assign({ execType: 0, EndTime }, body), { CreateTime: "now()" }, transaction)
+            body.Id = insertId;
+            if (Side == "SB" [Type - 1]) {
+                TradAble -= OrderQty //修改可交易仓位
+                await singleton.updateMainDB("wf_street_practice_positions", { TradAble }, null, { Id: PositionsId }, transaction)
+            }
+        })
+        if (result != 0) {
+            return res.send({ Status: 500, Explain: result })
+        }
         body.CommissionLimit = account.CommissionLimit;
         body.CommissionRate = account.CommissionRate;
         mqChannel.sendToQueue("paperTrade", new Buffer(JSON.stringify({ cmd: "create", data: body })));
@@ -103,6 +110,7 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
     }));
     /**订单状态 */
     router.get('/Orders/:orderID', ctt, wrap(async({ memberCode, params: { orderID } }, res) => {
+        orderID = Number(orderID)
         let [result] = await mainDB.query("select * from wf_street_practice_order where Id=:orderID and MemberCode=:memberCode", { replacements: { memberCode, orderID } })
         if (result.length) {
             res.send({ Status: 0, Explain: "", Data: result[0] });
@@ -111,12 +119,28 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
     }));
     /**取消订单 */
     router.delete('/Orders/:orderID', ctt, wrap(async({ memberCode, params: { orderID } }, res) => {
-        let [result] = await mainDB.query("update wf_street_practice_order(execType) set(2) where Id:orderID and MemberCode=:memberCode", { replacements: { memberCode, orderID } })
-        if (result.length) {
-            res.send({ Status: 0, Explain: result });
+        orderID = Number(orderID)
+        let order = await singleton.selectMainDB0("wf_street_practice_order", { Id: orderID }, { execType: "0" })
+        if (singleton.isEMPTY(order)) {
+            return res.send({ Status: -1, Explain: "该订单不存在" });
+        }
+        let { Side, OrdType, OrderQty, AccountNo } = order
+        let Type = ((OrdType - 1) / 3 >> 0) + 1 //1，2，3=>1做多；4，5，6=>2做空
+        let result = await singleton.transaction(async transaction => {
+            let [updateResult] = await singleton.updateMainDB("wf_street_practice_order", { execType: 2 }, null, { Id: orderID })
+            if (updateResult.changedRows != 1)
+                throw -1
+            if (Side == "BS" [Type - 1]) {
+                let { TradAble, Id: PositionsId } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, Type })
+                TradAble += OrderQty //修改可交易仓位
+                await singleton.updateMainDB("wf_street_practice_positions", { TradAble }, null, { Id: PositionsId }, transaction)
+            }
+        })
+        if (result == 0) {
+            res.send({ Status: 0, Explain: "" });
             mqChannel.sendToQueue("paperTrade", new Buffer(JSON.stringify({ cmd: "cancel", data: orderID })))
         } else
-            res.send({ Status: -1, Explain: "该订单不存在" });
+            res.send({ Status: result, Explain: "失败" });
     }));
     /**持仓 */
     router.get('/Position', ctt, wrap(async({ memberCode: MemberCode }, res) => {
@@ -128,7 +152,7 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
         let Positions = await singleton.selectMainDB("wf_street_practice_positions", { MemberCode, AccountNo })
         let TotalProfit = 0
         for (let p of Positions) {
-            p.LastPrice = (await singleton.getLastPrice(config.getQueryName(p)))[4]
+            p.LastPrice = (await singleton.getLastPrice(config.getQueryName(p)))[3]
             p.Profit = (p.LastPrice - p.CostPrice) * p.Positions
             if (p.Type == 2) p.Profit = -p.Profit
             TotalProfit += p.Profit

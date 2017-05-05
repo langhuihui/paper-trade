@@ -24,7 +24,7 @@ export default new EveryDay('profitRank', "05:00:00", async() => {
                     let MtmPL = 0
                     let TotalAssets = 0
                     for (let p of positions) {
-                        p.LastPrice = (await singleton.getLastPrice(Config.getQueryName(p)))[4]
+                        p.LastPrice = (await singleton.getLastPrice(Config.getQueryName(p)))[3]
                         if (p.Type == 1) {
                             p.Mtm = p.LastPrice * p.Positions
                             p.Profit = (p.LastPrice - p.CostPrice) * p.Positions
