@@ -31,6 +31,9 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             body.tranAmount = 10000
             await mainDB.query("delete from wf_drivewealth_practice_account where MemberCode=:memberCode", { replacements: { memberCode } })
             await mainDB.query("delete from wf_drivewealth_practice_asset where MemberCode=:memberCode", { replacements: { memberCode } })
+            await mainDB.query("delete from wf_drivewealth_practice_asset_v where MemberCode=:memberCode", { replacements: { memberCode } })
+            await mainDB.query("delete from wf_drivewealth_practice_rank where MemberCode=:memberCode", { replacements: { memberCode } })
+            await mainDB.query("delete from wf_drivewealth_practice_rank_v where MemberCode=:memberCode", { replacements: { memberCode } })
             let result = await mainDB.query(...sqlstr.insert2("wf_drivewealth_practice_account", body, { PracticeId: null, CreateTime: "now()", transAmount: null }))
             return result
         } catch (ex) {
@@ -44,7 +47,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let opendate = "2017-05-08"
         let [result] = await mainDB.query("select membercode from wf_stockcompetitionmember where MemberCode=:memberCode", { replacements: { memberCode } })
         if (result.length) {
-            let [result] = await mainDB.query("select a.HeadImage,b.RankValue,IFNULL(b.Rank,0)Rank from (select * from wf_member where MemberCode=:memberCode)a left join(select * from wf_drivewealth_practice_rank where wf_drivewealth_practice_rank.type = 11)b on b.MemberCode = a.MemberCode ORDER BY b.RankId desc limit 1", { replacements: { memberCode } })
+            let [result] = await mainDB.query("select a.HeadImage,case when ISNULL(b.RankValue) or b.RankValue='' or b.RankValue=0 then 10000 else b.RankValue end RankValue,IFNULL(b.Rank,0)Rank from (select * from wf_member where MemberCode=:memberCode)a left join(select * from wf_drivewealth_practice_rank_v where wf_drivewealth_practice_rank_v.type = 11)b on b.MemberCode = a.MemberCode ORDER BY b.RankId desc limit 1", { replacements: { memberCode } })
             if (result.length) {
                 result[0].OpenDate = opendate
                 if (!result[0].HeadImage) {
@@ -60,9 +63,12 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     router.post('/Register/:Token', ctt, allowAccess('POST'), wrap(async({ memberCode, body }, res) => {
         let opendate = "2017-05-08"
         body.MemberCode = memberCode
-        try {
+        let [result] = await mainDB.query("select * from wf_stockcompetitionmember where MemberCode=:memberCode ", { replacements: { memberCode } })
+        if (result.length) {
+            res.send({ Status: 0, Explain: "", result: false, OpenDate: opendate }) //默认配置
+        } else {
             await mainDB.query(...sqlstr.insert2("wf_stockcompetitionmember", body, { CreateTime: "now()" }))
-            let [result] = await mainDB.query("select TotalAmount from wf_drivewealth_practice_asset where MemberCode=:memberCode order by AssetId desc limit 1", { replacements: { memberCode } })
+            let [result] = await mainDB.query("select TotalAmount from wf_drivewealth_practice_asset_v where MemberCode=:memberCode order by AssetId desc limit 1", { replacements: { memberCode } })
             console.log((result[0].TotalAmount == 10000));
             if (result.length && result[0].TotalAmount == 10000) {
                 res.send({ Status: 0, Explain: "", result: true, OpenDate: opendate })
@@ -70,8 +76,6 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 let result = await CreateParactice(memberCode, "")
                 res.send({ Status: 0, Explain: "", result: true, OpenDate: opendate })
             }
-        } catch (ex) {
-            res.send({ Status: 0, Explain: "", result: true, OpenDate: opendate }) //默认配置
         }
     }))
     return router
