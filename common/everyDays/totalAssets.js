@@ -87,10 +87,9 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
 
     let [fakemembercoderesult] = await mainDB.query("select a.MemberCode,b.UserId  from wf_stockcompetitionmember a left join wf_drivewealth_practice_account b on a.MemberCode=b.MemberCode  where Source=1", { replacements });
     if (fakemembercoderesult.length) {
-        for (let { MemberCode,UserId }
+        for (let { MemberCode, UserId }
             of fakemembercoderesult) {
-            replacements.UserId = UserId
-            replacements.MemberCode = MemberCode
+            let replacements = { UserId, MemberCode }
             let [fakeresult] = await mainDB.query('select TotalAmount from wf_drivewealth_practice_asset_v where UserId=:UserId and EndDate<CurDate() order by EndDate desc limit 1', { replacements })
             let [fakeweekresult] = await mainDB.query("select TotalAmount from wf_drivewealth_practice_asset_v where UserId=:UserId and EndDate<:LastDate order by EndDate desc limit 1 ", { replacements: { LastDate, UserId } });
             let rand = 1 + Math.random() * Config.randmax / 100
