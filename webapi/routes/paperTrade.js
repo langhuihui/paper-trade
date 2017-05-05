@@ -66,12 +66,12 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
             return
         }
         if (OrdType == 2 || OrdType == 3) {
-            if (Side == "BS" [OrdType - 2] ? (Price < lastPrice) : (Price > lastPrice)) {
+            if (Side == "BS" [OrdType - 2] ? (Price > lastPrice) : (Price < lastPrice)) {
                 res.send({ Status: 44005, Explain: "价格设置不正确" })
                 return
             }
         } else if (OrdType == 5 || OrdType == 6) {
-            if (Side == "BS" [6 - OrdType] ? (Price < lastPrice) : (Price > lastPrice)) {
+            if (Side == "BS" [6 - OrdType] ? (Price > lastPrice) : (Price < lastPrice)) {
                 res.send({ Status: 44005, Explain: "价格设置不正确" })
                 return
             }
@@ -153,7 +153,7 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
         let TotalProfit = 0
         for (let p of Positions) {
             p.LastPrice = (await singleton.getLastPrice(config.getQueryName(p)))[3]
-            p.Profit = (p.LastPrice - p.CostPrice) * p.Positions
+            p.Profit = p.LastPrice * p.Positions - p.CostPrice * p.Positions
             if (p.Type == 2) p.Profit = -p.Profit
             TotalProfit += p.Profit
         }
