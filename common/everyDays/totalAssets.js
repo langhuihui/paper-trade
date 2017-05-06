@@ -85,7 +85,7 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
     //活动期间将真数据插入wf_drivewealth_practice_asset_v
     await mainDB.query("insert into wf_drivewealth_practice_asset_v(UserId,AccountID,Balance,MtmPL,Positions,TodayProfit,TodayYield,WeekProfit,WeekYield,MonthProfit,MonthYield,YearProfit,YearYield,TotalProfit,TotalYield,TotalAmount,MemberCode,EndDate,CreateTime) select UserId,AccountID,Balance,MtmPL,Positions,TodayProfit,TodayYield,WeekProfit,WeekYield,MonthProfit,MonthYield,YearProfit,YearYield,TotalProfit,TotalYield,TotalAmount,MemberCode,EndDate,CreateTime from wf_drivewealth_practice_asset where EndDate=CurDate() and MemberCode in(select MemberCode from wf_stockcompetitionmember where Source<>1)");
 
-    let [fakemembercoderesult] = await mainDB.query("select a.MemberCode,b.UserId  from wf_stockcompetitionmember a left join wf_drivewealth_practice_account b on a.MemberCode=b.MemberCode  where Source=1", { replacements });
+    let [fakemembercoderesult] = await mainDB.query("select a.MemberCode,b.UserId  from wf_stockcompetitionmember a left join wf_drivewealth_practice_account b on a.MemberCode=b.MemberCode  where Source=1");
     if (fakemembercoderesult.length) {
         for (let { MemberCode, UserId }
             of fakemembercoderesult) {
@@ -100,6 +100,7 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
             replacements.TotalProfit = replacements.TotalAmount - Config.practiceInitFun
             replacements.TotalYield = replacements.TotalProfit / Config.practiceInitFun * 100
             await mainDB.query(sqlstr.insert("wf_drivewealth_practice_asset_v", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
+            await mainDB.query(sqlstr.insert("wf_drivewealth_practice_asset", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
         }
     }
 
