@@ -95,10 +95,12 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
             let rand = 1 + Math.random() * Config.randmax / 100
             rand = rand.toFixed(4)
             replacements.TotalAmount = fakeresult.length ? fakeresult[0].TotalAmount * rand : Config.practiceInitFun * rand
+            replacements.TodayProfit = replacements.TotalAmount - (fakeresult.length ? fakeresult[0].TotalAmount : Config.practiceInitFun)
             replacements.WeekProfit = replacements.TotalAmount - (fakeweekresult.length ? fakeweekresult[0].TotalAmount : Config.practiceInitFun)
             replacements.WeekYield = replacements.WeekProfit / replacements.TotalAmount * 100
             replacements.TotalProfit = replacements.TotalAmount - Config.practiceInitFun
             replacements.TotalYield = replacements.TotalProfit / Config.practiceInitFun * 100
+            replacements.MtmPL = replacements.TotalProfit //总的持仓浮动盈亏
             await mainDB.query(sqlstr.insert("wf_drivewealth_practice_asset_v", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
             await mainDB.query(sqlstr.insert("wf_drivewealth_practice_asset", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
         }
