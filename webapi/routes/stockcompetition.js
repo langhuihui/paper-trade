@@ -73,6 +73,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 res.send({ Status: 0, Explain: "", result: true, OpenDate: opendate })
             } else {
                 let result = await CreateParactice(memberCode, "")
+                await mainDB.query("delete from wf_token where MemberCode=:memberCode ", { replacements: { memberCode } })
                 res.send({ Status: 0, Explain: "", result: true, OpenDate: opendate })
             }
         }
