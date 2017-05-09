@@ -170,7 +170,7 @@ async function sendNotify(order) {
 setInterval(async() => {
     let marketIsOpen = await singleton.marketIsOpen()
     for (let order of orders.values()) {
-        let { Id, AccountNo, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, CommissionRate, CommissionLimit } = order
+        let { Id, AccountNo, Amount, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, CommissionRate, CommissionLimit } = order
         //拒绝超时订单
         if (new Date(order.EndTime) > new Date()) {
             let result = await singleton.transaction(async t => {
@@ -180,6 +180,9 @@ setInterval(async() => {
                     let { TradAble, Id: PositionsId } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, Type })
                     TradAble += OrderQty //修改可交易仓位
                     await singleton.updateMainDB("wf_street_practice_positions", { TradAble }, null, { Id: PositionsId }, t)
+                } else {
+                    let { Id, UsableCash } = await singleton.selectMainDB0("wf_street_practice_account", { AccountNo })
+                    await singleton.updateMainDB("wf_street_practice_account", { UsableCash: UsableCash + Amount }, null, { Id }, t)
                 }
             })
             if (result == 0)

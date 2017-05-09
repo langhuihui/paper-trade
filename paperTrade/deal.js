@@ -1,7 +1,7 @@
 import singleton from '../common/singleton'
 import sqlstr from '../common/sqlStr'
 const { mainDB, redisClient, jpushClient } = singleton
-export default async({ Id: OrderId, Commission, delta, AccountNo, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, MemberCode }) => {
+export default async({ Id: OrderId, Commission, delta, AccountNo, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, MemberCode, Amount }) => {
     let Type = ((OrdType - 1) / 3 >> 0) + 1 //1，2，3=>1做多；4，5，6=>2做空
     let { Cash } = await singleton.selectMainDB0("wf_street_practice_account", { AccountNo })
     let { Positions = 0, TradAble = 0, CostPrice, Id: PositionsId } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo, Type })
@@ -47,6 +47,9 @@ export default async({ Id: OrderId, Commission, delta, AccountNo, OrdType, Side,
                 if (Side == "SB" [Type - 1]) {
                     TradAble += OrderQty //修改可交易仓位
                     await singleton.updateMainDB("wf_street_practice_positions", { TradAble }, null, { Id: PositionsId }, t)
+                } else {
+                    let { Id, UsableCash } = await singleton.selectMainDB0("wf_street_practice_account", { AccountNo })
+                    await singleton.updateMainDB("wf_street_practice_account", { UsableCash: UsableCash + Amount }, null, { Id }, t)
                 }
             })
             return result

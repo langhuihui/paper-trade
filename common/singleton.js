@@ -70,13 +70,12 @@ let o = {
         let [result] = await this.mainDB.query(...sqlStr.update2(table, value, other, where, option))
         return result
     },
-    async selectMainDB(table, value, other, option) {
-        let [result] = await this.mainDB.query(...sqlStr.select2(table, value, other, option))
-        return result
+    selectMainDB(table, value, other, option) {
+        return this.mainDB.query(...sqlStr.select2(table, value, other, option))
     },
     async selectMainDB0(table, value, other, option) {
-        let [result] = await this.mainDB.query(...sqlStr.select2(table, value, other, option))
-        return result.length ? result[0] : EMPTY
+        let [result = EMPTY] = await this.mainDB.query(...sqlStr.select2(table, value, other, option))
+        return result
     },
     async deleteMainDB(table, value, other, option) {
         let [result] = await this.mainDB.query(...sqlStr.delete2(table, value, other, option))
