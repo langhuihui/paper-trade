@@ -11,20 +11,24 @@ function updateToken(tokenId) {
 async function checkToken(token, isLogin) {
     let result = 0
     let memberCode = ""
-    let tokenModel = (await mainDB.query(tokenSql, { replacements: [token] }))
-    tokenModel = tokenModel[0][0]
+    let tokenModel = await mainDB.query(tokenSql, { replacements: [token], type: "SELECT" })
+    tokenModel = tokenModel[0]
     if (isLogin) {
-        if (tokenModel) {
-            memberCode = tokenModel.MemberCode
-            if (Date.parse(tokenModel.ValidityTime) + config.tokenTime * 60 < new Date().getTime()) {
-                result = { Status: 40012, Explain: "您还没有登录，请登录后操作" }
-            } else if (tokenModel.Status != 1) {
-                result = { Status: 40012, Explain: "您的账号已经停用,如有疑问请联系客服!" }
-            } else {
-                updateToken(tokenModel.TokenID)
-            }
+        if (!token) {
+            result = { Status: 40012, Explain: "Token 不能为空" }
         } else {
-            result = { Status: 40012, Explain: "您的登录已丢失,请重新登录" }
+            if (tokenModel) {
+                memberCode = tokenModel.MemberCode
+                if (Date.parse(tokenModel.ValidityTime) + config.tokenTime * 60 < new Date().getTime()) {
+                    result = { Status: 40012, Explain: "您还没有登录，请登录后操作" }
+                } else if (tokenModel.Status != 1) {
+                    result = { Status: 40012, Explain: "您的账号已经停用,如有疑问请联系客服!" }
+                } else {
+                    updateToken(tokenModel.TokenID)
+                }
+            } else {
+                result = { Status: 40012, Explain: "您的登录已丢失,请重新登录" }
+            }
         }
     } else {
         memberCode = tokenMode.MemberCode

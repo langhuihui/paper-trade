@@ -7,7 +7,7 @@ const { mainDB, redisClient } = singleton
 const weekDay = 2
 
 async function getProfitInfo(daysAgo, AccountNo, TotalAmount) {
-    let [record] = await mainDB.query('select TotalAmount from wf_street_practice_asset where AccountNo=:AccountNo and EndDate< DATE_SUB(CurDate(),INTERVAL :daysAgo day) order by EndDate desc limit 1', { replacements: { AccountNo, daysAgo } })
+    let record = await mainDB.query('select TotalAmount from wf_street_practice_asset where AccountNo=:AccountNo and EndDate< DATE_SUB(CurDate(),INTERVAL :daysAgo day) order by EndDate desc limit 1', { replacements: { AccountNo, daysAgo }, type: "SELECT" })
     let amount = (record.length ? record[0].TotalAmount : Config.practiceInitFun)
     let profit = TotalAmount - amount
     return { profit, yield: profit * 100 / amount }

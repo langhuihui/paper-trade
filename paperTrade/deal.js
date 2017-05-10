@@ -3,10 +3,11 @@ import sqlstr from '../common/sqlStr'
 const { mainDB, redisClient, jpushClient } = singleton
 export default async({ Id: OrderId, Commission, delta, AccountNo, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, MemberCode, Amount }) => {
     let Type = ((OrdType - 1) / 3 >> 0) + 1 //1，2，3=>1做多；4，5，6=>2做空
-    let { Cash } = await singleton.selectMainDB0("wf_street_practice_account", { AccountNo })
+    let { Cash, UsableCash } = await singleton.selectMainDB0("wf_street_practice_account", { AccountNo })
     let { Positions = 0, TradAble = 0, CostPrice, Id: PositionsId } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, SecuritiesType, SecuritiesNo, Type })
     let result = await singleton.transaction(async t => {
         let OldPositions = Positions
+        let UsableCashDelta = 0
             //做多判断是否是卖，做空判断是否是买
         if (Side == "SB" [Type - 1]) {
             Positions -= OrderQty
@@ -18,6 +19,7 @@ export default async({ Id: OrderId, Commission, delta, AccountNo, OrdType, Side,
             } else {
                 throw 2
             }
+            UsableCashDelta = delta
         } else {
             if (Positions) {
                 let Cost = Positions * CostPrice + OrderQty * Price;
@@ -28,11 +30,13 @@ export default async({ Id: OrderId, Commission, delta, AccountNo, OrdType, Side,
                 TradAble = Positions = OrderQty
                 await singleton.insertMainDB("wf_street_practice_positions", { Positions, TradAble, CostPrice: Price, SecuritiesType, SecuritiesNo, MemberCode, AccountNo, Type }, { CreateTime: "now()" }, t)
             }
+            UsableCashDelta = Amount + delta
         }
         if (Cash + delta < 0) {
             throw 1
         }
-        await singleton.updateMainDB("wf_street_practice_account", { Cash: Cash + delta }, null, { AccountNo }, t)
+        UsableCash += UsableCashDelta;
+        await singleton.updateMainDB("wf_street_practice_account", { Cash: Cash + delta, UsableCash }, null, { AccountNo }, t)
         await singleton.insertMainDB("wf_street_practice_positionshistory" + (Type == 2 ? "_short" : ""), { OrderId, MemberCode, AccountNo, OldPositions, Positions, SecuritiesType, SecuritiesNo }, { CreateTime: "now()" }, t)
         await singleton.insertMainDB("wf_street_practice_cashhistory", { OrderId, MemberCode, AccountNo, OldCash: Cash, Cash: Cash + delta }, { CreateTime: "now()" }, t)
         await singleton.updateMainDB("wf_street_practice_order", { execType: 1, Commission, Price }, { TurnoverTime: "now()" }, { Id: OrderId }, t)
@@ -48,7 +52,6 @@ export default async({ Id: OrderId, Commission, delta, AccountNo, OrdType, Side,
                     TradAble += OrderQty //修改可交易仓位
                     await singleton.updateMainDB("wf_street_practice_positions", { TradAble }, null, { Id: PositionsId }, t)
                 } else {
-                    let { Id, UsableCash } = await singleton.selectMainDB0("wf_street_practice_account", { AccountNo })
                     await singleton.updateMainDB("wf_street_practice_account", { UsableCash: UsableCash + Amount }, null, { Id }, t)
                 }
             })

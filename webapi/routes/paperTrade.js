@@ -47,7 +47,7 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
             return res.send({ Status: 44004, Explain: "可交易仓位不足:" + TradAble + "<" + OrderQty })
         }
         let sinaName = config.getQueryName(body)
-        let [, , , , lastPrice] = await singleton.getLastPrice(sinaName);
+        let [, , , lastPrice] = await singleton.getLastPrice(sinaName);
         if (!lastPrice) {
             res.send({ Status: -1, Explain: lastPrice })
             return
@@ -57,11 +57,11 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
         let delta = OrdType < 4 ? (Side == "B" ? -Commission - p * OrderQty : p * OrderQty - Commission) : -Commission
         body.MemberCode = memberCode
         if (OrdType > 3) {
-            if (Side == "S" && account.Cash + delta - p * OrderQty < 0) {
+            if (Side == "S" && account.UsableCash + delta - p * OrderQty < 0) {
                 res.send({ Status: 44001, Explain: "资金不足" })
                 return
             }
-        } else if (account.Cash + delta < 0) {
+        } else if (account.UsableCash + delta < 0) {
             res.send({ Status: 44001, Explain: "资金不足" })
             return
         }
@@ -93,7 +93,7 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
             EndTime = new Date(usResult[0][0].EndTimePM)
         }
         let result = await singleton.transaction(async transaction => {
-            let { insertId } = await singleton.insertMainDB("wf_street_practice_order", Object.assign({ execType: 0, EndTime, Amount: delta }, body), { CreateTime: "now()" }, transaction)
+            let { insertId } = await singleton.insertMainDB("wf_street_practice_order", Object.assign({ execType: 0, EndTime, Amount: delta, CPrice: Price }, body), { CreateTime: "now()" }, transaction)
             body.Id = insertId;
             if (Side == "SB" [Type - 1]) {
                 TradAble -= OrderQty //修改可交易仓位
@@ -155,36 +155,76 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
         let TotalProfit = 0
         for (let p of Positions) {
             p.LastPrice = (await singleton.getLastPrice(config.getQueryName(p)))[3]
-            p.Profit = p.LastPrice * p.Positions - p.CostPrice * p.Positions
-            if (p.Type == 2) p.Profit = -p.Profit
+            p.MarketValue = p.LastPrice * p.Positions
+            p.Profit = p.MarketValue - p.CostPrice * p.Positions
+            p.ProfitRate = (p.LastPrice - p.CostPrice) * 100 / p.CostPrice
+            if (p.Type == 2) {
+                p.Profit = -p.Profit
+                p.ProfitRate = -p.ProfitRate
+            }
             TotalProfit += p.Profit
         }
         res.send({ Status: 0, Explain: "", Positions, TotalProfit });
     }));
     /**今日委托 */
     router.get('/TodayOrders', ctt, ConvertAccountNo, wrap(async({ memberCode, AccountNo }, res) => {
-        let [result] = await mainDB.query(`select * from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and substr(CreateTime,1,10)=CurDate()`, { replacements: { memberCode } })
+        let result = await mainDB.query(`select * from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and substr(CreateTime,1,10)=CurDate()`, { replacements: { memberCode }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", DataList: result });
     }));
     /**今日成交 */
     router.get('/TodayDeals', ctt, ConvertAccountNo, wrap(async({ memberCode, AccountNo }, res) => {
-        let [result] = await mainDB.query(`select * from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and substr(TurnoverTime,1,10)=CurDate() and execType=1`, { replacements: { memberCode } })
+        let result = await mainDB.query(`select *,Price*OrderQty Turnover from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and substr(TurnoverTime,1,10)=CurDate() and execType=1`, { replacements: { memberCode }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", DataList: result });
     }));
     /**历史委托 */
     router.get('/Orders/:startDate/:endDate', ctt, ConvertAccountNo, wrap(async({ memberCode, params: { startDate, endDate }, AccountNo }, res) => {
-        let [result] = await mainDB.query(`select * from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and CreateTime>=startDate and CreateTime<=endDate and execType=1`, { replacements: { memberCode, startDate, endDate } })
+        let result = await mainDB.query(`select * from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and CreateTime>=startDate and CreateTime<=endDate`, { replacements: { memberCode, startDate, endDate }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", DataList: result });
     }));
     /**历史成交 */
     router.get('/Deals/:startDate/:endDate', ctt, ConvertAccountNo, wrap(async({ memberCode, params: { startDate, endDate }, AccountNo }, res) => {
-        let [result] = await mainDB.query(`select * from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and TurnoverTime>=startDate and TurnoverTime<=endDate and execType=1`, { replacements: { memberCode, startDate, endDate } })
+        let result = await mainDB.query(`select *,Price*OrderQty Turnover from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and TurnoverTime>=startDate and TurnoverTime<=endDate and execType=1`, { replacements: { memberCode, startDate, endDate }, type: "SELECT" })
+        res.send({ Status: 0, Explain: "", DataList: result });
+    }));
+    /**挂单列表 */
+    router.get('/Commissions', ctt, ConvertAccountNo, wrap(async({ memberCode, AccountNo }, res) => {
+        let result = await mainDB.query(`select * from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and execType=0`, { replacements: { memberCode }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", DataList: result });
     }));
     /**我的账户详情 */
     router.get('/Account', ctt, ConvertAccountNo, wrap(async({ memberCode, AccountNo }, res) => {
-        let [result] = await mainDB.query(`select * from wf_street_practice_account where MemberCode=:memberCode ${AccountNo}`, { replacements: { memberCode } })
+        let result = await mainDB.query(`select * from wf_street_practice_account where MemberCode=:memberCode ${AccountNo}`, { replacements: { memberCode }, type: "SELECT" })
+        for (let account of result) {
+            let Positions = await singleton.selectMainDB("wf_street_practice_positions", { MemberCode, AccountNo: account.AccountNo })
+            let TotalProfit = 0
+            let TotalMarketValue = 0
+            for (let p of Positions) {
+                p.LastPrice = (await singleton.getLastPrice(config.getQueryName(p)))[3]
+                p.MarketValue = p.LastPrice * p.Positions
+                p.Profit = p.MarketValue - p.CostPrice * p.Positions
+                    //p.ProfitRate = (p.LastPrice - p.CostPrice) * 100 / p.CostPrice
+                if (p.Type == 2) {
+                    p.Profit = -p.Profit
+                        //p.ProfitRate = -p.ProfitRate
+                }
+                TotalMarketValue += p.MarketValue
+                TotalProfit += p.Profit
+            }
+            account.TotalProfit = TotalProfit
+            account.TotalMarketValue = TotalMarketValue
+            let daysAgo = 1
+                //5点后的开盘时间点
+            if (new Date().getHours() >= (account.AccountType == 1 ? 21 : 9)) daysAgo = 0
+            let record = await mainDB.query('select TotalAmount from wf_street_practice_asset where AccountNo=:AccountNo and EndDate< DATE_SUB(CurDate(),INTERVAL :daysAgo day) order by EndDate desc limit 1', { replacements: { AccountNo, daysAgo }, type: "SELECT" })
+            account.TodayProfit = account.Cash + TotalMarketValue - record.TotalAmount
+        }
         res.send({ Status: 0, Explain: "", DataList: result });
+    }));
+    //用中文搜索股票
+    router.get('/SearchStock/:searchword', ctt, ConvertAccountNo, wrap(async({ memberCode, AccountNo, params: { searchword } }, res) => {
+        searchword = "%" + searchword + "%"
+        let result = await mainDB.query("SELECT SecuritiesNo,SecuritiesName from wf_securities_trade where Remark='DW' and (UPPER(SecuritiesName) like :searchword or UPPER(PinYin) like UPPER(:searchword) or UPPER(SecuritiesNo) like UPPER(:searchword))", { replacements: { searchword }, type: "SELECT" })
+        res.send({ Status: 0, Explain: "", DataList: result })
     }));
     return router
 }
