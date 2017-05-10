@@ -30,7 +30,7 @@ function getNames(value, other) {
 }
 export default {
     select2(table, value, other, option) {
-        if (!value) return [`select * from ${table}`, option]
+        if (!value) value = {}
         let replacements = value
         if (!option) option = { replacements, type: "SELECT" }
         else Object.assign(option, { replacements, type: "SELECT" })
