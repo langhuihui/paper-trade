@@ -29,7 +29,6 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
         for (let { UserId, MemberCode, username, password, emailAddress1 }
             of result) {
             try {
-                if (todayAssetResult.length) continue
                 let { sessionKey, accounts } = await request({
                     uri: dwUrls.createSession,
                     method: "POST",
