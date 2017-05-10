@@ -77,21 +77,25 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 let result = await CreateParactice(memberCode, "")
                     //await mainDB.query("delete from wf_token where MemberCode=:memberCode ", { replacements: { memberCode } })
                 res.send({ Status: 0, Explain: "", result: true, OpenDate: opendate })
-                let JpushRegID = (await mainDB.query('select JpushRegID from wf_im_jpush where MemberCode=:MemberCode', { replacements: body, type: "SELECT" }))[0].JpushRegID;
-                singleton.jpushClient.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(JpushRegID))
-                    .setOptions(null, null, null, Config.apns_production)
-                    .setMessage('嘉维账号重置', '', '', { AlertType: "jpush111", UserId: result.userId, username: result.username, password: result.password })
-                    .send(async(err, res) => {
-                        if (err) {
-                            if (err instanceof JPush.APIConnectionError) {
-                                console.log(err.message)
-                            } else if (err instanceof JPush.APIRequestError) {
-                                console.log(err.message)
-                            }
-                        } else {
+                let tmpresult = await mainDB.query('select JpushRegID from wf_im_jpush where MemberCode=:MemberCode', { replacements: body, type: "SELECT" })
+                let JpushRegID = tmpresult.length ? tmpresult[0].JpushRegID : ""
+                if (JpushRegID) {
+                    singleton.jpushClient.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(JpushRegID))
+                        .setOptions(null, null, null, Config.apns_production)
+                        .setMessage('嘉维账号重置', '', '', { AlertType: "jpush111", UserId: result.userId, username: result.username, password: result.password })
+                        .send(async(err, res) => {
+                            if (err) {
+                                if (err instanceof JPush.APIConnectionError) {
+                                    console.log(err.message)
+                                } else if (err instanceof JPush.APIRequestError) {
+                                    console.log(err.message)
+                                }
+                            } else {
 
-                        }
-                    })
+                            }
+                        })
+                }
+
             }
         }
     }))
