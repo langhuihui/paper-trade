@@ -48,7 +48,9 @@ async function startMQ() {
 startMQ();
 
 /**客户端初始化配置 */
-app.get('/System/GetConfig', checkEmpty('version'), wrap(async({ query: { version, dbVersion, memberCode, UUID, IMEI = "" } }, res) => {
+app.get('/System/GetConfig', checkEmpty('version'), wrap(async({ query: { version, dbVersion, memberCode, UUID, IMEI = "", token } }, res) => {
+    let { ValidityTime } = await singleton.selectMainDB0("wf_token", { TokenValue: token })
+    let TokenValid = token && ValidityTime && Date.parse(tokenModel.ValidityTime) + config.tokenTime * 60 < new Date()
     let setting = version && config.clientInit[version] ? Object.assign({}, config.clientInit[version]) : Object.assign(Object.assign({}, config.clientInitDefault), config.clientInitAll)
     if (dbVersion) {
         let [dbResult] = await mainDB.query('select * from wf_securities_version where Versions>:dbVersion order by Versions asc', { replacements: { dbVersion } })
@@ -58,7 +60,7 @@ app.get('/System/GetConfig', checkEmpty('version'), wrap(async({ query: { versio
             setting.updateSQL = dbResult.join('');
         }
     }
-    res.send({ Status: 0, Explain: "", Config: setting })
+    res.send({ Status: 0, Explain: "", Config: setting, TokenValid })
         //埋点
     statistic.login({ LoginId: memberCode ? memberCode : (UUID ? UUID : IMEI), DataSource: UUID ? "ios" : "android", AppVersion: version, IsLogin: memberCode != null })
 }));
