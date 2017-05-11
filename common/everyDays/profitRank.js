@@ -43,7 +43,7 @@ export default new EveryDay('profitRank', "05:00:00", async() => {
                         Balance: Cash,
                         TotalAmount,
                         TotalYield: TotalAmount * 100 / TranAmount,
-                        TotalProfit = TotalAmount - Config.practiceInitFun,
+                        TotalProfit : TotalAmount - Config.practiceInitFun,
                         MtmPL,
                         Positions: TotalAssets
                     };
