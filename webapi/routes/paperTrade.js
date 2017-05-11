@@ -221,10 +221,15 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
         res.send({ Status: 0, Explain: "", DataList: result });
     }));
     //用中文搜索股票
-    router.get('/SearchStock/:searchword', ctt, ConvertAccountNo, wrap(async({ memberCode, AccountNo, params: { searchword } }, res) => {
+    router.get('/SearchStock/:searchword', ctt, wrap(async({ memberCode, params: { searchword } }, res) => {
         searchword = "%" + searchword + "%"
-        let result = await mainDB.query("SELECT SecuritiesNo,SecuritiesName from wf_securities_trade where Remark='DW' and (UPPER(SecuritiesName) like :searchword or UPPER(PinYin) like UPPER(:searchword) or UPPER(SecuritiesNo) like UPPER(:searchword))", { replacements: { searchword }, type: "SELECT" })
+        let result = await mainDB.query("SELECT SecuritiesNo,SecuritiesName,SmallType from wf_securities_trade where Remark='DW' and (UPPER(SecuritiesName) like :searchword or UPPER(PinYin) like UPPER(:searchword) or UPPER(SecuritiesNo) like UPPER(:searchword))", { replacements: { searchword }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", DataList: result })
+    }));
+    router.get('/Securities4me/:SecuritiesType/:SecuritiesNo/:AccountNo', ctt, ConvertAccountNo, wrap(async({ memberCode, params }, res) => {
+        let [, , , LastPrice] = await singleton.getLastPrice(config.getQueryName(params))
+        let Positions = await singleton.selectMainDB("wf_street_practice_positions", { MemberCode: memberCode, AccountNo: params.AccountNo, SecuritiesType: params.SecuritiesType, SecuritiesNo: params.SecuritiesNo })
+        res.send({ Status: 0, Explain: "", Data: { LastPrice, Positions } })
     }));
     return router
 }
