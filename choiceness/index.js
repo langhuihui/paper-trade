@@ -20,14 +20,18 @@ async function startMQ() {
         }
         channel.ack(msg)
     })
+    ok = await channel.assertQueue('choiceGenerate')
+    channel.consume('choiceGenerate', msg => {
+        getAllChocieness(channel)
+        channel.ack(msg)
+    })
     getAllChocieness(channel)
         //redisClient.mset()
 }
 /**从数据库里读取所有精选信息 */
 async function getAllChocieness(channel) {
     console.log("获取所有精选")
-    let choiceness = await mainDB.query('select a.Id,a.`Code`,a.Title,a.Details,a.content,a.CoverImage,a.BannerImage,a.Provenance,a.StocksCount,a.State,b.Id SecuritiesId,b.SecuritiesType,b.SecuritiesNo,b.SecuritiesName from wf_choiceness a, wf_choiceness_stock b where a.`Code` = b.ChoiceCode and a.`Status` = 1 order by a.Id desc')
-    choiceness = choiceness[0]
+    let [choiceness] = await mainDB.query('select a.Id,a.`Code`,a.Title,a.Details,a.content,a.CoverImage,a.BannerImage,a.Provenance,a.StocksCount,a.State,b.Id SecuritiesId,b.SecuritiesType,b.SecuritiesNo,b.SecuritiesName from wf_choiceness a, wf_choiceness_stock b where a.`Code` = b.ChoiceCode and a.`Status` = 1 order by a.Id desc')
     let choicenessMap = {} //按精选Id分组
     bannerChoice = []
     normalChoice = []
@@ -67,6 +71,7 @@ async function caculateAvgDelta(target) {
         delete r.Stocks
         result.push(r)
     }
+    result.sort()
     return result
 }
 

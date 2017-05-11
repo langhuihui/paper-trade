@@ -70,12 +70,17 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
                     let [weekresult] = await mainDB.query('select TotalAmount from wf_drivewealth_practice_asset where UserId=:UserId and EndDate<:LastDate order by EndDate desc limit 1', { replacements: { LastDate, UserId } })
                     replacements.TodayProfit = replacements.TotalAmount - (result.length ? result[0].TotalAmount : Config.practiceInitFun)
                     replacements.WeekProfit = replacements.TotalAmount - (weekresult.length ? weekresult[0].TotalAmount : Config.practiceInitFun)
-                    replacements.WeekYield = replacements.WeekProfit / replacements.TotalAmount * 100
+                    replacements.WeekYield = replacements.WeekProfit / (weekresult.length ? weekresult[0].TotalAmount : Config.practiceInitFun) * 100
                     replacements.TotalProfit = replacements.TotalAmount - Config.practiceInitFun
                     replacements.TotalYield = replacements.TotalProfit / Config.practiceInitFun * 100
                     await mainDB.query(sqlstr.insert("wf_drivewealth_practice_asset", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
                 } else {
                     let replacements = { UserId, MemberCode, AccountID: accountID, Balance: cash, Positions: 0, TotalAmount: cash, MtmPL: 0, TodayProfit: 0 }
+                    let [weekresult] = await mainDB.query('select TotalAmount from wf_drivewealth_practice_asset where UserId=:UserId and EndDate<:LastDate order by EndDate desc limit 1', { replacements: { LastDate, UserId } })
+                    replacements.WeekProfit = replacements.TotalAmount - (weekresult.length ? weekresult[0].TotalAmount : Config.practiceInitFun)
+                    replacements.WeekYield = replacements.WeekProfit / (weekresult.length ? weekresult[0].TotalAmount : Config.practiceInitFun) * 100
+                    replacements.TotalProfit = replacements.TotalAmount - Config.practiceInitFun
+                    replacements.TotalYield = replacements.TotalProfit / Config.practiceInitFun * 100
                     await mainDB.query(sqlstr.insert("wf_drivewealth_practice_asset", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
                 }
             } catch (ex) {
