@@ -49,8 +49,11 @@ startMQ();
 
 /**客户端初始化配置 */
 app.get('/System/GetConfig', checkEmpty('version'), wrap(async({ query: { version, dbVersion, memberCode, UUID, IMEI = "", token } }, res) => {
-    let { ValidityTime } = await singleton.selectMainDB0("wf_token", { TokenValue: token })
-    let TokenValid = token && ValidityTime && Date.parse(tokenModel.ValidityTime) + config.tokenTime * 60 < new Date()
+    let TokenValid = false
+    if (token) {
+        let { ValidityTime } = await singleton.selectMainDB0("wf_token", { TokenValue: token })
+        TokenValid = ValidityTime && (Date.parse(ValidityTime) + config.tokenTime * 60 > new Date().getTime())
+    }
     let setting = version && config.clientInit[version] ? Object.assign({}, config.clientInit[version]) : Object.assign(Object.assign({}, config.clientInitDefault), config.clientInitAll)
     if (dbVersion) {
         let [dbResult] = await mainDB.query('select * from wf_securities_version where Versions>:dbVersion order by Versions asc', { replacements: { dbVersion } })
