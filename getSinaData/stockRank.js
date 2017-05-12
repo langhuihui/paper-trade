@@ -17,13 +17,16 @@ export default {
                 stockInfo.set(getQueryName(ccs), ccs)
             }
         }
-        //获取中概股
-        let [ccss] = await mainDB.query("select * from wf_securities_trade where ShowType='CCS' and Remark='DW'")
-        addRankStock(ccss)
-            //获取明星股
-        let [gss] = await mainDB.query("select * from wf_securities_trade where ShowType='GS' and Remark='DW'")
-        addRankStock(gss)
-            /**获取ETF */
+        // //获取中概股
+        // let [ccss] = await mainDB.query("select * from wf_securities_trade where ShowType='CCS' and Remark='DW'")
+        // addRankStock(ccss)
+        //     //获取明星股
+        // let [gss] = await mainDB.query("select * from wf_securities_trade where ShowType='GS' and Remark='DW'")
+        // addRankStock(gss)
+        //     /**获取ETF */
+        // let [etf] = await mainDB.query("select * from wf_securities_trade where ShowType='ETF' and Remark='DW'")
+        // addRankStock(etf)
+        addRankStock(await mainDB.query("select * from wf_securities_trade where ShowType in ('CCS','GS','ETF') and Remark='DW'", { type: "SELECT" }))
     },
     updatePrice(stockName, Open, High, Low, LastPrice, Pre, RiseFallRange) {
         if (stockInfo.has(stockName)) {

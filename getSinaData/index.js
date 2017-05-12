@@ -1,5 +1,5 @@
 import redis from 'redis'
-import request from 'request'
+import request from 'request-promise'
 import Config from '../config'
 import amqp from 'amqplib'
 import Iconv from 'iconv-lite'
@@ -116,23 +116,21 @@ function start() {
                     stocks_name = stocks.slice(i, i + l).join(",")
                     l = 0
                 }
-                request.get({ encoding: null, url: Config.sina_realjs + stocks_name }, (error, response, body) => {
-                    let rawData = Iconv.decode(body, 'gb2312')
+                let rawData = Iconv.decode(await request({ encoding: null, uri: Config.sina_realjs + stocks_name }), 'gb2312')
 
-                    function getStockPrice(stockName, x) {
-                        let q = Config.stockPatten.exec(stockName)[1];
-                        let price = Config.pricesIndexMap[q].map(y => {
-                            let p = Number(x[y])
-                            if (Number.isNaN(p)) p = 0;
-                            return p
-                        });
-                        price[5] = price[4] ? (price[3] - price[4]) * 100 / price[4] : 0;
-                        redisClient.hset("lastPrice", stockName, price.join(","));
-                        if (updateRank) stockRank.updatePrice(stockName, ...price)
-                    }
-                    eval(rawData + 'stocks.forEach(stockName=>getStockPrice(stockName,eval("hq_str_" + stockName).split(",")))')
-                    if (updateRank) stockRank.insertRank()
-                })
+                function getStockPrice(stockName, x) {
+                    let q = Config.stockPatten.exec(stockName)[1];
+                    let price = Config.pricesIndexMap[q].map(y => {
+                        let p = Number(x[y])
+                        if (Number.isNaN(p)) p = 0;
+                        return p
+                    });
+                    price[5] = price[4] ? (price[3] - price[4]) * 100 / price[4] : 0;
+                    redisClient.hset("lastPrice", stockName, price.join(","));
+                    if (updateRank) stockRank.updatePrice(stockName, ...price)
+                }
+                eval(rawData + 'stocks.forEach(stockName=>getStockPrice(stockName,eval("hq_str_" + stockName).split(",")))')
+                if (updateRank) stockRank.insertRank()
             }
         }
     }, 5000)
