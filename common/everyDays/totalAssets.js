@@ -100,9 +100,14 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
             let replacements = { UserId, MemberCode }
             let [fakeresult] = await mainDB.query('select TotalAmount from wf_drivewealth_practice_asset_v where UserId=:UserId and EndDate<CurDate() order by EndDate desc limit 1', { replacements })
             let [fakeweekresult] = await mainDB.query("select TotalAmount from wf_drivewealth_practice_asset_v where UserId=:UserId and EndDate<:LastDate order by EndDate desc limit 1 ", { replacements: { LastDate, UserId } });
-            let rand = 1 + Math.random() * Config.randmax / 100
-            rand = rand.toFixed(4)
-            replacements.TotalAmount = fakeresult.length ? fakeresult[0].TotalAmount * rand : Config.practiceInitFun * rand
+            if (moment().day() == 0 || moment().day() == 1) {
+                replacements.TotalAmount = fakeresult.length ? fakeresult[0].TotalAmount : Config.practiceInitFun
+            } else {
+                let rand = 1 + Math.random() * Config.randmax / 100
+                rand = rand.toFixed(4)
+                replacements.TotalAmount = fakeresult.length ? fakeresult[0].TotalAmount * rand : Config.practiceInitFun * rand
+            }
+
             replacements.TodayProfit = replacements.TotalAmount - (fakeresult.length ? fakeresult[0].TotalAmount : Config.practiceInitFun)
             replacements.WeekProfit = replacements.TotalAmount - (fakeweekresult.length ? fakeweekresult[0].TotalAmount : Config.practiceInitFun)
             replacements.WeekYield = replacements.WeekProfit / (fakeweekresult.length ? fakeweekresult[0].TotalAmount : Config.practiceInitFun) * 100
