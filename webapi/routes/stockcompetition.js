@@ -77,6 +77,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 let result = await CreateParactice(memberCode, "")
                     //await mainDB.query("delete from wf_token where MemberCode=:memberCode ", { replacements: { memberCode } })
                 res.send({ Status: 0, Explain: "", result: true, OpenDate: opendate })
+                setTimeout(5000)
                 let tmpresult = await mainDB.query('select JpushRegID from wf_im_jpush where MemberCode=:MemberCode', { replacements: body, type: "SELECT" })
                 let JpushRegID = tmpresult.length ? tmpresult[0].JpushRegID : ""
                 if (JpushRegID) {
