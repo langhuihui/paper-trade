@@ -60,7 +60,7 @@ app.get('/System/GetConfig', checkEmpty('version'), wrap(async({ query: { versio
         if (dbResult.length) {
             //let maxVersion = dbResult.last.Versions
             dbResult = dbResult.map(x => x.Content)
-            setting.updateSQL = dbResult.join('');
+                //setting.updateSQL = dbResult.join('');
         }
     }
     res.send({ Status: 0, Explain: "", Config: setting, TokenValid })
