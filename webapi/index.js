@@ -51,7 +51,7 @@ startMQ();
 app.get('/System/GetConfig', checkEmpty('version'), wrap(async({ query: { version, dbVersion, memberCode, UUID, IMEI = "", token } }, res) => {
     let TokenValid = false
     if (token) {
-        let { ValidityTime } = await singleton.selectMainDB0("wf_token", { TokenValue: token })
+        let { ValidityTime = false } = await singleton.selectMainDB0("wf_token", { TokenValue: token })
         TokenValid = ValidityTime && (Date.parse(ValidityTime) + config.tokenTime * 60 > new Date().getTime())
     }
     let setting = version && config.clientInit[version] ? Object.assign({}, config.clientInit[version]) : Object.assign(Object.assign({}, config.clientInitDefault), config.clientInitAll)
@@ -60,7 +60,7 @@ app.get('/System/GetConfig', checkEmpty('version'), wrap(async({ query: { versio
         if (dbResult.length) {
             //let maxVersion = dbResult.last.Versions
             dbResult = dbResult.map(x => x.Content)
-                //setting.updateSQL = dbResult.join('');
+            setting.updateSQL = dbResult.join('');
         }
     }
     res.send({ Status: 0, Explain: "", Config: setting, TokenValid })
