@@ -1,6 +1,7 @@
 import sqlstr from '../../common/sqlStr'
 import allowAccess from '../middles/allowAccess'
 import _config from '../config'
+import singleton from '../../common/singleton'
 const myMainListSql = `
 SELECT *,case when isnull(a.SelectPicture) or a.SelectPicture='' then '' else CONCAT(:picBaseURL,a.SelectPicture) end AS SelectPicture,DATE_FORMAT(ShowTime,'%Y-%m-%d %H:%i:%s') AS ShowTime,
 CONCAT(:picBaseURL,case when isnull(a.HeadImage) or a.HeadImage='' then :defaultHeadImage else a.HeadImage end)nHeadImage  FROM 
@@ -152,14 +153,71 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**获取我的消息列表 */
     router.get('/Messages', ctt, wrap(async({ memberCode }, res) => {
-        let [result] = await mainDB.query("select Id,Type,Title,Extension,Content,DATE_FORMAT(CreateTime,'%Y-%m-%d %H:%i:%s') CreateTime from wf_message where (MemberCode=:memberCode or Type=2) and Status=0 order by Id desc", { replacements: { memberCode } })
+        let [result] = await mainDB.query("select Id,Type,Title,Extension,Content,DATE_FORMAT(CreateTime,'%Y-%m-%d %H:%i:%s') CreateTime,Target from wf_message where (MemberCode=:memberCode or Type<>1) and Status=0 and IsDelete=0 and IsSend<>0 order by Id desc", { replacements: { memberCode } })
         for (let msg of result) {
-            if (msg.Extension) {
+            if (msg.Extension && msg.Type == 1) {
                 msg.Extension = JSON.parse(msg.Extension)
             }
         }
         await mainDB.query("delete from wf_message where MemberCode=:memberCode", { replacements: { memberCode } });
         res.send({ Status: 0, Explain: "", DataList: result })
+    }))
+
+    //获取自己的系统消息列表
+    /*  router.get('/MessageList', ctt, checkNum('pageNum', 'pageSize'), wrap(async({ query: { pageNum = 0, pageSize = 10, Type } }, res) => {
+          if (pageSize < 0) pageSize = 10
+          if (pageNum < 0) pageNum = 0
+          let result = {}
+          if (Type) {
+              result = await mainDB.query("select Id,Type,Content,Title,DATE_FORMAT(SendTime,'%Y-%m-%d %H:%i:%s')SendTime,Extension from wf_message where IsDelete=0 and IsSend<>0 and Type=:Type order by SendTime DESC limit :pageStart,:pageSize", { replacements: { Type, pageStart: pageNum * pageSize, pageSize }, type: "SELECT" })
+          } else {
+              result = await mainDB.query("select Id,Type,Content,Title,DATE_FORMAT(SendTime,'%Y-%m-%d %H:%i:%s')SendTime,Extension from wf_message where IsDelete=0 and IsSend<>0 and Type<>1 order by SendTime DESC limit :pageStart,:pageSize", { replacements: { pageStart: pageNum * pageSize, pageSize }, type: "SELECT" })
+          }
+          res.send({ Status: 0, Explain: "", DataList: result })
+      }))*/
+
+
+    /*
+    Type为1资讯,2为视频,3为街区,4为股票详情,5为投票,6为书籍
+     */
+    //删除自己的评论
+    router.delete('/DeleteComment/:Type/:Id', ctt, wrap(async({ params: { Type, Id } }, res) => {
+        switch (Type) {
+            case "1": //资讯
+                let result = await singleton.transaction(async transaction => {
+                    let updateResult = await singleton.updateMainDB("wf_news_comment", { IsDelete: 1 }, null, { Id })
+                    if (updateResult.changedRows != 1)
+                        throw -1
+                    let searchResult = await mainDB.query("select NewsCode from wf_news_comment where Id=:Id ", { replacements: { Id }, type: "SELECT" })
+                    await mainDB.query("update wf_news set CommentCount=CommentCount-1 where Code=:Code ", { replacements: { Code: searchResult[0].NewsCode }, transaction: transaction.transaction })
+                })
+                if (result != 0) {
+                    return res.send({ Status: 500, Explain: result })
+                }
+                res.send({ Status: 0, Explain: "ok" })
+                break;
+            case "2": //视频
+                result = await singleton.transaction(async transaction => {
+                    let updateResult = await singleton.updateMainDB("wf_video_comment", { IsDelete: 1 }, null, { CommentID: Id })
+                    if (updateResult.changedRows != 1)
+                        throw -1
+                    let searchResult = await mainDB.query("select VideoCode from wf_video_comment where CommentID=:CommentID ", { replacements: { CommentID: Id }, type: "SELECT" })
+                    await mainDB.query("update wf_live_video set CommentNumber=CommentNumber-1 where VideoCode=:VideoCode ", { replacements: { Code: searchResult[0].VideoCode }, transaction: transaction.transaction })
+                })
+                if (result != 0) {
+                    return res.send({ Status: 500, Explain: result })
+                }
+                res.send({ Status: 0, Explain: "ok" })
+                break;
+            case "3": //街区
+                break;
+            case "4": //股票详情
+                break;
+            case "5": //投票
+                break;
+            case "6": //书籍
+                break;
+        }
     }))
     return router
 }

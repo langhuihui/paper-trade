@@ -129,7 +129,7 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
         let { Side, OrdType, OrderQty, AccountNo } = order
         let Type = ((OrdType - 1) / 3 >> 0) + 1 //1，2，3=>1做多；4，5，6=>2做空
         let result = await singleton.transaction(async transaction => {
-            let [updateResult] = await singleton.updateMainDB("wf_street_practice_order", { execType: 2 }, null, { Id: orderID })
+            let updateResult = await singleton.updateMainDB("wf_street_practice_order", { execType: 2 }, null, { Id: orderID })
             if (updateResult.changedRows != 1)
                 throw -1
             if (Side == "BS" [Type - 1]) {
