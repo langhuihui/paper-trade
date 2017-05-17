@@ -106,16 +106,17 @@ function start() {
         if (l && redisClient.connected) {
             let i = 0
             let stocks_name = ""
-
+            let currentStocks = []
             while (l) {
                 if (l > pageSize) {
-                    stocks_name = stocks.slice(i, i + pageSize).join(",")
+                    currentStocks = stocks.slice(i, i + pageSize)
                     l -= pageSize
                     i += pageSize
                 } else {
-                    stocks_name = stocks.slice(i, i + l).join(",")
+                    currentStocks = stocks.slice(i, i + l)
                     l = 0
                 }
+                stocks_name = currentStocks.join(",")
                 let rawData = Iconv.decode(await request({ encoding: null, uri: Config.sina_realjs + stocks_name }), 'gb2312')
 
                 function getStockPrice(stockName, x) {
@@ -129,7 +130,7 @@ function start() {
                     redisClient.hset("lastPrice", stockName, price.join(","));
                     if (updateRank) stockRank.updatePrice(stockName, ...price)
                 }
-                eval(rawData + 'stocks.forEach(stockName=>getStockPrice(stockName,eval("hq_str_" + stockName).split(",")))')
+                eval(rawData + 'currentStocks.forEach(stockName=>getStockPrice(stockName,eval("hq_str_" + stockName).split(",")))')
                 if (updateRank) stockRank.insertRank()
             }
         }
