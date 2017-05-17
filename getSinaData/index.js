@@ -8,6 +8,7 @@ import sqlstr from '../common/sqlStr'
 import stockRank from './stockRank'
 import singleton from '../common/singleton'
 import { dwUrls } from '../common/driveWealth'
+import moment from 'moment-timezone'
 const { mainDB, redisClient } = singleton
 var ignoreMarket = true
 var stockRef = new StockRef()
@@ -140,7 +141,7 @@ function start() {
 
 function getYesterDayPrice() {
     setInterval(async() => {
-        if (now > new Date(now.format("yyyy-MM-dd") + " " + "04:30:00")) {
+        if (new Date(moment()) > new Date(moment().format("YYYY-MM-DD") + " " + "04:30:00")) {
             let { sessionKey } = await request({
                 uri: dwUrls.createSession,
                 method: "POST",
