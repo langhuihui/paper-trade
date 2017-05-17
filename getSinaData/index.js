@@ -7,6 +7,7 @@ import StockRef from './stocksRef'
 import sqlstr from '../common/sqlStr'
 import stockRank from './stockRank'
 import singleton from '../common/singleton'
+import { dwUrls } from '../common/driveWealth'
 const { mainDB, redisClient } = singleton
 var ignoreMarket = true
 var stockRef = new StockRef()
@@ -137,9 +138,50 @@ function start() {
     }, 5000)
 }
 
+function getYesterDayPrice() {
+    setInterval(async() => {
+        if (now > new Date(now.format("yyyy-MM-dd") + " " + "04:30:00")) {
+            let { sessionKey } = await request({
+                uri: dwUrls.createSession,
+                method: "POST",
+                body: {
+                    "appTypeID": "2000",
+                    "appVersion": "0.1",
+                    "username": "16459847",
+                    "emailAddress": "16459847@wolfstreet.tv",
+                    "ipAddress": "1.1.1.1",
+                    "languageID": "zh_CN",
+                    "osVersion": "iOS 9.1",
+                    "osType": "iOS",
+                    "scrRes": "1920x1080",
+                    "password": "p16459847"
+                },
+                json: true
+            })
+            let result = await request({
+                headers: { 'x-mysolomeo-session-key': sessionKey },
+                method: "GET",
+                //encoding: null,
+                uri: "http://api.drivewealth.net/v1/instruments",
+                //uri: "http://api.drivewealth.net/v1/instruments?symbols=" + postdata,
+                json: true
+
+            })
+            if (result.length) {
+                for (let msg of result) {
+                    if (msg.close != "" && msg.close > 0)
+                        redisClient.hset("yesterdayprice", msg.symbol, msg.close)
+                }
+            }
+
+        }
+    }, 5000)
+}
+
 function stop() {
     clearInterval(intervalId)
 }
 stockRank.init(stockRef)
 startMQ()
 start()
+getYesterDayPrice()
