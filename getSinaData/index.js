@@ -139,6 +139,36 @@ function start() {
     }, 5000)
 }
 
+function startGetDWLastPrice() {
+    setInterval(async() => {
+        let marketIsOpen = await singleton.marketIsOpen2()
+        if (marketIsOpen.us) {
+
+        }
+    })
+}
+async function getsession() {
+    let { sessionKey, accounts } = await request({
+        uri: dwUrls.createSession,
+        method: "POST",
+        body: {
+            "appTypeID": "2000",
+            "appVersion": "0.1",
+            "username": "16459847",
+            "emailAddress": "16459847@wolfstreet.tv",
+            "ipAddress": "1.1.1.1",
+            "languageID": "zh_CN",
+            "osVersion": "iOS 9.1",
+            "osType": "iOS",
+            "scrRes": "1920x1080",
+            "password": "p16459847"
+        },
+        json: true
+    })
+    console.log(sessionKey)
+    return sessionKey
+}
+
 function stop() {
     clearInterval(intervalId)
 }

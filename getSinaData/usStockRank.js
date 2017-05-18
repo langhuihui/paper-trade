@@ -1,0 +1,1 @@
+const { mainDB, redisClient } = singleton

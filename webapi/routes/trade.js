@@ -114,7 +114,7 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
         res.send({ Status: 0, Explain: "", DataList: result })
     }));
     //用中文搜索股票
-    router.get('/QuotationUsRank/:ShowType/:Order/:Limit', wrap(async({ params: { ShowType, Order, Limit } }, res) => {
+    router.post('/QuotationUsRank/:ShowType/:Order/:Limit', ctt, wrap(async({ params: { ShowType, Order, Limit } }, res) => {
         let limit = Number(Limit)
         let currentUSrankCname = await redisClient.getAsync("currentSRT")
         let result = {}
