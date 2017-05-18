@@ -113,5 +113,22 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
         let [result] = await mainDB.query("SELECT SecuritiesNo,SecuritiesName from wf_securities_trade where Remark='DW' and (UPPER(SecuritiesName) like :searchword or UPPER(PinYin) like UPPER(:searchword) or UPPER(SecuritiesNo) like UPPER(:searchword))", { replacements: { searchword } })
         res.send({ Status: 0, Explain: "", DataList: result })
     }));
+    //用中文搜索股票
+    router.get('/QuotationUsRank/:ShowType/:Order/:Limit', wrap(async({ params: { ShowType, Order, Limit } }, res) => {
+        let limit = Number(Limit)
+        let currentUSrankCname = await redisClient.getAsync("currentSRT")
+        let result = {}
+        switch (ShowType) {
+            case "ALL":
+                result = await realDB.collection(currentUSrankCname).find({}, { _id: 0, sort: { RiseFallRange: Order == "desc" ? -1 : 1 }, limit }).toArray()
+                break
+            case "CCS":
+            case "GS":
+            case "ETF":
+                result = await realDB.collection(currentUSrankCname).find({ ShowType }, { _id: 0, sort: { RiseFallRange: Order == "desc" ? -1 : 1 }, limit }).toArray()
+                break
+        }
+        res.send({ Status: 0, Explain: "", DataList: result })
+    }));
     return router
 }
