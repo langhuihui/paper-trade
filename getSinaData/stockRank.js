@@ -26,7 +26,7 @@ export default {
         //     /**获取ETF */
         // let [etf] = await mainDB.query("select * from wf_securities_trade where ShowType='ETF' and Remark='DW'")
         // addRankStock(etf)
-        addRankStock(await mainDB.query("select * from wf_securities_trade where ShowType in ('CCS','GS','ETF') and Remark='DW'", { type: "SELECT" }))
+        addRankStock(await mainDB.query("select * from wf_securities_trade where Remark='DW'", { type: "SELECT" }))
     },
     updatePrice(stockName, Open, High, Low, LastPrice, Pre, RiseFallRange) {
         if (stockInfo.has(stockName)) {
