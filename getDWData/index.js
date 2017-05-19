@@ -51,34 +51,36 @@ function startcalculateData() {
 async function calculateData() {
     addRankStock(await mainDB.query("select * from wf_securities_trade where Remark='DW'", { type: "SELECT" }))
     let result = await redisClient.hgetallAsync("newestUSPrice");
-    await Promise.all(Object.keys(result).map(k => {
-        return redisClient.hgetAsync("lastPrice", Config.getQueryName({ SecuritiesType: "us", SecuritiesNo: k })).then(a => {
-            if (a) {
-                a = JSON.parse("[" + a + "]")
-                a[3] = result[k]
-                let [, , , price, pre, chg] = a //开，高，低，新,昨收
-                a[5] = pre ? (price - pre) * 100 / pre : 0
-                redisClient.hset("usDWLastPrice", k, a.join(","))
-                if (mdbData.has(k)) {
-                    let info = mdbData.get(k);
-                    info.RiseFallRange = a[5];
-                    info.NewPrice = price;
-                    info.hasNewPrice = 1
+    if (result) {
+        await Promise.all(Object.keys(result).map(k => {
+            return redisClient.hgetAsync("lastPrice", Config.getQueryName({ SecuritiesType: "us", SecuritiesNo: k })).then(a => {
+                if (a) {
+                    a = JSON.parse("[" + a + "]")
+                    a[3] = result[k]
+                    let [, , , price, pre, chg] = a //开，高，低，新,昨收
+                    a[5] = pre ? (price - pre) * 100 / pre : 0
+                    redisClient.hset("usDWLastPrice", k, a.join(","))
+                    if (mdbData.has(k)) {
+                        let info = mdbData.get(k);
+                        info.RiseFallRange = a[5];
+                        info.NewPrice = price;
+                        info.hasNewPrice = 1
+                    }
                 }
-            }
-        })
-    }))
+            })
+        }))
 
-    let currentRankTable = await redisClient.getAsync("currentUSSRT")
-    if (!currentRankTable) {
-        currentRankTable = ranka
-        redisClient.set("currentUSSRT", rankb)
-    } else {
-        await redisClient.setAsync("currentUSSRT", currentRankTable == ranka ? rankb : ranka)
+        let currentRankTable = await redisClient.getAsync("currentUSSRT")
+        if (!currentRankTable) {
+            currentRankTable = ranka
+            redisClient.set("currentUSSRT", rankb)
+        } else {
+            await redisClient.setAsync("currentUSSRT", currentRankTable == ranka ? rankb : ranka)
+        }
+        let collection = (await singleton.getRealDB()).collection(currentRankTable);
+        try { await collection.drop() } catch (ex) {}
+        collection.insertMany(Array.from(mdbData.values()))
     }
-    let collection = (await singleton.getRealDB()).collection(currentRankTable);
-    try { await collection.drop() } catch (ex) {}
-    collection.insertMany(Array.from(mdbData.values()))
 }
 
 
