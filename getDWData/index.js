@@ -3,6 +3,7 @@ import request from 'request-promise'
 import Config from '../config'
 import singleton from '../common/singleton'
 import { dwUrls } from '../common/driveWealth'
+import amqp from 'amqplib'
 const { mainDB, redisClient } = singleton
 var getDataTimeout = 10000
 var calculateTimeout = 10000
@@ -17,6 +18,9 @@ function startGetData() {
             console.log(new Date() + "--------getDataTimeout=" + getDataTimeout + "---------------")
             console.log(new Date() + "--------getDWData begin---------------")
             await writetoredis()
+            var amqpConnection = await amqp.connect(Config.amqpConn)
+            let mqChannel = await amqpConnection.createChannel()
+            mqChannel.sendToQueue("calcuateUSStockData", new Buffer(JSON.stringify({ cmd: "getData" })))
             console.log(new Date() + "--------getDWData end---------------")
         } else {
             console.log(new Date() + "--------getDataTimeout=" + getDataTimeout + "---------------")
@@ -45,10 +49,25 @@ function startcalculateData() {
     }, calculateTimeout);
 }
 
+if (!Config.getDWData) {
+    (async() => {
+        var amqpConnection = await amqp.connect(Config.amqpConn)
+        let mqChannel = await amqpConnection.createChannel()
+        let ok = await mqChannel.assertQueue('calcuateUSStockData')
+        mqChannel.consume('calcuateUSStockData', msg => {
+            console.log(new Date() + "getmqinfo and then start to calculateData")
+            calculateData()
+            console.log(new Date() + "calculateData end ")
+            mqChannel.ack(msg)
+        })
+    })()
+}
+
 /**
  * 写入美股最新价格,计算涨跌幅
  */
 async function calculateData() {
+    console.time('calculateData cost time:');
     addRankStock(await mainDB.query("select * from wf_securities_trade where Remark='DW'", { type: "SELECT" }))
     let result = await redisClient.hgetallAsync("newestUSPrice");
     if (result) {
@@ -80,6 +99,7 @@ async function calculateData() {
         let collection = (await singleton.getRealDB()).collection(currentRankTable);
         try { await collection.drop() } catch (ex) {}
         collection.insertMany(Array.from(mdbData.values()))
+        console.timeEnd('calculateData cost time:');
     }
 }
 
@@ -106,17 +126,14 @@ function addRankStock(ccss) {
  */
 async function writetoredis() {
     let start = new Date()
-    console.time('100-elements');
-    console.log("starttime:" + start.toLocaleString())
+    console.time('get dwdata cost time: ');
+
     let result = await getDWLastPrice()
-        //  console.log("--------------" + result.length + "-------------")
     result.map(({ symbol, lastTrade }) => {
         if (symbol != "" && symbol != undefined && lastTrade != "" && lastTrade != undefined) redisClient.hmset("newestUSPrice", symbol, lastTrade)
     })
     let end = new Date()
-    console.log("endtime:" + end.toLocaleString())
-    console.log("cost time:" + (end - start) + "ms")
-    console.timeEnd('100-elements');
+    console.timeEnd('get dwdata cost time: ');
     getDataTimeout = 2000
 }
 
@@ -178,5 +195,6 @@ async function getDWLastPrice() {
     return result
 }
 
-startGetData()
-startcalculateData()
+if (Config.getDWData)
+    startGetData()
+    //startcalculateData()

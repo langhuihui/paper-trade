@@ -34,7 +34,8 @@ let config = {
         reportsHost: "https://reports.drivewealth.net"
     },
     practiceInitFun: 10000, //模拟交易起始资金
-    randmax: 1 //每日增长系数
+    randmax: 1, //每日增长系数
+    getDWData: true //是否获取嘉维数据，当获取嘉维数据打开时，计算排名则关闭，当获取嘉维数据关闭时，计算排名则打开
         //  mysqlconn: "mysql://wfadmin:123456@192.168.2.205:3306/wolfstreet_test",
 }
 console.log(process.env.NODE_ENV)
