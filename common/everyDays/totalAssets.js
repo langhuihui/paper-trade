@@ -7,7 +7,7 @@ import sqlstr from '../sqlStr'
 import singleton from '../singleton'
 const { mainDB, redisClient } = singleton
 
-export default new EveryDay('totalAssets', "05:00:00", async() => {
+export default new EveryDay('totalAssets', "04:30:00", async() => {
     let LastDate = ""
     switch (moment().day()) {
         case 1:
@@ -59,6 +59,32 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
                     method: "POST",
                     json: true
                 })
+
+                let { transaction } = await request({
+                    headers: { 'x-mysolomeo-session-key': sessionKey },
+                    uri: "https://reports.drivewealth.net/DriveWealth",
+                    method: "POST",
+                    qs: {
+                        sessionKey,
+                        "ReportName": "OrderTrans",
+                        "ReportFormat": "JSON",
+                        "AccountNumber": accountNo,
+                        "wlpID": "DW",
+                        "LanguageID": "zh_CN",
+                        "DateStart": moment("2017-05-01", moment.ISO_8601),
+                        "DateEnd": moment(new Date(), moment.ISO_8601)
+                    },
+                    json: true
+                })
+                if (transaction.length) {
+                    for (let ttmp of transaction) {
+                        await mainDB.query("insert into wf_drivewealth_practice_order(MemberCode,AccountNo,SecuritiesType,SecuritiesNo,Price,OrderQty,Side,OrdType,ExecType,CreateTime) values(:MemberCode,:AccountNo,'us',:SecuritiesNo,:Price,:OrderQty,:Side,:OrdType,:ExecType,:CreateTime)", {
+                            replacements: { MemberCode, AccountNo: accountNo, SecuritiesNo: ttmp.symbol, Price: ttmp.lastPx, OrderQty: ttmp.cumQty, Side: ttmp.side, OrdType: ttmp.ordType, ExecType: ttmp.execType, CreateTime: ttmp.transactTime }
+                        })
+                    }
+                }
+
+
                 if (positions) {
 
                     let Positions = positions.reduce((acc, val) => acc + val.mtm, 0) //总的持仓资产
