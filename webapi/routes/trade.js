@@ -116,7 +116,8 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
     //股票整体排序
     router.post('/QuotationUsRank/:ShowType/:Order/:Limit', ctt, wrap(async({ params: { ShowType, Order, Limit } }, res) => {
         let limit = Number(Limit)
-        let currentUSrankCname = await redisClient.getAsync("currentSRTUS")
+        let currentUSrankCname = await redisClient.getAsync("currentUSSRT")
+        console.log(currentUSrankCname)
         let result = {}
         switch (ShowType) {
             case "ALL":
