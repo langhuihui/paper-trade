@@ -157,6 +157,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         for (let msg of result) {
             if (msg.Extension && msg.Type == 1) {
                 msg.Extension = JSON.parse(msg.Extension)
+            } else {
+                delete msg.Extension
             }
         }
         await mainDB.query("delete from wf_message where MemberCode=:memberCode", { replacements: { memberCode } });
