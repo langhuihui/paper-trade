@@ -6,7 +6,7 @@ module.exports = function({ mainDB, statistic, ctt, express, config, wrap }) {
     const router = express.Router();
     /**页面停留时间埋点 */
     router.post('/StayTimeStatistics', ctt, wrap(async({ memberCode, body }, res) => {
-        res.end()
+        //res.end()
         let result = {}
         body.LoginId = memberCode
         body.IsLogin = 1
@@ -75,6 +75,7 @@ module.exports = function({ mainDB, statistic, ctt, express, config, wrap }) {
                 statistic.stockPageStay(body)
                 break
         }
+        res.send({ Status: 0, Explain: "" })
     }));
     /**股票详情页面埋点 */
     router.post('/StockStatistics/:StockType/:StockNo', ctt, wrap(async({ params: { StockType, StockNo }, body, memberCode }, res) => {
