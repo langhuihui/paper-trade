@@ -14,58 +14,58 @@ module.exports = function({ mainDB, statistic, ctt, express, config, wrap }) {
             case "news": //资讯类
                 switch (body.TypeId) {
                     case 13: //投票
-                        result = mainDB.query("select VoteId from wf_vote where VoteCode=:VoteCode", { replacements: { VoteCode: body.PageId }, type: "SELECT" })
+                        result = await mainDB.query("select VoteId from wf_vote where VoteCode=:VoteCode", { replacements: { VoteCode: body.PageId }, type: "SELECT" })
                         if (result.length) {
-                            body.PageId = result.VoteId
+                            body.PageId = result[0].VoteId
                             statistic.pageStay(body)
                         }
                         break
                     case 14: //书籍
-                        result = mainDB.query("select Id from wf_books where Code=:Code", { replacements: { Code: body.PageId }, type: "SELECT" })
+                        result = await mainDB.query("select Id from wf_books where Code=:Code", { replacements: { Code: body.PageId }, type: "SELECT" })
                         if (result.length) {
-                            body.PageId = result.Id
+                            body.PageId = result[0].Id
                             statistic.pageStay(body)
                         }
                         break
                     case 15: //专题
-                        result = mainDB.query("select Id from wf_dissertation_type where Code=:Code", { replacements: { Code: body.PageId }, type: "SELECT" })
+                        result = await mainDB.query("select Id from wf_dissertation_type where Code=:Code", { replacements: { Code: body.PageId }, type: "SELECT" })
                         if (result.length) {
-                            body.PageId = result.Id
+                            body.PageId = result[0].Id
                             statistic.pageStay(body)
                         }
                         break
                     case 16: //栏目
-                        result = mainDB.query("select ColumnId from wf_news_column where ColumnNo=:ColumnNo", { replacements: { ColumnNo: body.PageId }, type: "SELECT" })
+                        result = await mainDB.query("select ColumnId from wf_news_column where ColumnNo=:ColumnNo", { replacements: { ColumnNo: body.PageId }, type: "SELECT" })
                         if (result.length) {
-                            body.PageId = result.ColumnId
+                            body.PageId = result[0].ColumnId
                             statistic.pageStay(body)
                         }
                         break
                     case 17: //精选
-                        result = mainDB.query("select Id from wf_choiceness where Code=:Code", { replacements: { Code: body.PageId }, type: "SELECT" })
+                        result = await mainDB.query("select Id from wf_choiceness where Code=:Code", { replacements: { Code: body.PageId }, type: "SELECT" })
                         if (result.length) {
-                            body.PageId = result.Id
+                            body.PageId = result[0].Id
                             statistic.pageStay(body)
                         }
                         break
                     case 18: //图说
-                        result = mainDB.query("select Id from wf_imagetext where Code=:Code", { replacements: { Code: body.PageId }, type: "SELECT" })
+                        result = await mainDB.query("select Id from wf_imagetext where Code=:Code", { replacements: { Code: body.PageId }, type: "SELECT" })
                         if (result.length) {
-                            body.PageId = result.Id
+                            body.PageId = result[0].Id
                             statistic.pageStay(body)
                         }
                         break
                     case 19: //资讯
-                        result = mainDB.query("select Id from wf_news where Code=:Code", { replacements: { Code: body.PageId }, type: "SELECT" })
+                        result = await mainDB.query("select Id from wf_news where Code=:Code", { replacements: { Code: body.PageId }, type: "SELECT" })
                         if (result.length) {
-                            body.PageId = result.Id
+                            body.PageId = result[0].Id
                             statistic.pageStay(body)
                         }
                         break
                     case 20: //视频
-                        result = mainDB.query("select VideoId from wf_live_video where VideoCode=:VideoCode", { replacements: { VideoCode: body.PageId }, type: "SELECT" })
+                        result = await mainDB.query("select VideoId from wf_live_video where VideoCode=:VideoCode", { replacements: { VideoCode: body.PageId }, type: "SELECT" })
                         if (result.length) {
-                            body.PageId = result.VideoId
+                            body.PageId = result[0].VideoId
                             statistic.pageStay(body)
                         }
                         break
