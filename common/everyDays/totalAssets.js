@@ -7,7 +7,7 @@ import sqlstr from '../sqlStr'
 import singleton from '../singleton'
 const { mainDB, redisClient } = singleton
 
-export default new EveryDay('totalAssets', "05:00:00", async() => {
+export default new EveryDay('totalAssets', "04:30:00", async() => {
     let LastDate = ""
     switch (moment().day()) {
         case 1:
@@ -59,6 +59,32 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
                     method: "POST",
                     json: true
                 })
+
+                let { transaction } = await request({
+                    headers: { 'x-mysolomeo-session-key': sessionKey },
+                    uri: "https://reports.drivewealth.net/DriveWealth",
+                    method: "POST",
+                    qs: {
+                        sessionKey,
+                        "ReportName": "OrderTrans",
+                        "ReportFormat": "JSON",
+                        "AccountNumber": accountNo,
+                        "wlpID": "DW",
+                        "LanguageID": "zh_CN",
+                        "DateStart": moment("2017-05-01", moment.ISO_8601),
+                        "DateEnd": moment(new Date(), moment.ISO_8601)
+                    },
+                    json: true
+                })
+                if (transaction.length) {
+                    for (let ttmp of transaction) {
+                        await mainDB.query("insert into wf_drivewealth_practice_order(MemberCode,AccountNo,SecuritiesType,SecuritiesNo,Price,OrderQty,Side,OrdType,ExecType,CreateTime) values(:MemberCode,:AccountNo,'us',:SecuritiesNo,:Price,:OrderQty,:Side,:OrdType,:ExecType,:CreateTime)", {
+                            replacements: { MemberCode, AccountNo: accountNo, SecuritiesNo: ttmp.symbol, Price: ttmp.lastPx, OrderQty: ttmp.cumQty, Side: ttmp.side, OrdType: ttmp.ordType, ExecType: ttmp.execType, CreateTime: ttmp.transactTime }
+                        })
+                    }
+                }
+
+
                 if (positions) {
 
                     let Positions = positions.reduce((acc, val) => acc + val.mtm, 0) //总的持仓资产
@@ -129,7 +155,8 @@ export default new EveryDay('totalAssets', "05:00:00", async() => {
     redisClient.set("RankList:todayProfit", JSON.stringify(todayProfitResult));
 
     mainDB.query('CALL PRC_WF_PRACTICE_RANK();')
-    await mainDB.query('CALL PRC_WF_PRACTICE_RANK_V();')
+    if (moment().day() == 0 || moment().day() == 1)
+        await mainDB.query('CALL PRC_WF_PRACTICE_RANK_V();')
 
     //缓存炒股大赛总排行
     let [matchTotalProfitReulst] = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue totalamount,b.RankValue totalprofit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank_v a ,wf_drivewealth_practice_rank_v b where a.MemberCode = b.MemberCode and a.Type = 11 and b.Type = 10 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: Config.picBaseURL, defaultHeadImage: Config.defaultHeadImage } })

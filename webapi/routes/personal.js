@@ -157,6 +157,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         for (let msg of result) {
             if (msg.Extension && msg.Type == 1) {
                 msg.Extension = JSON.parse(msg.Extension)
+            } else {
+                delete msg.Extension
             }
         }
         await mainDB.query("delete from wf_message where MemberCode=:memberCode", { replacements: { memberCode } });
@@ -181,15 +183,18 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     Type为1资讯,2为视频,3为街区,4为股票详情,5为投票,6为书籍
      */
     //删除自己的评论
-    router.delete('/DeleteComment/:Type/:Id', ctt, wrap(async({ params: { Type, Id } }, res) => {
+    router.delete('/DeleteComment/:Type/:Id', ctt, wrap(async({ params: { Type, Id }, memberCode }, res) => {
+        let result = {}
         switch (Type) {
             case "1": //资讯
-                let result = await singleton.transaction(async transaction => {
-                    let updateResult = await singleton.updateMainDB("wf_news_comment", { IsDelete: 1 }, null, { Id })
+                result = await singleton.transaction(async transaction => {
+                    let updateResult = await singleton.updateMainDB("wf_news_comment", { IsDelete: 1 }, null, { Id, CreateUser: memberCode }, transaction)
                     if (updateResult.changedRows != 1)
                         throw -1
                     let searchResult = await mainDB.query("select NewsCode from wf_news_comment where Id=:Id ", { replacements: { Id }, type: "SELECT" })
-                    await mainDB.query("update wf_news set CommentCount=CommentCount-1 where Code=:Code ", { replacements: { Code: searchResult[0].NewsCode }, transaction: transaction.transaction })
+                    updateResult = await mainDB.query("update wf_news set CommentCount=CommentCount-1 where Code=:Code ", { replacements: { Code: searchResult[0].NewsCode }, transaction: transaction.transaction })
+                    if (updateResult[0].changedRows != 1)
+                        throw -1
                 })
                 if (result != 0) {
                     return res.send({ Status: 500, Explain: result })
@@ -198,11 +203,13 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 break;
             case "2": //视频
                 result = await singleton.transaction(async transaction => {
-                    let updateResult = await singleton.updateMainDB("wf_video_comment", { IsDelete: 1 }, null, { CommentID: Id })
+                    let updateResult = await singleton.updateMainDB("wf_video_comment", { IsDelete: 1 }, null, { CommentID: Id, MemberCode: memberCode }, transaction)
                     if (updateResult.changedRows != 1)
                         throw -1
                     let searchResult = await mainDB.query("select VideoCode from wf_video_comment where CommentID=:CommentID ", { replacements: { CommentID: Id }, type: "SELECT" })
-                    await mainDB.query("update wf_live_video set CommentNumber=CommentNumber-1 where VideoCode=:VideoCode ", { replacements: { Code: searchResult[0].VideoCode }, transaction: transaction.transaction })
+                    updateResult = await mainDB.query("update wf_live_video set CommentNumber=CommentNumber-1 where VideoCode=:VideoCode ", { replacements: { VideoCode: searchResult[0].VideoCode }, transaction: transaction.transaction })
+                    if (updateResult[0].changedRows != 1)
+                        throw -1
                 })
                 if (result != 0) {
                     return res.send({ Status: 500, Explain: result })
@@ -210,12 +217,59 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 res.send({ Status: 0, Explain: "ok" })
                 break;
             case "3": //街区
+                result = await singleton.transaction(async transaction => {
+                    let updateResult = await singleton.updateMainDB("wf_imagetext_comment", { IsDelete: 1 }, null, { Id, CreateUser: memberCode }, transaction)
+                    if (updateResult.changedRows != 1)
+                        throw -1
+                    let searchResult = await mainDB.query("select ITCode from wf_imagetext_comment where Id=:Id ", { replacements: { Id }, type: "SELECT" })
+                    updateResult = await mainDB.query("update wf_imagetext set CommentCount=CommentCount-1 where Code=:Code ", { replacements: { Code: searchResult[0].ITCode }, transaction: transaction.transaction })
+                    if (updateResult[0].changedRows != 1)
+                        throw -1
+                })
+                if (result != 0) {
+                    return res.send({ Status: 500, Explain: result })
+                }
+                res.send({ Status: 0, Explain: "ok" })
                 break;
             case "4": //股票详情
+                result = 0
+                let updateResult = await singleton.updateMainDB("wf_quotation_comment", { IsDelete: 1 }, null, { Id, CreateUser: memberCode })
+                if (updateResult.changedRows != 1)
+                    result = -1
+                if (result != 0) {
+                    return res.send({ Status: 500, Explain: result })
+                }
+                res.send({ Status: 0, Explain: "ok" })
                 break;
             case "5": //投票
+                result = await singleton.transaction(async transaction => {
+                    let updateResult = await singleton.updateMainDB("wf_vote_comment", { IsDelete: 1 }, null, { CommentID: Id, MemberCode: memberCode }, transaction)
+                    if (updateResult.changedRows != 1)
+                        throw -1
+                    let searchResult = await mainDB.query("select VoteCode from wf_vote_comment where CommentID=:Id ", { replacements: { Id }, type: "SELECT" })
+                    updateResult = await mainDB.query("update wf_vote set CommentCount=CommentCount-1 where VoteCode=:VoteCode ", { replacements: { VoteCode: searchResult[0].VoteCode }, transaction: transaction.transaction })
+                    if (updateResult[0].changedRows != 1)
+                        throw -1
+                })
+                if (result != 0) {
+                    return res.send({ Status: 500, Explain: result })
+                }
+                res.send({ Status: 0, Explain: "ok" })
                 break;
             case "6": //书籍
+                result = await singleton.transaction(async transaction => {
+                    let updateResult = await singleton.updateMainDB("wf_books_comment", { IsDelete: 1 }, null, { Id, CreateUser: memberCode }, transaction)
+                    if (updateResult.changedRows != 1)
+                        throw -1
+                    let searchResult = await mainDB.query("select BookCode from wf_books_comment where Id=:Id ", { replacements: { Id }, type: "SELECT" })
+                    updateResult = await mainDB.query("update wf_books set CommentCount=CommentCount-1 where Code=:Code ", { replacements: { Code: searchResult[0].BookCode }, transaction: transaction.transaction })
+                    if (updateResult[0].changedRows != 1)
+                        throw -1
+                })
+                if (result != 0) {
+                    return res.send({ Status: 500, Explain: result })
+                }
+                res.send({ Status: 0, Explain: "ok" })
                 break;
         }
     }))

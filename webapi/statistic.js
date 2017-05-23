@@ -14,4 +14,10 @@ export default class Statistic {
     module(data) {
         mainDB.query(...sqlstr.insert2("wf_statistics_module", data, { StartTime: "now()" }));
     }
+    pageStay(data) {
+        mainDB.query(...sqlstr.insert2("wf_statistics_page", data, {}));
+    }
+    stockPageStay(data) {
+        mainDB.query(...sqlstr.insert2("wf_statistics_stock", data, {}));
+    }
 }

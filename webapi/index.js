@@ -38,6 +38,7 @@ async function startMQ() {
     app.use('/v2.5/Video', require('./routes/video')(shareData))
     app.use('/v2.5/Game', require('./routes/stockcompetition')(shareData))
     app.use('/v2.5/PaperTrade', require('./routes/paperTrade')(shareData))
+    app.use('/v2.5/Statistics', require('./routes/statistics')(shareData))
     if (Config.test) app.use('/admin', require('./routes/admin')(shareData))
         /**全局错误处理 */
     app.use((err, req, res, next) => {

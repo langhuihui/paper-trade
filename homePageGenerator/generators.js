@@ -46,6 +46,7 @@ class ColumnGenerator extends ArrayGenerator {
     /**获取一个专栏 */
     getOne() {
         if (this.done) return super.getOne()
+        if (!this.currentColumn) return null
         let l = this.currentColumn.News.length
         let c = l >= 4 ? 4 : l
         if (c == 4) {
