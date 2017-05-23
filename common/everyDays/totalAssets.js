@@ -60,29 +60,29 @@ export default new EveryDay('totalAssets', "04:30:00", async() => {
                     json: true
                 })
 
-                let { transaction } = await request({
-                    headers: { 'x-mysolomeo-session-key': sessionKey },
-                    uri: "https://reports.drivewealth.net/DriveWealth",
-                    method: "POST",
-                    qs: {
-                        sessionKey,
-                        "ReportName": "OrderTrans",
-                        "ReportFormat": "JSON",
-                        "AccountNumber": accountNo,
-                        "wlpID": "DW",
-                        "LanguageID": "zh_CN",
-                        "DateStart": moment("2017-05-01", moment.ISO_8601),
-                        "DateEnd": moment(new Date(), moment.ISO_8601)
-                    },
-                    json: true
-                })
-                if (transaction.length) {
-                    for (let ttmp of transaction) {
-                        await mainDB.query("insert into wf_drivewealth_practice_order(MemberCode,AccountNo,SecuritiesType,SecuritiesNo,Price,OrderQty,Side,OrdType,ExecType,CreateTime) values(:MemberCode,:AccountNo,'us',:SecuritiesNo,:Price,:OrderQty,:Side,:OrdType,:ExecType,:CreateTime)", {
-                            replacements: { MemberCode, AccountNo: accountNo, SecuritiesNo: ttmp.symbol, Price: ttmp.lastPx, OrderQty: ttmp.cumQty, Side: ttmp.side, OrdType: ttmp.ordType, ExecType: ttmp.execType, CreateTime: ttmp.transactTime }
-                        })
-                    }
-                }
+                /*     let { transaction } = await request({
+                         headers: { 'x-mysolomeo-session-key': sessionKey },
+                         uri: "https://reports.drivewealth.net/DriveWealth",
+                         method: "POST",
+                         qs: {
+                             sessionKey,
+                             "ReportName": "OrderTrans",
+                             "ReportFormat": "JSON",
+                             "AccountNumber": accountNo,
+                             "wlpID": "DW",
+                             "LanguageID": "zh_CN",
+                             "DateStart": moment("2017-05-01", moment.ISO_8601),
+                             "DateEnd": moment(new Date(), moment.ISO_8601)
+                         },
+                         json: true
+                     })
+                     if (transaction.length) {
+                         for (let ttmp of transaction) {
+                             await mainDB.query("insert into wf_drivewealth_practice_order(MemberCode,AccountNo,SecuritiesType,SecuritiesNo,Price,OrderQty,Side,OrdType,ExecType,CreateTime) values(:MemberCode,:AccountNo,'us',:SecuritiesNo,:Price,:OrderQty,:Side,:OrdType,:ExecType,:CreateTime)", {
+                                 replacements: { MemberCode, AccountNo: accountNo, SecuritiesNo: ttmp.symbol, Price: ttmp.lastPx, OrderQty: ttmp.cumQty, Side: ttmp.side, OrdType: ttmp.ordType, ExecType: ttmp.execType, CreateTime: ttmp.transactTime }
+                             })
+                         }
+                     }*/
 
 
                 if (positions) {
