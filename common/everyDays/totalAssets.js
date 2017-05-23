@@ -60,30 +60,6 @@ export default new EveryDay('totalAssets', "04:30:00", async() => {
                     json: true
                 })
 
-                /*     let { transaction } = await request({
-                         headers: { 'x-mysolomeo-session-key': sessionKey },
-                         uri: "https://reports.drivewealth.net/DriveWealth",
-                         method: "POST",
-                         qs: {
-                             sessionKey,
-                             "ReportName": "OrderTrans",
-                             "ReportFormat": "JSON",
-                             "AccountNumber": accountNo,
-                             "wlpID": "DW",
-                             "LanguageID": "zh_CN",
-                             "DateStart": moment("2017-05-01", moment.ISO_8601),
-                             "DateEnd": moment(new Date(), moment.ISO_8601)
-                         },
-                         json: true
-                     })
-                     if (transaction.length) {
-                         for (let ttmp of transaction) {
-                             await mainDB.query("insert into wf_drivewealth_practice_order(MemberCode,AccountNo,SecuritiesType,SecuritiesNo,Price,OrderQty,Side,OrdType,ExecType,CreateTime) values(:MemberCode,:AccountNo,'us',:SecuritiesNo,:Price,:OrderQty,:Side,:OrdType,:ExecType,:CreateTime)", {
-                                 replacements: { MemberCode, AccountNo: accountNo, SecuritiesNo: ttmp.symbol, Price: ttmp.lastPx, OrderQty: ttmp.cumQty, Side: ttmp.side, OrdType: ttmp.ordType, ExecType: ttmp.execType, CreateTime: ttmp.transactTime }
-                             })
-                         }
-                     }*/
-
 
                 if (positions) {
 
@@ -107,6 +83,33 @@ export default new EveryDay('totalAssets', "04:30:00", async() => {
                     replacements.TotalProfit = replacements.TotalAmount - Config.practiceInitFun
                     replacements.TotalYield = replacements.TotalProfit / Config.practiceInitFun * 100
                     await mainDB.query(sqlstr.insert("wf_drivewealth_practice_asset", replacements, { CreateTime: "now()", EndDate: "curDate()" }), { replacements })
+                }
+
+                let { transaction } = await request({
+                    headers: { 'x-mysolomeo-session-key': sessionKey },
+                    uri: "https://reports.drivewealth.net/DriveWealth",
+                    method: "POST",
+                    qs: {
+                        sessionKey,
+                        "ReportName": "OrderTrans",
+                        "ReportFormat": "JSON",
+                        "AccountNumber": accountNo,
+                        "wlpID": "DW",
+                        "LanguageID": "zh_CN",
+                        "DateStart": "2017-05-01T00:00:00.000Z",
+                        "DateEnd": "2017-05-22T00:00:00.000Z"
+                    },
+                    json: true
+                })
+                console.log(transaction)
+
+                if (transaction && transaction.length) {
+                    for (let ttmp of transaction) {
+                        await mainDB.query("insert into wf_drivewealth_practice_order(MemberCode,OrdNo,AccountNo,SecuritiesType,SecuritiesNo,Price,OrderQty,Side,OrdType,ExecType,CreateTime) values(:MemberCode,:OrdNo,:AccountNo,'us',:SecuritiesNo,:Price,:OrderQty,:Side,:OrdType,:ExecType,:CreateTime)", {
+                            replacements: { MemberCode, OrdNo: ttmp.orderNo, AccountNo: accountNo, SecuritiesNo: ttmp.symbol, Price: ttmp.lastPx, OrderQty: ttmp.cumQty, Side: ttmp.side, OrdType: ttmp.ordType, ExecType: ttmp.execType, CreateTime: ttmp.transactTime }
+                        })
+                    }
+
                 }
             } catch (ex) {
                 console.error(new Date(), ex)
