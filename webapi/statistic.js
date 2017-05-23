@@ -12,7 +12,7 @@ export default class Statistic {
         mainDB.query(...sqlstr.insert2("wf_statistics_stock", data, { StartTime: "now()" }));
     }
     module(data) {
-        mainDB.query(...sqlstr.insert2("wf_statistics_module", data, { StartTime: "now()" }));
+        mainDB.query(...sqlstr.insert2("wf_statistics_module", data, { username: null }));
     }
     pageStay(data) {
         singleton.insertMainDB("wf_statistics_page", data, { StockType: null, StockNo: null, PageType: null, username: null })

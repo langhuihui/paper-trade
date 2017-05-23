@@ -78,13 +78,11 @@ module.exports = function({ mainDB, statistic, ctt, express, config, wrap }) {
         res.send({ Status: 0, Explain: "" })
     }));
     /**股票详情页面埋点 */
-    router.post('/StockStatistics/:StockType/:StockNo', ctt, wrap(async({ params: { StockType, StockNo }, body, memberCode }, res) => {
-        res.end()
-        body.StockType = StockType
-        body.StockNo = StockNo
+    router.post('/Module', ctt, wrap(async({ body, memberCode }, res) => {
         body.LoginId = memberCode
         body.IsLogin = 1
-        statistic.stockPageStay(body)
+        statistic.module(body)
+        res.send({ Status: 0, Explain: "" })
     }));
     return router
 }
