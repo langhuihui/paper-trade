@@ -93,13 +93,13 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
             EndTime = new Date(usResult[0][0].EndTimePM)
         }
         let result = await singleton.transaction(async transaction => {
-            let { insertId } = await singleton.insertMainDB("wf_street_practice_order", Object.assign({ execType: 0, EndTime, Amount: delta, CPrice: Price }, body), { CreateTime: "now()" }, transaction)
-            Object.assign(body, { Id: insertId, EndTime, Amount: delta })
+            let { insertId } = await singleton.insertMainDB("wf_street_practice_order", Object.assign({ execType: 0, EndTime, Amount: -delta, CPrice: Price }, body), { CreateTime: "now()" }, transaction)
+            Object.assign(body, { Id: insertId, EndTime, Amount: -delta })
             if (Side == "SB" [Type - 1]) {
                 TradAble -= OrderQty //修改可交易仓位
                 await singleton.updateMainDB("wf_street_practice_positions", { TradAble }, null, { Id: PositionsId }, transaction)
             } else {
-                await singleton.updateMainDB("wf_street_practice_account", { UsableCash: account.UsableCash - delta }, null, { Id: account.Id }, transaction)
+                await singleton.updateMainDB("wf_street_practice_account", { UsableCash: account.UsableCash + delta }, null, { Id: account.Id }, transaction)
             }
         })
         if (result != 0) {
