@@ -185,10 +185,10 @@ setInterval(async() => {
                     await singleton.updateMainDB("wf_street_practice_account", { UsableCash: UsableCash + Amount }, null, { Id }, t)
                 }
             })
-            if (result == 0)
+            if (result == 0) {
                 orders.delete(Id)
-            else console.error(result)
-            sendNotify(order)
+                sendNotify(order)
+            } else console.error(result)
             continue
         }
         //未开盘则直接跳过
@@ -222,10 +222,10 @@ setInterval(async() => {
             if (result === 0) {
                 //处理完毕
                 orders.delete(Id)
+                sendNotify(order)
             } else {
                 console.log(new Date(), result)
             }
-            sendNotify(order)
         }
     }
 }, 10000)
