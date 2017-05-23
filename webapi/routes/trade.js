@@ -131,5 +131,12 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
         }
         res.send({ Status: 0, Explain: "", DataList: result })
     }));
+    //记录股票操作记录,包括真实和模拟
+    router.post('/Operation', ctt, wrap(async({ memberCode, body }, res) => {
+        let replacements = body
+        replacements.MemberCode = memberCode
+        let result = await mainDB.query(sqlstr.insert("wf_drivewealth_practice_order", replacements, { Id: null, CreateTime: "Now()" }), { replacements })
+        res.send({ Status: 0, Explain: "", Result: result })
+    }));
     return router
 }

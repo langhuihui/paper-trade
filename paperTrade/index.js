@@ -15,6 +15,7 @@ async function getAllOrder() {
     let [os] = await mainDB.query("select o.*,a.CommissionLimit,a.CommissionRate from wf_street_practice_order o left join wf_street_practice_account a on o.AccountNo=a.AccountNo where execType=0")
     for (let order of os) {
         stocksRef.addSymbol(Config.getQueryName(order))
+        orders.set(order.Id, order)
     }
 }
 //除权
@@ -172,7 +173,7 @@ setInterval(async() => {
     for (let order of orders.values()) {
         let { Id, AccountNo, Amount, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, CommissionRate, CommissionLimit } = order
         //拒绝超时订单
-        if (new Date(order.EndTime) > new Date()) {
+        if (new Date(order.EndTime) < new Date()) {
             let result = await singleton.transaction(async t => {
                 await singleton.updateMainDB("wf_street_practice_order", { execType: 3, Reason: 3 }, null, { Id }, t)
                 let Type = ((OrdType - 1) / 3 >> 0) + 1 //1，2，3=>1做多；4，5，6=>2做空
@@ -185,10 +186,10 @@ setInterval(async() => {
                     await singleton.updateMainDB("wf_street_practice_account", { UsableCash: UsableCash + Amount }, null, { Id }, t)
                 }
             })
-            if (result == 0)
+            if (result == 0) {
                 orders.delete(Id)
-            else console.error(result)
-            sendNotify(order)
+                sendNotify(order)
+            } else console.error(result)
             continue
         }
         //未开盘则直接跳过
@@ -222,10 +223,10 @@ setInterval(async() => {
             if (result === 0) {
                 //处理完毕
                 orders.delete(Id)
+                sendNotify(order)
             } else {
                 console.log(new Date(), result)
             }
-            sendNotify(order)
         }
     }
 }, 10000)
