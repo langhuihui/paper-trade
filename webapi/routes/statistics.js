@@ -12,7 +12,7 @@ module.exports = function({ mainDB, statistic, ctt, express, config, wrap }) {
         body.IsLogin = 1
         switch (body.PageType) {
             case "news": //资讯类
-                switch (body.TypeId) {
+                switch (parseInt(body.TypeId)) {
                     case 13: //投票
                         result = await mainDB.query("select VoteId from wf_vote where VoteCode=:VoteCode", { replacements: { VoteCode: body.PageId }, type: "SELECT" })
                         if (result.length) {
