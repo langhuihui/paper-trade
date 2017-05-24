@@ -5,7 +5,8 @@ import singleton from '../common/singleton'
 import { dwUrls } from '../common/driveWealth'
 import amqp from 'amqplib'
 const { mainDB, redisClient } = singleton
-var getDataTimeout = 10000
+var getDataTimeout1 = 10000
+var getDataTimeout2 = 15000
 var calculateTimeout = 10000
 var mdbData = new Map()
 const ranka = "wf_ussecurities_rank_a"
@@ -15,20 +16,42 @@ function startGetData() {
     setTimeout(async() => {
         let marketIsOpen = await singleton.marketIsOpen2()
         if (marketIsOpen.us) {
-            console.log(new Date() + "--------getDataTimeout=" + getDataTimeout + "---------------")
-            console.log(new Date() + "--------getDWData begin---------------")
+            console.log(new Date() + "--------getDataTimeout1=" + getDataTimeout1 + "---------------")
+            console.log(new Date() + "--------getDWData1 begin---------------")
             await writetoredis()
             var amqpConnection = await amqp.connect(Config.amqpConn)
             let mqChannel = await amqpConnection.createChannel()
             mqChannel.sendToQueue("calcuateUSStockData", new Buffer(JSON.stringify({ cmd: "getData" })))
-            console.log(new Date() + "--------getDWData end---------------")
+            console.log(new Date() + "--------getDWData1 end---------------")
         } else {
-            console.log(new Date() + "--------getDataTimeout=" + getDataTimeout + "---------------")
+            console.log(new Date() + "--------getDataTimeout1=" + getDataTimeout1 + "---------------")
             console.log(new Date() + "--------US STOCK NOT OPEN---------------")
-            getDataTimeout = 10000
+            getDataTimeout1 = 10000
         }
         startGetData()
-    }, getDataTimeout);
+    }, getDataTimeout1);
+
+}
+
+
+function startGetData1() {
+    setTimeout(async() => {
+        let marketIsOpen = await singleton.marketIsOpen2()
+        if (marketIsOpen.us) {
+            console.log(new Date() + "--------getDataTimeout2=" + getDataTimeout2 + "---------------")
+            console.log(new Date() + "--------getDWData2 begin---------------")
+            await writetoredis()
+            var amqpConnection = await amqp.connect(Config.amqpConn)
+            let mqChannel = await amqpConnection.createChannel()
+            mqChannel.sendToQueue("calcuateUSStockData", new Buffer(JSON.stringify({ cmd: "getData" })))
+            console.log(new Date() + "--------getDWData2 end---------------")
+        } else {
+            console.log(new Date() + "--------getDataTimeout2=" + getDataTimeout2 + "---------------")
+            console.log(new Date() + "--------US STOCK NOT OPEN---------------")
+            getDataTimeout2 = 15000
+        }
+        startGetData1()
+    }, getDataTimeout2);
 
 }
 
@@ -135,7 +158,8 @@ async function writetoredis() {
     })
     let end = new Date()
     console.timeEnd('get dwdata cost time: ');
-    getDataTimeout = 2000
+    getDataTimeout1 = 2000
+    getDataTimeout2 = 2000
 }
 
 /**
@@ -198,4 +222,5 @@ async function getDWLastPrice() {
 
 //if (Config.getDWData)
 startGetData()
+startGetData1()
     //startcalculateData()
