@@ -295,7 +295,7 @@ async function getDWLastPrice2() {
 
 if (Config.getDWData) {
     startGetData()
-    startGetData1()
+        //startGetData1()
 }
 //startGetData1()
 //startcalculateData()
