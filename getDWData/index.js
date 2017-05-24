@@ -164,7 +164,7 @@ async function getSessionKey() {
             }))
             await redisClient.setAsync("sessionForGetDWData", sessionKey);
         } catch (ex) {
-            return getsession()
+            return getSessionKey()
         }
     }
     return sessionKey
