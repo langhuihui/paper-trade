@@ -40,7 +40,7 @@ function startGetData1() {
         if (marketIsOpen.us) {
             console.log(new Date() + "--------getDataTimeout2=" + getDataTimeout2 + "---------------")
             console.log(new Date() + "--------getDWData2 begin---------------")
-            await writetoredis()
+            await writetoredis2()
             var amqpConnection = await amqp.connect(Config.amqpConn)
             let mqChannel = await amqpConnection.createChannel()
             mqChannel.sendToQueue("calcuateUSStockData", new Buffer(JSON.stringify({ cmd: "getData" })))
@@ -163,6 +163,23 @@ async function writetoredis() {
 }
 
 /**
+ * 将嘉维最新股票数据写入Redis
+ */
+async function writetoredis2() {
+    let start = new Date()
+    console.time('get dwdata cost time: ');
+
+    let result = await getDWLastPrice2()
+    result.map(({ symbol, close }) => {
+        if (symbol != "" && symbol != undefined && close != "" && close != undefined) redisClient.hmset("newestUSPrice", symbol, close)
+    })
+    let end = new Date()
+    console.timeEnd('get dwdata cost time: ');
+    getDataTimeout1 = 2000
+    getDataTimeout2 = 2000
+}
+
+/**
  * 从嘉维获取sessionkey
  */
 async function getSessionKey() {
@@ -195,6 +212,38 @@ async function getSessionKey() {
     }
 }
 /**
+ * 从嘉维获取sessionkey
+ */
+async function getSessionKey2() {
+    let sessionKey = await redisClient.getAsync("sessionForGetDWData2")
+    if (!sessionKey) {
+        try {
+            ({ sessionKey } = await request({
+                uri: dwUrls.createSession,
+                //uri: "http://api.drivewealth.io/v1/userSessions",
+                method: "POST",
+                body: {
+                    "appTypeID": "2000",
+                    "appVersion": "0.1",
+                    "username": "12695763282",
+                    "emailAddress": "12695763@wolfstreet.tv",
+                    "ipAddress": "1.1.1.1",
+                    "languageID": "zh_CN",
+                    "osVersion": "iOS 9.1",
+                    "osType": "iOS",
+                    "scrRes": "1920x1080",
+                    "password": "p12695763"
+                },
+                json: true
+            }))
+            await redisClient.setAsync("sessionForGetDWData2", sessionKey);
+            return sessionKey
+        } catch (ex) {
+            return getSessionKey2()
+        }
+    }
+}
+/**
  * 从嘉维获取最新股票价格
  */
 async function getDWLastPrice() {
@@ -220,7 +269,35 @@ async function getDWLastPrice() {
     return result
 }
 
-if (Config.getDWData)
+/**
+ * 从嘉维获取最新股票价格
+ */
+async function getDWLastPrice2() {
+    let sessionKey = await getSessionKey2()
+    console.log(sessionKey)
+    let result = {}
+    try {
+        result = await request({
+            headers: { 'x-mysolomeo-session-key': sessionKey },
+            method: "GET",
+            //encoding: null,
+            uri: "http://api.drivewealth.net/v1/instruments", //所有股票
+            //uri: "http://api.drivewealth.net/v1/instruments?symbols=" + postdata,//单个股票
+            json: true
+        })
+    } catch (ex) {
+        console.log(ex.statusCode)
+        if (ex.statusCode == 401) {
+            await redisClient.delAsync("sessionForGetDWData2");
+            return getDWLastPrice2()
+        }
+    }
+    return result
+}
+
+if (Config.getDWData) {
     startGetData()
-    //startGetData1()
-    //startcalculateData()
+    startGetData1()
+}
+//startGetData1()
+//startcalculateData()
