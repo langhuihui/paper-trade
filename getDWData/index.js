@@ -205,12 +205,12 @@ async function getSessionKey() {
                 json: true
             }))
             await redisClient.setAsync("sessionForGetDWData", sessionKey);
-            return sessionKey
+
         } catch (ex) {
             return getSessionKey()
         }
     }
-
+    return sessionKey
 }
 /**
  * 从嘉维获取sessionkey
