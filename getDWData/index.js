@@ -72,8 +72,8 @@ function startcalculateData() {
     }, calculateTimeout);
 }
 
-//if (!Config.getDWData) {
-if (true) {
+if (!Config.getDWData) {
+    //if (true) {
     (async() => {
         var amqpConnection = await amqp.connect(Config.amqpConn)
         let mqChannel = await amqpConnection.createChannel()
@@ -220,7 +220,7 @@ async function getDWLastPrice() {
     return result
 }
 
-//if (Config.getDWData)
-startGetData()
+if (Config.getDWData)
+    startGetData()
     //startGetData1()
     //startcalculateData()
