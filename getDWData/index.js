@@ -153,8 +153,8 @@ async function writetoredis() {
     console.time('get dwdata cost time: ');
 
     let result = await getDWLastPrice()
-    result.map(({ symbol, close }) => {
-        if (symbol != "" && symbol != undefined && close != "" && close != undefined) redisClient.hmset("newestUSPrice", symbol, close)
+    result.map(({ symbol, lastTrade }) => {
+        if (symbol != "" && symbol != undefined && lastTrade != "" && lastTrade != undefined) redisClient.hmset("newestUSPrice", symbol, lastTrade)
     })
     let end = new Date()
     console.timeEnd('get dwdata cost time: ');
@@ -170,8 +170,8 @@ async function writetoredis2() {
     console.time('get dwdata cost time: ');
 
     let result = await getDWLastPrice2()
-    result.map(({ symbol, close }) => {
-        if (symbol != "" && symbol != undefined && close != "" && close != undefined) redisClient.hmset("newestUSPrice", symbol, close)
+    result.map(({ symbol, lastTrade }) => {
+        if (symbol != "" && symbol != undefined && lastTrade != "" && lastTrade != undefined) redisClient.hmset("newestUSPrice", symbol, lastTrade)
     })
     let end = new Date()
     console.timeEnd('get dwdata cost time: ');
@@ -205,7 +205,6 @@ async function getSessionKey() {
                 json: true
             }))
             await redisClient.setAsync("sessionForGetDWData", sessionKey);
-
         } catch (ex) {
             return getSessionKey()
         }
@@ -238,18 +237,17 @@ async function getSessionKey2() {
                 json: true
             }))
             await redisClient.setAsync("sessionForGetDWData2", sessionKey);
-            return sessionKey
         } catch (ex) {
             return getSessionKey2()
         }
     }
+    return sessionKey
 }
 /**
  * 从嘉维获取最新股票价格
  */
 async function getDWLastPrice() {
     let sessionKey = await getSessionKey()
-    console.log(sessionKey + "33333")
     let result = {}
     try {
         result = await request({
@@ -275,7 +273,6 @@ async function getDWLastPrice() {
  */
 async function getDWLastPrice2() {
     let sessionKey = await getSessionKey2()
-    console.log(sessionKey)
     let result = {}
     try {
         result = await request({
@@ -298,7 +295,7 @@ async function getDWLastPrice2() {
 
 if (Config.getDWData) {
     startGetData()
-        //startGetData1()
+    startGetData1()
 }
 //startGetData1()
 //startcalculateData()
