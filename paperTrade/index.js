@@ -207,14 +207,14 @@ setInterval(async() => {
                 break;
             case 2:
             case 3:
-                trigge = Side == "SB" [OrdType - 2] ? (Price >= price) : (Price <= price)
+                trigge = Side == "BS" [OrdType - 2] ? (Price >= price) : (Price <= price)
                 break;
             case 4:
                 trigge = true;
                 break;
             case 5:
             case 6:
-                trigge = Side == "SB" [6 - OrdType] ? (Price >= price) : (Price <= price)
+                trigge = Side == "BS" [6 - OrdType] ? (Price >= price) : (Price <= price)
                 break;
         }
         if (trigge) {
