@@ -65,12 +65,12 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
             res.send({ Status: 44001, Explain: "资金不足" })
             return
         }
-        if (OrdType == 2 || OrdType == 3) {
+        if (OrdType == 3) {
             if (Side == "BS" [OrdType - 2] ? (Price > lastPrice) : (Price < lastPrice)) {
                 res.send({ Status: 44005, Explain: "价格设置不正确" })
                 return
             }
-        } else if (OrdType == 5 || OrdType == 6) {
+        } else if (OrdType == 6) {
             if (Side == "BS" [6 - OrdType] ? (Price > lastPrice) : (Price < lastPrice)) {
                 res.send({ Status: 44005, Explain: "价格设置不正确" })
                 return
@@ -178,12 +178,12 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
     }));
     /**历史委托 */
     router.get('/Orders/:startDate/:endDate', ctt, ConvertAccountNo, wrap(async({ memberCode, params: { startDate, endDate }, AccountNo }, res) => {
-        let result = await mainDB.query(`select * from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and CreateTime>=startDate and CreateTime<=endDate`, { replacements: { memberCode, startDate, endDate }, type: "SELECT" })
+        let result = await mainDB.query(`select * from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and CreateTime>=:startDate and CreateTime<=:endDate`, { replacements: { memberCode, startDate, endDate }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", DataList: result });
     }));
     /**历史成交 */
     router.get('/Deals/:startDate/:endDate', ctt, ConvertAccountNo, wrap(async({ memberCode, params: { startDate, endDate }, AccountNo }, res) => {
-        let result = await mainDB.query(`select *,Price*OrderQty Turnover from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and TurnoverTime>=startDate and TurnoverTime<=endDate and execType=1`, { replacements: { memberCode, startDate, endDate }, type: "SELECT" })
+        let result = await mainDB.query(`select *,Price*OrderQty Turnover from wf_street_practice_order where MemberCode=:memberCode ${AccountNo} and TurnoverTime>=:startDate and TurnoverTime<=:endDate and execType=1`, { replacements: { memberCode, startDate, endDate }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", DataList: result });
     }));
     /**挂单列表 */
@@ -212,11 +212,12 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
             }
             account.TotalProfit = TotalProfit
             account.TotalMarketValue = TotalMarketValue
+            account.TotalAmount = account.Cash + TotalMarketValue
             let daysAgo = 1
                 //5点后的开盘时间点
             if (new Date().getHours() >= (account.AccountType == 1 ? 21 : 9)) daysAgo = 0
-            let record = await mainDB.query('select TotalAmount from wf_street_practice_asset where AccountNo=:AccountNo and EndDate< DATE_SUB(CurDate(),INTERVAL :daysAgo day) order by EndDate desc limit 1', { replacements: { AccountNo, daysAgo }, type: "SELECT" })
-            account.TodayProfit = account.Cash + TotalMarketValue - record.TotalAmount
+            let [record] = await mainDB.query('select TotalAmount from wf_street_practice_asset where AccountNo=:AccountNo and EndDate< DATE_SUB(CurDate(),INTERVAL :daysAgo day) order by EndDate desc limit 1', { replacements: { AccountNo, daysAgo }, type: "SELECT" })
+            account.TodayProfit = account.TotalAmount - record.TotalAmount
         }
         res.send({ Status: 0, Explain: "", DataList: result });
     }));

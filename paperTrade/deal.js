@@ -22,13 +22,15 @@ export default async({ Id: OrderId, Commission, delta, AccountNo, OrdType, Side,
             UsableCashDelta = delta
         } else {
             if (Positions) {
-                let Cost = Positions * CostPrice + OrderQty * Price;
+                // let Cost = Positions * CostPrice + OrderQty * Price;
+                let Cost = Positions * CostPrice - delta
                 Positions += OrderQty
                 CostPrice = Cost / Positions
                 await singleton.updateMainDB("wf_street_practice_positions", { Positions, CostPrice, TradAble: TradAble + OrderQty }, null, { Id: PositionsId }, t)
             } else {
                 TradAble = Positions = OrderQty
-                await singleton.insertMainDB("wf_street_practice_positions", { Positions, TradAble, CostPrice: Price, SecuritiesType, SecuritiesNo, MemberCode, AccountNo, Type }, { CreateTime: "now()" }, t)
+                CostPrice = -delta / OrderQty
+                await singleton.insertMainDB("wf_street_practice_positions", { Positions, TradAble, CostPrice, SecuritiesType, SecuritiesNo, MemberCode, AccountNo, Type }, { CreateTime: "now()" }, t)
             }
             UsableCashDelta = Amount + delta
         }
