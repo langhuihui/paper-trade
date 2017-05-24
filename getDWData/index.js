@@ -184,10 +184,9 @@ async function writetoredis2() {
  */
 async function getSessionKey() {
     let sessionKey = await redisClient.getAsync("sessionForGetDWData")
-    console.log(sessionKey + "22222")
     if (!sessionKey) {
         try {
-            let result = await request({
+            ({ sessionKey } = await request({
                 uri: dwUrls.createSession,
                 //uri: "http://api.drivewealth.io/v1/userSessions",
                 method: "POST",
@@ -204,15 +203,14 @@ async function getSessionKey() {
                     "password": "p16459847"
                 },
                 json: true
-            })
-            sessionKey = result.sessionKey
-            console.log(sessionKey + "11111111")
+            }))
             await redisClient.setAsync("sessionForGetDWData", sessionKey);
             return sessionKey
         } catch (ex) {
             return getSessionKey()
         }
     }
+
 }
 /**
  * 从嘉维获取sessionkey
