@@ -183,7 +183,7 @@ async function writetoredis2() {
  * 从嘉维获取sessionkey
  */
 async function getSessionKey() {
-    let sessionKey = await redisClient.get("sessionForGetDWData")
+    let sessionKey = await redisClient.getAsync("sessionForGetDWData")
     console.log(sessionKey + "22222")
     if (!sessionKey) {
         try {
