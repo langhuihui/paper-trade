@@ -204,6 +204,7 @@ async function getSessionKey() {
                 },
                 json: true
             })
+            console.log(sessionKey + "11111111")
             await redisClient.setAsync("sessionForGetDWData", sessionKey);
             return sessionKey
         } catch (ex) {
