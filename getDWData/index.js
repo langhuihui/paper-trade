@@ -184,6 +184,7 @@ async function writetoredis2() {
  */
 async function getSessionKey() {
     let sessionKey = await redisClient.getAsync("sessionForGetDWData")
+    console.log(sessionKey + "22222")
     if (!sessionKey) {
         try {
             let { sessionKey } = await request({
@@ -208,7 +209,7 @@ async function getSessionKey() {
             await redisClient.setAsync("sessionForGetDWData", sessionKey);
             return sessionKey
         } catch (ex) {
-            return getSessionKey()
+            return await getSessionKey()
         }
     }
 }
@@ -264,7 +265,7 @@ async function getDWLastPrice() {
         console.log(ex.statusCode)
         if (ex.statusCode == 401) {
             await redisClient.delAsync("sessionForGetDWData");
-            return getDWLastPrice()
+            return await getDWLastPrice()
         }
     }
     return result
