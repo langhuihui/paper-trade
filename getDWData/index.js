@@ -186,7 +186,7 @@ async function getSessionKey() {
     let sessionKey = await redisClient.getAsync("sessionForGetDWData")
     if (!sessionKey) {
         try {
-            ({ sessionKey } = await request({
+            let { sessionKey } = await request({
                 uri: dwUrls.createSession,
                 //uri: "http://api.drivewealth.io/v1/userSessions",
                 method: "POST",
@@ -203,7 +203,7 @@ async function getSessionKey() {
                     "password": "p16459847"
                 },
                 json: true
-            }))
+            })
             await redisClient.setAsync("sessionForGetDWData", sessionKey);
             return sessionKey
         } catch (ex) {
