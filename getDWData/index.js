@@ -187,7 +187,7 @@ async function getSessionKey() {
     console.log(sessionKey + "22222")
     if (!sessionKey) {
         try {
-            let { sessionKey } = await request({
+            let result = await request({
                 uri: dwUrls.createSession,
                 //uri: "http://api.drivewealth.io/v1/userSessions",
                 method: "POST",
@@ -205,11 +205,12 @@ async function getSessionKey() {
                 },
                 json: true
             })
+            sessionKey = result.sessionKey
             console.log(sessionKey + "11111111")
             await redisClient.setAsync("sessionForGetDWData", sessionKey);
             return sessionKey
         } catch (ex) {
-            return await getSessionKey()
+            return getSessionKey()
         }
     }
 }
@@ -265,7 +266,7 @@ async function getDWLastPrice() {
         console.log(ex.statusCode)
         if (ex.statusCode == 401) {
             await redisClient.delAsync("sessionForGetDWData");
-            return await getDWLastPrice()
+            return getDWLastPrice()
         }
     }
     return result
