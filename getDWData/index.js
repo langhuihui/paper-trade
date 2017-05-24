@@ -250,7 +250,7 @@ async function getSessionKey2() {
  */
 async function getDWLastPrice() {
     let sessionKey = await getSessionKey()
-    console.log(sessionKey)
+    console.log(sessionKey + "33333")
     let result = {}
     try {
         result = await request({
