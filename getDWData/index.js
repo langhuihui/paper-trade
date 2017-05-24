@@ -49,7 +49,8 @@ function startcalculateData() {
     }, calculateTimeout);
 }
 
-if (!Config.getDWData) {
+//if (!Config.getDWData) {
+if (true) {
     (async() => {
         var amqpConnection = await amqp.connect(Config.amqpConn)
         let mqChannel = await amqpConnection.createChannel()
@@ -129,8 +130,8 @@ async function writetoredis() {
     console.time('get dwdata cost time: ');
 
     let result = await getDWLastPrice()
-    result.map(({ symbol, lastTrade }) => {
-        if (symbol != "" && symbol != undefined && lastTrade != "" && lastTrade != undefined) redisClient.hmset("newestUSPrice", symbol, lastTrade)
+    result.map(({ symbol, close }) => {
+        if (symbol != "" && symbol != undefined && close != "" && close != undefined) redisClient.hmset("newestUSPrice", symbol, close)
     })
     let end = new Date()
     console.timeEnd('get dwdata cost time: ');
@@ -163,11 +164,11 @@ async function getSessionKey() {
                 json: true
             }))
             await redisClient.setAsync("sessionForGetDWData", sessionKey);
+            return sessionKey
         } catch (ex) {
             return getSessionKey()
         }
     }
-    return sessionKey
 }
 /**
  * 从嘉维获取最新股票价格
@@ -195,6 +196,6 @@ async function getDWLastPrice() {
     return result
 }
 
-if (Config.getDWData)
-    startGetData()
+//if (Config.getDWData)
+startGetData()
     //startcalculateData()
