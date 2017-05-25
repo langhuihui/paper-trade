@@ -93,7 +93,8 @@ if (!Config.getDWData) {
 async function calculateData() {
     console.time('calculateData cost time:');
     addRankStock(await mainDB.query("select * from wf_securities_trade where Remark='DW'", { type: "SELECT" }))
-    let result = await redisClient.hgetallAsync("newestUSPrice");
+    let key = await redisClient.getAsync("currentNewestUSPriceKey")
+    let result = await redisClient.hgetallAsync(key);
     if (result) {
         await Promise.all(Object.keys(result).map(k => {
             return redisClient.hgetAsync("lastPrice", Config.getQueryName({ SecuritiesType: "us", SecuritiesNo: k })).then(a => {
@@ -154,8 +155,9 @@ async function writetoredis() {
 
     let result = await getDWLastPrice()
     result.map(({ symbol, lastTrade }) => {
-        if (symbol != "" && symbol != undefined && lastTrade != "" && lastTrade != undefined) redisClient.hmset("newestUSPrice", symbol, lastTrade)
+        if (symbol != "" && symbol != undefined && lastTrade != "" && lastTrade != undefined) redisClient.hmset("newestUSPriceA", symbol, lastTrade)
     })
+    await redisClient.setAsync("currentNewestUSPriceKey", "newestUSPriceA");
     let end = new Date()
     console.timeEnd('get dwdata cost time: ');
     getDataTimeout1 = 2000
@@ -171,8 +173,9 @@ async function writetoredis2() {
 
     let result = await getDWLastPrice2()
     result.map(({ symbol, lastTrade }) => {
-        if (symbol != "" && symbol != undefined && lastTrade != "" && lastTrade != undefined) redisClient.hmset("newestUSPrice", symbol, lastTrade)
+        if (symbol != "" && symbol != undefined && lastTrade != "" && lastTrade != undefined) redisClient.hmset("newestUSPriceB", symbol, lastTrade)
     })
+    await redisClient.setAsync("currentNewestUSPriceKey", "newestUSPriceB");
     let end = new Date()
     console.timeEnd('get dwdata cost time: ');
     getDataTimeout1 = 2000
@@ -183,7 +186,7 @@ async function writetoredis2() {
  * 从嘉维获取sessionkey
  */
 async function getSessionKey() {
-    let sessionKey = await redisClient.getAsync("sessionForGetDWData")
+    let sessionKey = await redisClient.getAsync("sessionForGetDWDataA")
     if (!sessionKey) {
         try {
             ({ sessionKey } = await request({
@@ -204,7 +207,7 @@ async function getSessionKey() {
                 },
                 json: true
             }))
-            await redisClient.setAsync("sessionForGetDWData", sessionKey);
+            await redisClient.setAsync("sessionForGetDWDataA", sessionKey);
         } catch (ex) {
             return getSessionKey()
         }
@@ -215,7 +218,7 @@ async function getSessionKey() {
  * 从嘉维获取sessionkey
  */
 async function getSessionKey2() {
-    let sessionKey = await redisClient.getAsync("sessionForGetDWData2")
+    let sessionKey = await redisClient.getAsync("sessionForGetDWDataB")
     if (!sessionKey) {
         try {
             ({ sessionKey } = await request({
@@ -236,7 +239,7 @@ async function getSessionKey2() {
                 },
                 json: true
             }))
-            await redisClient.setAsync("sessionForGetDWData2", sessionKey);
+            await redisClient.setAsync("sessionForGetDWDataB", sessionKey);
         } catch (ex) {
             return getSessionKey2()
         }
@@ -261,7 +264,7 @@ async function getDWLastPrice() {
     } catch (ex) {
         console.log(ex.statusCode)
         if (ex.statusCode == 401) {
-            await redisClient.delAsync("sessionForGetDWData");
+            await redisClient.delAsync("sessionForGetDWDataA");
             return getDWLastPrice()
         }
     }
@@ -286,7 +289,7 @@ async function getDWLastPrice2() {
     } catch (ex) {
         console.log(ex.statusCode)
         if (ex.statusCode == 401) {
-            await redisClient.delAsync("sessionForGetDWData2");
+            await redisClient.delAsync("sessionForGetDWDataB");
             return getDWLastPrice2()
         }
     }
