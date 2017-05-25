@@ -216,8 +216,8 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
             let daysAgo = 1
                 //5点后的开盘时间点
             if (new Date().getHours() >= (account.AccountType == 1 ? 21 : 9)) daysAgo = 0
-            let [record] = await mainDB.query('select TotalAmount from wf_street_practice_asset where AccountNo=:AccountNo and EndDate< DATE_SUB(CurDate(),INTERVAL :daysAgo day) order by EndDate desc limit 1', { replacements: { AccountNo, daysAgo }, type: "SELECT" })
-            account.TodayProfit = account.TotalAmount - record.TotalAmount
+            let [result] = await mainDB.query('select TotalAmount from wf_street_practice_asset where AccountNo=:AccountNo and EndDate< DATE_SUB(CurDate(),INTERVAL :daysAgo day) order by EndDate desc limit 1', { replacements: { AccountNo: account.AccountNo, daysAgo }, type: "SELECT" })
+            account.TodayProfit = account.TotalAmount - (result ? result.TotalAmount : config.practiceInitFun)
         }
         res.send({ Status: 0, Explain: "", DataList: result });
     }));
