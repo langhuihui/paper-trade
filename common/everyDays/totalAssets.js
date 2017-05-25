@@ -96,8 +96,8 @@ export default new EveryDay('totalAssets', "04:30:00", async() => {
                         "AccountNumber": accountNo,
                         "wlpID": "DW",
                         "LanguageID": "zh_CN",
-                        "DateStart": "2017-05-01T00:00:00.000Z",
-                        "DateEnd": "2017-05-22T00:00:00.000Z"
+                        "DateStart": "2017-05-07T00:00:00.000Z",
+                        "DateEnd": "2017-05-25T00:00:00.000Z"
                     },
                     json: true
                 })
@@ -105,8 +105,8 @@ export default new EveryDay('totalAssets', "04:30:00", async() => {
 
                 if (transaction && transaction.length) {
                     for (let ttmp of transaction) {
-                        await mainDB.query("insert into wf_drivewealth_practice_order(MemberCode,OrdNo,AccountNo,SecuritiesType,SecuritiesNo,Price,OrderQty,Side,OrdType,ExecType,CreateTime) values(:MemberCode,:OrdNo,:AccountNo,'us',:SecuritiesNo,:Price,:OrderQty,:Side,:OrdType,:ExecType,:CreateTime)", {
-                            replacements: { MemberCode, OrdNo: ttmp.orderNo, AccountNo: accountNo, SecuritiesNo: ttmp.symbol, Price: ttmp.lastPx, OrderQty: ttmp.cumQty, Side: ttmp.side, OrdType: ttmp.ordType, ExecType: ttmp.execType, CreateTime: ttmp.transactTime }
+                        await mainDB.query("insert into wf_drivewealth_practice_order(MemberCode,AccountType,OrdStatus,OrdNo,AccountNo,SecuritiesType,SecuritiesNo,Price,OrderQty,Side,OrdType,ExecType,CreateTime) values(:MemberCode,:AccountType,:OrdStatus,:OrdNo,:AccountNo,'us',:SecuritiesNo,:Price,:OrderQty,:Side,:OrdType,:ExecType,:CreateTime)", {
+                            replacements: { MemberCode, AccountType: 1, OrdStatus: ttmp.ordStatus, OrdNo: ttmp.orderNo, AccountNo: accountNo, SecuritiesNo: ttmp.symbol, Price: ttmp.lastPx, OrderQty: ttmp.cumQty, Side: ttmp.side, OrdType: ttmp.ordType, ExecType: ttmp.execType, CreateTime: ttmp.transactTime }
                         })
                     }
 

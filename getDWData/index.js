@@ -5,7 +5,8 @@ import singleton from '../common/singleton'
 import { dwUrls } from '../common/driveWealth'
 import amqp from 'amqplib'
 const { mainDB, redisClient } = singleton
-var getDataTimeout = 10000
+var getDataTimeout1 = 10000
+var getDataTimeout2 = 15000
 var calculateTimeout = 10000
 var mdbData = new Map()
 const ranka = "wf_ussecurities_rank_a"
@@ -15,20 +16,42 @@ function startGetData() {
     setTimeout(async() => {
         let marketIsOpen = await singleton.marketIsOpen2()
         if (marketIsOpen.us) {
-            console.log(new Date() + "--------getDataTimeout=" + getDataTimeout + "---------------")
-            console.log(new Date() + "--------getDWData begin---------------")
+            console.log(new Date() + "--------getDataTimeout1=" + getDataTimeout1 + "---------------")
+            console.log(new Date() + "--------getDWData1 begin---------------")
             await writetoredis()
             var amqpConnection = await amqp.connect(Config.amqpConn)
             let mqChannel = await amqpConnection.createChannel()
             mqChannel.sendToQueue("calcuateUSStockData", new Buffer(JSON.stringify({ cmd: "getData" })))
-            console.log(new Date() + "--------getDWData end---------------")
+            console.log(new Date() + "--------getDWData1 end---------------")
         } else {
-            console.log(new Date() + "--------getDataTimeout=" + getDataTimeout + "---------------")
+            console.log(new Date() + "--------getDataTimeout1=" + getDataTimeout1 + "---------------")
             console.log(new Date() + "--------US STOCK NOT OPEN---------------")
-            getDataTimeout = 10000
+            getDataTimeout1 = 10000
         }
         startGetData()
-    }, getDataTimeout);
+    }, getDataTimeout1);
+
+}
+
+
+function startGetData1() {
+    setTimeout(async() => {
+        let marketIsOpen = await singleton.marketIsOpen2()
+        if (marketIsOpen.us) {
+            console.log(new Date() + "--------getDataTimeout2=" + getDataTimeout2 + "---------------")
+            console.log(new Date() + "--------getDWData2 begin---------------")
+            await writetoredis2()
+            var amqpConnection = await amqp.connect(Config.amqpConn)
+            let mqChannel = await amqpConnection.createChannel()
+            mqChannel.sendToQueue("calcuateUSStockData", new Buffer(JSON.stringify({ cmd: "getData" })))
+            console.log(new Date() + "--------getDWData2 end---------------")
+        } else {
+            console.log(new Date() + "--------getDataTimeout2=" + getDataTimeout2 + "---------------")
+            console.log(new Date() + "--------US STOCK NOT OPEN---------------")
+            getDataTimeout2 = 15000
+        }
+        startGetData1()
+    }, getDataTimeout2);
 
 }
 
@@ -50,6 +73,7 @@ function startcalculateData() {
 }
 
 if (!Config.getDWData) {
+    //if (true) {
     (async() => {
         var amqpConnection = await amqp.connect(Config.amqpConn)
         let mqChannel = await amqpConnection.createChannel()
@@ -134,7 +158,25 @@ async function writetoredis() {
     })
     let end = new Date()
     console.timeEnd('get dwdata cost time: ');
-    getDataTimeout = 2000
+    getDataTimeout1 = 2000
+    getDataTimeout2 = 2000
+}
+
+/**
+ * 将嘉维最新股票数据写入Redis
+ */
+async function writetoredis2() {
+    let start = new Date()
+    console.time('get dwdata cost time: ');
+
+    let result = await getDWLastPrice2()
+    result.map(({ symbol, lastTrade }) => {
+        if (symbol != "" && symbol != undefined && lastTrade != "" && lastTrade != undefined) redisClient.hmset("newestUSPrice", symbol, lastTrade)
+    })
+    let end = new Date()
+    console.timeEnd('get dwdata cost time: ');
+    getDataTimeout1 = 2000
+    getDataTimeout2 = 2000
 }
 
 /**
@@ -170,11 +212,42 @@ async function getSessionKey() {
     return sessionKey
 }
 /**
+ * 从嘉维获取sessionkey
+ */
+async function getSessionKey2() {
+    let sessionKey = await redisClient.getAsync("sessionForGetDWData2")
+    if (!sessionKey) {
+        try {
+            ({ sessionKey } = await request({
+                uri: dwUrls.createSession,
+                //uri: "http://api.drivewealth.io/v1/userSessions",
+                method: "POST",
+                body: {
+                    "appTypeID": "2000",
+                    "appVersion": "0.1",
+                    "username": "12695763282",
+                    "emailAddress": "12695763@wolfstreet.tv",
+                    "ipAddress": "1.1.1.1",
+                    "languageID": "zh_CN",
+                    "osVersion": "iOS 9.1",
+                    "osType": "iOS",
+                    "scrRes": "1920x1080",
+                    "password": "p12695763"
+                },
+                json: true
+            }))
+            await redisClient.setAsync("sessionForGetDWData2", sessionKey);
+        } catch (ex) {
+            return getSessionKey2()
+        }
+    }
+    return sessionKey
+}
+/**
  * 从嘉维获取最新股票价格
  */
 async function getDWLastPrice() {
     let sessionKey = await getSessionKey()
-    console.log(sessionKey)
     let result = {}
     try {
         result = await request({
@@ -195,6 +268,34 @@ async function getDWLastPrice() {
     return result
 }
 
-if (Config.getDWData)
+/**
+ * 从嘉维获取最新股票价格
+ */
+async function getDWLastPrice2() {
+    let sessionKey = await getSessionKey2()
+    let result = {}
+    try {
+        result = await request({
+            headers: { 'x-mysolomeo-session-key': sessionKey },
+            method: "GET",
+            //encoding: null,
+            uri: "http://api.drivewealth.net/v1/instruments", //所有股票
+            //uri: "http://api.drivewealth.net/v1/instruments?symbols=" + postdata,//单个股票
+            json: true
+        })
+    } catch (ex) {
+        console.log(ex.statusCode)
+        if (ex.statusCode == 401) {
+            await redisClient.delAsync("sessionForGetDWData2");
+            return getDWLastPrice2()
+        }
+    }
+    return result
+}
+
+if (Config.getDWData) {
     startGetData()
-    //startcalculateData()
+        //startGetData1()
+}
+//startGetData1()
+//startcalculateData()
