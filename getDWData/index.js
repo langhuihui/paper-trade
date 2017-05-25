@@ -72,7 +72,7 @@ function startcalculateData() {
     }, calculateTimeout);
 }
 
-if (!Config.getDWData) {
+if (Config.calDWData) {
     //if (true) {
     (async() => {
         var amqpConnection = await amqp.connect(Config.amqpConn)
