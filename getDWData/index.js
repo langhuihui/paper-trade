@@ -72,8 +72,8 @@ function startcalculateData() {
     }, calculateTimeout);
 }
 
-if (!Config.getDWData) {
-    //if (true) {
+//if (!Config.getDWData) {
+if (true) {
     (async() => {
         var amqpConnection = await amqp.connect(Config.amqpConn)
         let mqChannel = await amqpConnection.createChannel()
@@ -293,9 +293,9 @@ async function getDWLastPrice2() {
     return result
 }
 
-if (Config.getDWData) {
-    startGetData()
-        //startGetData1()
-}
-//startGetData1()
-//startcalculateData()
+//if (Config.getDWData) {
+startGetData()
+    //startGetData1()
+    //}
+    //startGetData1()
+    //startcalculateData()

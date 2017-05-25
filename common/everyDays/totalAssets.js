@@ -96,8 +96,8 @@ export default new EveryDay('totalAssets', "04:30:00", async() => {
                         "AccountNumber": accountNo,
                         "wlpID": "DW",
                         "LanguageID": "zh_CN",
-                        "DateStart": "2017-05-07T00:00:00.000Z",
-                        "DateEnd": "2017-05-25T00:00:00.000Z"
+                        "DateStart": "2017-05-25T00:00:00.000Z",
+                        "DateEnd": "2017-05-26T00:00:00.000Z"
                     },
                     json: true
                 })
