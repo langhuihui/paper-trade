@@ -44,6 +44,7 @@ export default new EveryDay('totalAssets', "04:30:00", async() => {
                         "scrRes": "1920x1080",
                         password
                     },
+                    timeout: 10000,
                     json: true
                 })
                 let [{ cash, accountNo, accountID }] = accounts
@@ -55,6 +56,7 @@ export default new EveryDay('totalAssets', "04:30:00", async() => {
                         ReportFormat: "JSON",
                         AccountNumber: accountNo
                     },
+                    timeout: 10000,
                     uri: dwUrls.position,
                     method: "POST",
                     json: true
@@ -99,6 +101,7 @@ export default new EveryDay('totalAssets', "04:30:00", async() => {
                         "DateStart": "2017-05-25T00:00:00.000Z",
                         "DateEnd": "2017-05-26T00:00:00.000Z"
                     },
+                    timeout: 10000,
                     json: true
                 })
                 console.log(transaction)
