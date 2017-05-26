@@ -269,7 +269,7 @@ async function getDWLastPrice() {
             timeout: 10000
         })
     } catch (ex) {
-        console.log(ex.statusCode)
+        console.log(ex)
         if (ex.statusCode == 401) {
             await redisClient.delAsync("sessionForGetDWDataA");
             return getDWLastPrice()
@@ -297,7 +297,7 @@ async function getDWLastPrice2() {
             timeout: 10000
         })
     } catch (ex) {
-        console.log(ex.statusCode)
+        console.log(ex)
         if (ex.statusCode == 401) {
             await redisClient.delAsync("sessionForGetDWDataB");
             return getDWLastPrice2()
