@@ -196,17 +196,17 @@ async function getSessionKey() {
                 body: {
                     "appTypeID": "2000",
                     "appVersion": "0.1",
-                    "username": "36300888",
-                    //"username": "16459847",
-                    "emailAddress": "36300888@wolfstreet.tv",
-                    //"emailAddress": "16459847@wolfstreet.tv",
+                    //"username": "36300888",
+                    "username": "16459847",
+                    //"emailAddress": "36300888@wolfstreet.tv",
+                    "emailAddress": "16459847@wolfstreet.tv",
                     "ipAddress": "1.1.1.1",
                     "languageID": "zh_CN",
                     "osVersion": "iOS 9.1",
                     "osType": "iOS",
                     "scrRes": "1920x1080",
-                    "password": "p36300888"
-                        //"password": "p16459847"
+                    //"password": "p36300888"
+                    "password": "p16459847"
                 },
                 json: true
             }))
