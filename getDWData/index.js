@@ -265,12 +265,15 @@ async function getDWLastPrice() {
             //encoding: null,
             uri: "http://api.drivewealth.net/v1/instruments", //所有股票
             //uri: "http://api.drivewealth.net/v1/instruments?symbols=" + postdata,//单个股票
-            json: true
+            json: true,
+            timeout: 10000
         })
     } catch (ex) {
         console.log(ex.statusCode)
         if (ex.statusCode == 401) {
             await redisClient.delAsync("sessionForGetDWDataA");
+            return getDWLastPrice()
+        } else {
             return getDWLastPrice()
         }
     }
@@ -290,12 +293,15 @@ async function getDWLastPrice2() {
             //encoding: null,
             uri: "http://api.drivewealth.net/v1/instruments", //所有股票
             //uri: "http://api.drivewealth.net/v1/instruments?symbols=" + postdata,//单个股票
-            json: true
+            json: true,
+            timeout: 10000
         })
     } catch (ex) {
         console.log(ex.statusCode)
         if (ex.statusCode == 401) {
             await redisClient.delAsync("sessionForGetDWDataB");
+            return getDWLastPrice2()
+        } else {
             return getDWLastPrice2()
         }
     }
