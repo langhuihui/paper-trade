@@ -98,8 +98,8 @@ export default new EveryDay('totalAssets', "04:30:00", async() => {
                         "AccountNumber": accountNo,
                         "wlpID": "DW",
                         "LanguageID": "zh_CN",
-                        "DateStart": "2017-05-25T00:00:00.000Z",
-                        "DateEnd": "2017-05-26T00:00:00.000Z"
+                        "DateStart": moment(moment().add(-1, 'days').format('YYYY-MM-DD 08:00:00')).toISOString(), //昨天0点
+                        "DateEnd": moment(moment().format('YYYY-MM-DD 08:00:00')).toISOString() //今天0点
                     },
                     timeout: 10000,
                     json: true
@@ -132,7 +132,7 @@ export default new EveryDay('totalAssets', "04:30:00", async() => {
             let replacements = { UserId, MemberCode }
             let [fakeresult] = await mainDB.query('select TotalAmount from wf_drivewealth_practice_asset_v where UserId=:UserId and EndDate<CurDate() order by EndDate desc limit 1', { replacements })
             let [fakeweekresult] = await mainDB.query("select TotalAmount from wf_drivewealth_practice_asset_v where UserId=:UserId and EndDate<:LastDate order by EndDate desc limit 1 ", { replacements: { LastDate, UserId } });
-            if (moment().day() == 0 || moment().day() == 1) {
+            if (moment().day() == 0 || moment().day() == 1 || moment().format('YYYY-MM-DD') == "2017-05-29") {
                 replacements.TotalAmount = fakeresult.length ? fakeresult[0].TotalAmount : Config.practiceInitFun
             } else {
                 let rand = 1 + Math.random() * Config.randmax / 100

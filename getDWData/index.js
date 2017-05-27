@@ -154,9 +154,16 @@ async function writetoredis() {
     console.time('get dwdata cost time: ');
 
     let result = await getDWLastPrice()
-    result.map(({ symbol, lastTrade }) => {
-        if (symbol != "" && symbol != undefined && lastTrade != "" && lastTrade != undefined) redisClient.hmset("newestUSPriceA", symbol, lastTrade)
-    })
+    if (result.length) {
+        result.map(({ symbol, lastTrade }) => {
+            if (symbol != "" && symbol != undefined && lastTrade != "" && lastTrade != undefined) redisClient.hmset("newestUSPriceA", symbol, lastTrade)
+        })
+    } else {
+        writetoredis()
+        return
+    }
+
+
     await redisClient.setAsync("currentNewestUSPriceKey", "newestUSPriceA");
     let end = new Date()
     console.timeEnd('get dwdata cost time: ');
