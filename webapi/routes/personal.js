@@ -273,5 +273,27 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 break;
         }
     }))
+
+    /**
+     * 修改个人信息里的学校
+     */
+    router.put('/UpdateSchoolName', ctt, wrap(async({ memberCode, schoolName }, res) => {
+        let updateResult = await singleton.updateMainDB("wf_member", { SchoolName: schoolName }, null, { MemberCode: memberCode })
+        if (updateResult.changedRows != 1)
+            res.send({ Status: 500, Explain: "failed" })
+        else
+            res.send({ Status: 0, Explain: "ok" })
+    }));
+
+    /**
+     * 修改股票持仓开关
+     */
+    router.put('/UpdateShowPositionList', ctt, wrap(async({ memberCode, showPositionList }, res) => {
+        let updateResult = await singleton.updateMainDB("wf_member", { ShowPositionList: showPositionList }, null, { MemberCode: memberCode })
+        if (updateResult.changedRows != 1)
+            res.send({ Status: 500, Explain: "failed" })
+        else
+            res.send({ Status: 0, Explain: "ok" })
+    }));
     return router
 }

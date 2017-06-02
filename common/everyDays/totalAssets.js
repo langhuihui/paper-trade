@@ -47,7 +47,7 @@ export default new EveryDay('totalAssets', "04:30:00", async() => {
                     timeout: 10000,
                     json: true
                 })
-                let [{ cash, accountNo, accountID }] = accounts
+                let [{ userID, cash, accountNo, accountID }] = accounts
                 let { positions } = await request({
                     headers: { 'x-mysolomeo-session-key': sessionKey },
                     qs: {
@@ -114,6 +114,28 @@ export default new EveryDay('totalAssets', "04:30:00", async() => {
                     }
 
                 }
+
+                let { equity: { equityPositions } } = await request({
+                    headers: { 'x-mysolomeo-session-key': sessionKey },
+                    method: "GET",
+                    //encoding: null,
+                    uri: "http://api.drivewealth.net/v1/users/" + userID + "/accountSummary/" + accountID,
+                    json: true,
+                    timeout: 5000
+                })
+
+
+                if (equityPositions.length) {
+                    for (let tmp of equityPositions) {
+                        let replacements = {}
+                        Object.assign(replacements, tmp)
+                        replacements.userID = userID
+                        replacements.accountID = accountID
+                        await mainDB.query("delete from wf_drivewealth_practice_position where MemberCode=:MemberCode", { replacements: { MemberCode } })
+                        await singleton.insertMainDB("wf_drivewealth_practice_position", replacements, { CreateTime: "now()", MemberCode })
+                    }
+                }
+
             } catch (ex) {
                 console.error(new Date(), ex)
                 continue;
