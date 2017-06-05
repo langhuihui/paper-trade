@@ -303,7 +303,12 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     router.get('/GetPracticePosition', ctt, wrap(async({ memberCode, query: { OtherMemberCode } }, res) => {
         let result = {}
         if (OtherMemberCode) { //他人的持仓股票
-            result = await mainDB.query("select symbol,openQty,costBasis,marketValue,side,priorClose,availableForTradingQty,avgPrice,mktPrice,unrealizedPL,unrealizedDayPLPercent,unrealizedDayPL from wf_drivewealth_practice_position where MemberCode=:MemberCode ", { replacements: { MemberCode: OtherMemberCode }, type: "SELECT" })
+            result = await mainDB.query("select ShowPositionList from wf_member where MemberCode=:MemberCode ", { replacements: { MemberCode: OtherMemberCode }, type: "SELECT" })
+            result = Object.convertBuffer2Bool(result[0], "ShowPositionList")
+            if (result.ShowPositionList)
+                result = await mainDB.query("select symbol,openQty,costBasis,marketValue,side,priorClose,availableForTradingQty,avgPrice,mktPrice,unrealizedPL,unrealizedDayPLPercent,unrealizedDayPL from wf_drivewealth_practice_position where MemberCode=:MemberCode ", { replacements: { MemberCode: OtherMemberCode }, type: "SELECT" })
+            else
+                result = []
         } else { //自己的持仓股票
             result = await mainDB.query("select symbol,openQty,costBasis,marketValue,side,priorClose,availableForTradingQty,avgPrice,mktPrice,unrealizedPL,unrealizedDayPLPercent,unrealizedDayPL from wf_drivewealth_practice_position where MemberCode=:MemberCode ", { replacements: { MemberCode: memberCode }, type: "SELECT" })
         }
