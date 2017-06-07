@@ -126,12 +126,12 @@ export default new EveryDay('totalAssets', "04:30:00", async() => {
 
 
                 if (equityPositions.length) {
+                    await mainDB.query("delete from wf_drivewealth_practice_position where MemberCode=:MemberCode", { replacements: { MemberCode } })
                     for (let tmp of equityPositions) {
                         let replacements = {}
                         Object.assign(replacements, tmp)
                         replacements.userID = userID
                         replacements.accountID = accountID
-                        await mainDB.query("delete from wf_drivewealth_practice_position where MemberCode=:MemberCode", { replacements: { MemberCode } })
                         await singleton.insertMainDB("wf_drivewealth_practice_position", replacements, { CreateTime: "now()", MemberCode })
                     }
                 }
