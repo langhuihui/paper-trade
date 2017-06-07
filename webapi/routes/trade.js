@@ -97,7 +97,7 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
     router.get('/GetQuotationCommentList/:StockType/:StockCode', async(req, res) => {
         let replacements = req.params
         replacements.picBaseURL = config.picBaseURL
-        let [result] = await mainDB.query("select wf_quotation_comment.*,DATE_FORMAT(wf_quotation_comment.CreateTime,'%Y-%m-%d %H:%i:%s') CreateTime,wf_member.NickName,concat(:picBaseURL,wf_member.headimage)HeadImage from wf_quotation_comment left join wf_member on wf_member.membercode=wf_quotation_comment.CreateUser where isdelete=0 and StockCode=:StockCode and StockType=:StockType order by wf_quotation_comment.id desc", { replacements });
+        let [result] = await mainDB.query("select wf_quotation_comment.*,DATE_FORMAT(wf_quotation_comment.CreateTime,'%Y-%m-%d %H:%i:%s') CreateTime,wf_member.NickName,concat(:picBaseURL,wf_member.headimage)HeadImage,IFNULL(wf_member.SchoolName,'')SchoolName from wf_quotation_comment left join wf_member on wf_member.membercode=wf_quotation_comment.CreateUser where isdelete=0 and StockCode=:StockCode and StockType=:StockType order by wf_quotation_comment.id desc", { replacements });
         res.send({ Status: 0, Explain: "", DataList: result })
     });
     //查询中概股排行榜
