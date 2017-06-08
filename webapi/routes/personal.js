@@ -96,8 +96,9 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }
     async function homePage(memberCode, res) {
         let [result] = await mainDB.query("select TotalAmount,TodayProfit,MtmPL,case wf_member.ShowPositionList when 1 then 1 else 0 end as ShowPositionList from wf_drivewealth_practice_asset left join wf_member on wf_drivewealth_practice_asset.MemberCode=wf_member.MemberCode where wf_drivewealth_practice_asset.MemberCode=:memberCode order by EndDate desc limit 1", { replacements: { memberCode } })
+        let resultunused = await mainDB.query("select * from wf_drivewealth_practice_order where MemberCode=:memberCode", { replacements: { memberCode }, type: "SELECT" })
         let Data = { TotalAmount: config.practiceInitFun, TodayProfit: 0, MtmPL: 0, EveryDayURL: _config.EveryDayURL + memberCode, Unused: true }
-        if (result.length) {
+        if (resultunused.length) {
             Data.Unused = false
             Object.assign(Data, result[0])
         }
