@@ -5,5 +5,10 @@ module.exports = function({ mainDB, ctt, express, config, wrap }) {
         res.send({ Status: 0, Explain: "", DataList: result });
 
     }))
+
+    router.get('/AdPush', ctt, wrap(async(req, res) => {
+        let result = await mainDB.query("select * from wf_ad_push where Status=0", { type: "SELECT" })
+        res.send({ Status: 0, Explain: "", Data: result[0] });
+    }))
     return router
 }
