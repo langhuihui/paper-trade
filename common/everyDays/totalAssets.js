@@ -23,7 +23,7 @@ export default new EveryDay('totalAssets', "04:30:00", async() => {
             break;
     }
     while (true) {
-        let [result] = await mainDB.query('select wf_drivewealth_practice_account.* from wf_drivewealth_practice_account where MemberCode not in (select MemberCode from wf_stockcompetitionmember where Source=1)and `MemberCode`  not in (SELECT `MemberCode` from `wf_drivewealth_practice_asset` WHERE EndDate = CurDate())')
+        let [result] = await mainDB.query('select wf_drivewealth_practice_account.* from wf_drivewealth_practice_account where `MemberCode`  not in (SELECT `MemberCode` from `wf_drivewealth_practice_asset` WHERE EndDate = CurDate())')
         if (!result.length)
             break
         for (let { UserId, MemberCode, username, password, emailAddress1 }
