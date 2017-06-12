@@ -7,7 +7,7 @@ module.exports = function({ mainDB, ctt, express, config, wrap }) {
     }))
 
     router.get('/AdPush', ctt, wrap(async(req, res) => {
-        let result = await mainDB.query("select * from wf_ad_push where Status=0", { type: "SELECT" })
+        let result = await mainDB.query("select ActionType,ActionTarget,concat(:picBaseURL,ImageUrl) ImageUrl from wf_ad_push where Status=0", { replacements: { picBaseURL: config.picBaseURL }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", Data: result[0] });
     }))
     return router
