@@ -11,6 +11,8 @@ var calculateTimeout = 10000
 var mdbData = new Map()
 const ranka = "wf_ussecurities_rank_a"
 const rankb = "wf_ussecurities_rank_b"
+var mqChannel = null
+
 
 function startGetData() {
     setTimeout(async() => {
@@ -19,8 +21,6 @@ function startGetData() {
             console.log(new Date() + "--------getDataTimeout1=" + getDataTimeout1 + "---------------")
             console.log(new Date() + "--------getDWData1 begin---------------")
             await writetoredis()
-            var amqpConnection = await amqp.connect(Config.amqpConn)
-            let mqChannel = await amqpConnection.createChannel()
             mqChannel.sendToQueue("calcuateUSStockData", new Buffer(JSON.stringify({ cmd: "getData" })))
             console.log(new Date() + "--------getDWData1 end---------------")
         } else {
@@ -41,8 +41,6 @@ function startGetData1() {
             console.log(new Date() + "--------getDataTimeout2=" + getDataTimeout2 + "---------------")
             console.log(new Date() + "--------getDWData2 begin---------------")
             await writetoredis2()
-            var amqpConnection = await amqp.connect(Config.amqpConn)
-            let mqChannel = await amqpConnection.createChannel()
             mqChannel.sendToQueue("calcuateUSStockData", new Buffer(JSON.stringify({ cmd: "getData" })))
             console.log(new Date() + "--------getDWData2 end---------------")
         } else {
@@ -72,11 +70,10 @@ function startcalculateData() {
     }, calculateTimeout);
 }
 
-if (Config.calDWData) {
-    //if (true) {
-    (async() => {
-        var amqpConnection = await amqp.connect(Config.amqpConn)
-        let mqChannel = await amqpConnection.createChannel()
+(async() => {
+    let connection = await amqp.connect(Config.amqpConn)
+    mqChannel = await connection.createChannel()
+    if (Config.calDWData) {
         let ok = await mqChannel.assertQueue('calcuateUSStockData')
         mqChannel.consume('calcuateUSStockData', msg => {
             console.log(new Date() + "getmqinfo and then start to calculateData")
@@ -84,8 +81,14 @@ if (Config.calDWData) {
             console.log(new Date() + "calculateData end ")
             mqChannel.ack(msg)
         })
-    })()
-}
+    }
+    if (Config.getDWData) {
+        startGetData()
+            //startGetData1()
+    }
+})()
+
+
 
 /**
  * 写入美股最新价格,计算涨跌幅
@@ -315,9 +318,6 @@ async function getDWLastPrice2() {
     return result
 }
 
-if (Config.getDWData) {
-    startGetData()
-        //startGetData1()
-}
+
 //startGetData1()
 //startcalculateData()

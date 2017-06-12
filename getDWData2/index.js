@@ -12,6 +12,7 @@ var mdbData = new Map()
 const ranka = "wf_ussecurities_rank_a"
 const rankb = "wf_ussecurities_rank_b"
 
+var mqChannel = null
 
 
 function startGetData1() {
@@ -21,8 +22,6 @@ function startGetData1() {
             console.log(new Date() + "--------getDataTimeout2=" + getDataTimeout2 + "---------------")
             console.log(new Date() + "--------getDWData2 begin---------------")
             await writetoredis2()
-            var amqpConnection = await amqp.connect(Config.amqpConn)
-            let mqChannel = await amqpConnection.createChannel()
             mqChannel.sendToQueue("calcuateUSStockData", new Buffer(JSON.stringify({ cmd: "getData" })))
             console.log(new Date() + "--------getDWData2 end---------------")
         } else {
@@ -191,9 +190,13 @@ async function getDWLastPrice2() {
     }
     return result
 }
-
-if (Config.getDWData) {
+async function start() {
+    let connection = await amqp.connect(Config.amqpConn)
+    mqChannel = await connection.createChannel()
     startGetData1()
+}
+if (Config.getDWData) {
+    start()
         //startGetData1()
 }
 //startGetData1()

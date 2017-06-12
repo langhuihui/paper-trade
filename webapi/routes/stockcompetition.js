@@ -99,6 +99,63 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
 
             }
         }
-    }))
+    }));
+    /**报名 */
+    router.post('/Register', ctt, wrap(async({ memberCode, body }, res) => {
+
+    }));
+    /**个人状况 */
+    router.get('/MyStatus', ctt, wrap(async({ memberCode }, res) => {
+
+    }));
+    /**战队情况 */
+    router.get('/TeamStatus/:id', ctt, wrap(async({ memberCode }, res) => {
+
+    }));
+    /**创建战队 */
+    router.post('/CreateTeam', ctt, wrap(async({ memberCode, body }, res) => {
+        //返回邀请码
+        res.send({ Status: 0, Explain: "", Code: '1234' })
+    }));
+    /**申请加入战队 */
+    router.post('/JoinTeam', ctt, wrap(async({ memberCode, body }, res) => {
+
+    }));
+    /**使用邀请码加入战队 */
+    router.post('/JoinTeam/:code', ctt, wrap(async({ memberCode, body }, res) => {
+
+    }));
+    /**战队列表 */
+    router.get('/TeamList', ctt, wrap(async({ memberCode, query: { searchKey } }, res) => {
+
+    }));
+    /**申请列表 */
+    router.get('/ApplyList', ctt, wrap(async({ memberCode }, res) => {
+
+    }));
+    /**接受申请 */
+    router.post('/Accept/:MemberCode', ctt, wrap(async({ memberCode, params: { MemberCode } }, res) => {
+
+    }));
+    /**拒绝申请 */
+    router.post('/Refuse/:MemberCode', ctt, wrap(async({ memberCode, params: { MemberCode } }, res) => {
+
+    }));
+    /**排行榜 */
+    router.get('/RankList/:type', ctt, wrap(async({ memberCode, body }, res) => {
+
+    }));
+    /**赛事消息 */
+    router.get('/Events', ctt, wrap(async({ memberCode, body }, res) => {
+
+    }));
+    /**事件详情 */
+    router.get('/EventDetail/:id', ctt, wrap(async({ memberCode, body }, res) => {
+
+    }));
+    /**公告 */
+    router.get('/Notice', ctt, wrap(async({ memberCode, body }, res) => {
+
+    }));
     return router
 }
