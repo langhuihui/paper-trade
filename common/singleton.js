@@ -94,6 +94,17 @@ let o = {
             await transaction.rollback()
             return ex
         }
+    },
+    async transaction2(action) {
+        let transaction = await this.mainDB.transaction();
+        try {
+            action({ transaction })
+            await transaction.commit();
+            return 0
+        } catch (ex) {
+            await transaction.rollback()
+            return ex
+        }
     }
 }
 export default o
