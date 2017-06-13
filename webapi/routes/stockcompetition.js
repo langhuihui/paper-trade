@@ -5,15 +5,9 @@ import allowAccess from '../middles/allowAccess'
 import { dwUrls } from '../../common/driveWealth'
 import singleton from '../../common/singleton'
 import JPush from 'jpush-sdk'
-module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, mqChannel, wrap }) {
+module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, mqChannel, wrap, rongcloud }) {
     var Competition = null
-    mainDB.query("select *,CONCAT(:picBaseURL,Image) Image from wf_competition_record order by Id desc limit 1", { replacements: { picBaseURL: Config.picBaseURL }, type: "SELECT" }).then(result => {
-        Competition = result[0]
-        if (Competition) {
-            Competition.StartTime = new Date(Competition.StartTime).format()
-            Competition.EndTime = new Date(Competition.EndTime).format()
-        }
-    })
+    mainDB.query("select *,CONCAT(:picBaseURL,Image) Image from wf_competition_record order by Id desc limit 1", { replacements: { picBaseURL: Config.picBaseURL }, type: "SELECT" }).then(result => Competition = result[0])
 
     function CompetitionIsOpen() {
         if (Competition) {
@@ -42,8 +36,6 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 return { Status: 45002, Explain: "10分钟内不得再次申请" }
             }
         }
-        let team = await singleton.selectMainDB0("wf_competition_team", { Id: TeamId })
-        if (singleton.isEMPTY(team) || team.Status == 2) return { Status: -1, Explain: "不存在这个战队" }
         let team_member = await mainDB.query("select * from wf_competition_team_member where TeamId=:TeamId", { replacements: { TeamId }, type: "SELECT" })
         if (team_member.find(m => m.MemberCode == MemberCode)) return { Status: 45001, Explain: "你已经是该战队成员" }
         if (team_member.length >= 3) return { Status: 45003, Explain: "人数已满" }
@@ -215,7 +207,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**个人状况 */
     router.get('/MyStatus', ctt, wrap(async({ memberCode }, res) => {
-        let result = { Status: 0 }
+        let result = { Status: 0, IsOpen: CompetitionIsOpen() }
         let stockcompetitionmember = await singleton.selectMainDB0("wf_stockcompetitionmember", { MemberCode: memberCode, CommetitionId: Competition.Id })
         if (!singleton.isEMPTY(stockcompetitionmember)) {
             //let {TodayProfit} = await singleton.selectMainDB0("wf_drivewealth_practice_asset_v",{MemberCode: memberCode })
@@ -248,6 +240,21 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             res.send({ Status: 0, Explain: "", Data: team })
         }
     }));
+    router.get('/OnlineStatus', ctt, wrap(async({ memberCode }, res) => {
+        let team_member = await singleton.selectMainDB0("wf_competition_team_member", { MemberCode: memberCode })
+        if (singleton.isEMPTY(team_member)) {
+            return res.send({ Status: -1, Explain: "未参加战队" })
+        }
+        let members = await singleton.selectMainDB("wf_competition_team_member", { TeamId: team_member.TeamId })
+        await Promise.all(members.map(m => {
+            let p = new Promise((resolve, reject) => {
+                rongcloud.user.checkOnline(m.MemberCode, 'json', (err, result) => err ? reject(err) : resolve(result))
+            })
+            p.then(result => { m.Online = result.status == 1 })
+            return p
+        }))
+        res.send({ Status: 0, Explain: "", DataList: members })
+    }));
     /**创建战队 */
     router.post('/CreateTeam', ctt, wrap(async({ memberCode, body }, res) => {
         let team = await singleton.selectMainDB0("wf_competition_team", { TeamName: body.TeamName })
@@ -269,6 +276,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**申请加入战队 */
     router.post('/JoinTeam/:TeamId', ctt, wrap(async({ memberCode, params: { TeamId } }, res) => {
+        let team = await singleton.selectMainDB0("wf_competition_team", { Id: TeamId })
+        if (singleton.isEMPTY(team) || team.Status == 2) return res.send({ Status: -1, Explain: "不存在这个战队" })
         let result = await CanJoin(memberCode, TeamId)
         if (result != 0) return res.send(result)
         await singleton.insertMainDB("wf_competition_apply", { TeamId, MemberCode: memberCode, State: 1 }, { CreateTime: "now()" })
@@ -276,17 +285,10 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**使用邀请码加入战队 */
     router.post('/JoinTeamByCode/:Code', ctt, wrap(async({ memberCode, params: { Code } }, res) => {
-        let lastApply = await singleton.selectMainDB0("wf_competition_apply", { MemberCode: memberCode })
-        if (!singleton.isEMPTY(lastApply)) {
-            if (new Date() - new Date(lastApply.CreateTime) < 10 * 60 * 1000) {
-                return res.send({ Status: 45002, Explain: "10分钟内不得再次申请" })
-            }
-        }
         let team = await singleton.selectMainDB0("wf_competition_team", { Code })
         if (singleton.isEMPTY(team) || team.Status == 2) return res.send({ Status: -1, Explain: "不存在这个战队" })
-        let team_member = await mainDB.query("select * from wf_competition_team_member where TeamId=:TeamId", { replacements: { TeamId: team.Id }, type: "SELECT" })
-        if (team_member.find(m => m.MemberCode == memberCode)) return res.send({ Status: 45001, Explain: "你已经是该战队成员" })
-        if (team_member.length >= 3) return res.send({ Status: 45003, Explain: "人数已满" })
+        let result = await CanJoin(memberCode, team.Id)
+        if (result != 0) return res.send(result)
         await singleton.insertMainDB("wf_competition_apply", { TeamId: team.Id, MemberCode: memberCode, State: 1 }, { CreateTime: "now()" })
         res.send({ Status: 0, Explain: "" })
     }));
@@ -352,20 +354,35 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         res.send({ Status: 0, Explain: "" })
     }));
     /**排行榜 */
-    router.get('/RankList/:type', ctt, wrap(async({ memberCode, body }, res) => {
+    router.get('/RankList/:type', ctt, wrap(async({ memberCode, params: { type } }, res) => {
+        switch (type) {
+            case "TeamProfit":
 
+                break
+            case "TotalPrifitV": //炒股大赛总排行
+                //缓存炒股大赛总排行
+                let matchTotalProfitReulst = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue totalamount,b.RankValue totalprofit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank_v a ,wf_drivewealth_practice_rank_v b where a.MemberCode = b.MemberCode and a.Type = 11 and b.Type = 10 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
+                res.send({ Status: 0, Explain: "", DataList: matchTotalProfitReulst })
+                    //res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:matchTotalProfit")} }`)
+                break
+            case "WeekProfitV": //炒股大赛周排行
+                //缓存炒股大赛周排行
+                let matchWeekProfitReulst = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue totalamount,b.RankValue totalprofit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank_v a ,wf_drivewealth_practice_rank_v b where a.MemberCode = b.MemberCode and a.Type = 3 and b.Type = 4 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
+                res.send({ Status: 0, Explain: "", DataList: matchWeekProfitReulst })
+                    //res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:matchWeekProfit")} }`)
+                break
+        }
     }));
     /**赛事消息 */
-    router.get('/Events', ctt, wrap(async({ memberCode, body }, res) => {
-
+    router.get('/Events/:page', ctt, wrap(async({ memberCode, params: { page } }, res) => {
+        let pagesize = 20
+        let result = await mainDB.query("select * from wf_competition_affiche order by Id desc limit :start,:pagesize", { replacements: { start: Number(page) * pagesize, pagesize }, type: "SELECT" })
+        res.send({ Status: 0, DataList: result, Explain: "" })
     }));
     /**事件详情 */
-    router.get('/EventDetail/:id', ctt, wrap(async({ memberCode, body }, res) => {
-
-    }));
-    /**公告 */
-    router.get('/Notice', ctt, wrap(async({ memberCode, body }, res) => {
-
+    router.get('/EventDetail/:Id', ctt, wrap(async({ memberCode, params: { Id } }, res) => {
+        let result = await singleton.selectMainDB0("wf_competition_affiche", { Id })
+        res.send({ Status: 0, Data: result, Explain: "" })
     }));
     return router
 }

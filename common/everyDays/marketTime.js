@@ -20,9 +20,10 @@ export default new EveryDay('marketTime', "00:00:00", async function() {
 
     this.setRedis = now => {
         let hs = isHsOpen(now)
-        let result = JSON.stringify({ us: isUsOpen(now), hk: isHkOpen(now), sh: hs, sz: hs })
-        redisClient.set('marketIsOpen', result)
-        result = JSON.stringify({ us: isUsOpen2(now), hk: isHkOpen2(now), sh: isHsOpen2(now), sz: isHsOpen2(now) })
-        redisClient.set('marketIsOpen2', result)
+        let marketIsOpen = { us: isUsOpen(now), hk: isHkOpen(now), sh: hs, sz: hs }
+        Object.assign(this, marketIsOpen)
+        redisClient.set('marketIsOpen', JSON.stringify(marketIsOpen))
+        marketIsOpen = { us: isUsOpen2(now), hk: isHkOpen2(now), sh: isHsOpen2(now), sz: isHsOpen2(now) }
+        redisClient.set('marketIsOpen2', JSON.stringify(marketIsOpen))
     }
 })

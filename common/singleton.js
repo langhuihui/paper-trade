@@ -18,7 +18,14 @@ rongcloudSDK.init(Config.Rong_Appkey, Config.Rong_Secret);
 let o = {
     get mainDB() {
         if (!_mainDB)
-            _mainDB = new Sequelize(Config.mysqlconn, { timezone: '+08:00', logging: (...arg) => console.log(new Date().format(), ...arg) });
+            _mainDB = new Sequelize(Config.mysqlconn, {
+                dialectOptions: {
+                    dateStrings: true,
+                    typeCast: true
+                },
+                timezone: '+08:00',
+                logging: (...arg) => console.log(new Date().format(), ...arg)
+            });
         return _mainDB
     },
     get redisClient() {
