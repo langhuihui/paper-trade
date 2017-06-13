@@ -100,8 +100,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let Data = { TotalAmount: config.practiceInitFun, TodayProfit: 0, MtmPL: 0, EveryDayURL: _config.EveryDayURL + memberCode, Unused: true }
         if (resultunused.length) {
             Data.Unused = false
-            Object.assign(Data, result[0])
         }
+        Object.assign(Data, result[0])
         res.send({ Status: 0, Explain: "", Data })
     }
     const router = express.Router();
@@ -291,6 +291,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
      */
     router.put('/UpdateShowPositionList', ctt, wrap(async({ memberCode, body }, res) => {
         let updateResult = await singleton.updateMainDB("wf_member", body, null, { MemberCode: memberCode })
+        console.log(updateResult)
         if (updateResult.changedRows != 1)
             res.send({ Status: 500, Explain: "failed" })
         else
