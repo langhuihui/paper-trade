@@ -169,7 +169,8 @@ async function sendNotify(order) {
         })
 }
 setInterval(async() => {
-    let marketIsOpen = await singleton.marketIsOpen()
+
+    let marketIsOpen = Config.ptTest ? null : await singleton.marketIsOpen()
     for (let order of orders.values()) {
         let { Id, AccountNo, Amount, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, CommissionRate, CommissionLimit } = order
         //拒绝超时订单
@@ -192,10 +193,11 @@ setInterval(async() => {
             } else console.error(result)
             continue
         }
+        if (!Config.ptTest)
         //未开盘则直接跳过
-        if (!marketIsOpen[SecuritiesType]) {
-            continue
-        }
+            if (!marketIsOpen[SecuritiesType]) {
+                continue
+            }
         let name = Config.getQueryName(order)
         let [, , , price, pre, chg] = await singleton.getLastPrice(name)
         let Commission = Math.max(CommissionRate * OrderQty, CommissionLimit) //佣金

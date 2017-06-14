@@ -208,7 +208,9 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     /**个人状况 */
     router.get('/MyStatus', ctt, wrap(async({ memberCode }, res) => {
         let result = { Status: 0, IsOpen: CompetitionIsOpen() }
-        let stockcompetitionmember = await singleton.selectMainDB0("wf_stockcompetitionmember", { MemberCode: memberCode, CommetitionId: Competition.Id })
+        let stockcompetitionmember = await singleton.selectMainDB0("wf_stockcompetitionmember", { MemberCode: memberCode, CommetitionId: Competition.Id });
+        ({ RankValue: result.Profit, Rank, Defeat: result.Defeat } = await singleton.selectMainDB0("wf_drivewealth_practice_rank_v", { MemberCode: memberCode, Type: 1 }));
+        result.Title = ((100 - result.Defeat) / 20 >> 0) + 1
         if (!singleton.isEMPTY(stockcompetitionmember)) {
             //let {TodayProfit} = await singleton.selectMainDB0("wf_drivewealth_practice_asset_v",{MemberCode: memberCode })
             let team_member = await singleton.selectMainDB0("wf_competition_team_member", { MemberCode: memberCode })
@@ -219,6 +221,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 result.Team = await singleton.selectMainDB0("wf_competition_team", { Id: team_member.TeamId })
             }
         }
+        result.Events = await mainDB.query("select * from wf_competition_affiche order by Id desc limit 3", { type: "SELECT" })
         res.send({ Status: 0, Explain: "", Data: result })
     }));
     /**战队情况 */

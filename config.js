@@ -36,7 +36,8 @@ let config = {
     practiceInitFun: 10000, //模拟交易起始资金
     randmax: 1, //每日增长系数
     getDWData: true, //是否获取嘉维数据
-    calDWData: true //是否监听嘉维数据获取情况，并计算排名
+    calDWData: true, //是否监听嘉维数据获取情况，并计算排名
+    ptTest: true //模拟交易测试，忽略是否开盘状态
         //  mysqlconn: "mysql://wfadmin:123456@192.168.2.205:3306/wolfstreet_test",
 }
 console.log(process.env.NODE_ENV)

@@ -31,9 +31,10 @@ module.exports = function({ mainDB, mqChannel, ctt, express, config, wrap, redis
         if (Side != "S" && Side != "B") {
             return res.send({ Status: -2, Explain: "Side 必须是S、B 而当前值为：" + Side })
         }
-        if ((OrdType == 1 || OrdType == 4) && !await singleton.marketIsOpen(SecuritiesType)) {
-            return res.send({ Status: 44003, Explain: "未开盘：" + SecuritiesType })
-        }
+        if (!config.ptTest)
+            if ((OrdType == 1 || OrdType == 4) && !await singleton.marketIsOpen(SecuritiesType)) {
+                return res.send({ Status: 44003, Explain: "未开盘：" + SecuritiesType })
+            }
         let account = await getAccount(AccountNo)
         if (singleton.isEMPTY(account)) {
             await createAccount({ AccountNo, memberCode, TranAmount: config.practiceInitFun, Cash: config.practiceInitFun, UsableCash: config.practiceInitFun });
