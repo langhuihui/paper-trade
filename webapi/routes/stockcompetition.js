@@ -28,6 +28,38 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         }
         return false
     }
+
+    function ThisWeek() {
+        let now = new Date()
+        let weekDay = now.getDay()
+        let result = []
+        if (weekDay == 6 && now.getHours() >= 4 || weekDay == 1 && now < new Date(now.format("yyyy-MM-dd") + " 21:30:00") || weekDay == 0) {
+            now.setDate(now.getDate() - weekDay + 1 + 7)
+            now.setHours(9)
+            now.setMinutes(30)
+            now.setSeconds(0)
+            result[0] = now
+            now = new Date()
+            now.setDate(now.getDate() - weekDay + 6 + 7)
+            now.setHours(4)
+            now.setMinutes(0)
+            now.setSeconds(0)
+            result[1] = now
+        } else {
+            now.setDate(now.getDate() - weekDay + 1)
+            now.setHours(9)
+            now.setMinutes(30)
+            now.setSeconds(0)
+            result[0] = now
+            now = new Date()
+            now.setDate(now.getDate() - weekDay + 6)
+            now.setHours(4)
+            now.setMinutes(0)
+            now.setSeconds(0)
+            result[1] = now
+        }
+        return result;
+    }
     async function CanJoin(MemberCode, TeamId) {
         if (TeamCompetitionIsOpen()) return { Status: 45004, Explain: "组队赛已开始" }
         let lastApply = await singleton.selectMainDB0("wf_competition_apply", { MemberCode })
@@ -140,6 +172,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     //获取最近的比赛
     router.get('/Competition', (req, res) => res.send({ Status: Competition ? 0 : -1, Competition }));
     router.get('/CompetitionState', (req, res) => res.send({ Status: 0, IsOpen: CompetitionIsOpen() }));
+    /**组队赛情况 */
     router.get('/TeamCompetitionState', ctt, wrap(async({ memberCode }, res) => {
         let teams = await mainDB.query(`
         select a.*,b.MemberCount from wf_competition_team a,(select TeamId,count(*) MemberCount from wf_competition_team_member group by TeamId) b
@@ -147,6 +180,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let CanJoinCount = 0;
         let CanCreateCount = 100 - teams.length
         let IsOpen = TeamCompetitionIsOpen()
+        let WeekTime = ThisWeek()
+        let Team = {}
         let UIState = await (async() => {
             let [{ enterCount, teamCount, TeamId }] = await mainDB.query("select a.cnt enterCount,b.cnt teamCount,b.TeamId from (select count(*) cnt from wf_stockcompetitionmember where MemberCode=:memberCode and CommetitionId=:CommetitionId) a ,(select count(*) cnt,TeamId from wf_competition_team_member where MemberCode=:memberCode) b", { replacements: { memberCode, CommetitionId: Competition.Id }, type: "SELECT" })
             if (enterCount == 0) return IsOpen ? 5 : 1
@@ -156,9 +191,10 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 if (t.Id == TeamId) myTeamMemberCount = t.MemberCount
                 if (t.MemberCount < 3) CanJoinCount++
             })
+            Team = await singleton.selectMainDB0("wf_competition_team", { Id: TeamId })
             return IsOpen ? (myTeamMemberCount < 3 ? 7 : 8) : 4
         })()
-        res.send({ Status: 0, IsOpen, CanJoinCount, CanCreateCount, UIState })
+        res.send({ Status: 0, IsOpen, CanJoinCount, CanCreateCount, UIState, OpenTime: WeekTime[0].format(), CloseTime: WeekTime[1].format(), Team })
     }));
     /**报名 */
     router.post('/Register', ctt, wrap(async({ memberCode, body }, res) => {
@@ -207,9 +243,13 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**个人状况 */
     router.get('/MyStatus', ctt, wrap(async({ memberCode }, res) => {
-        let result = { Status: 0, IsOpen: CompetitionIsOpen() }
+        let result = { Status: 0, IsOpen: CompetitionIsOpen(), OpenTime: Competition.StartTime, CloseTime: Competition.EndTime }
         let stockcompetitionmember = await singleton.selectMainDB0("wf_stockcompetitionmember", { MemberCode: memberCode, CommetitionId: Competition.Id });
-        ({ RankValue: result.Profit, Rank, Defeat: result.Defeat } = await singleton.selectMainDB0("wf_drivewealth_practice_rank_v", { MemberCode: memberCode, Type: 1 }));
+        ({ TodayProfit: result.Profit, TodayDefeat: result.Defeat, WeekRank: result.WeekRank, TotalRank: result.TotalRank } = await mainDB.query(`select max(case when type = 1 then RankValue else 0 end) TodayProfit,
+        max(case when type = 1 then Defeat else 0 end) TodayDefeat,
+        max(case when type = 3 then Rank else 0 end) WeekRank,
+        max(case when type = 11 then Rank else 0 end) TotalRank,
+         from wf_drivewealth_practice_rank_v where MemberCode=:memberCode`, { type: "SELECT" }));
         result.Title = ((100 - result.Defeat) / 20 >> 0) + 1
         if (!singleton.isEMPTY(stockcompetitionmember)) {
             //let {TodayProfit} = await singleton.selectMainDB0("wf_drivewealth_practice_asset_v",{MemberCode: memberCode })
@@ -243,6 +283,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             res.send({ Status: 0, Explain: "", Data: team })
         }
     }));
+    /**在线状态 */
     router.get('/OnlineStatus', ctt, wrap(async({ memberCode }, res) => {
         let team_member = await singleton.selectMainDB0("wf_competition_team_member", { MemberCode: memberCode })
         if (singleton.isEMPTY(team_member)) {
@@ -358,20 +399,23 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**排行榜 */
     router.get('/RankList/:type', ctt, wrap(async({ memberCode, params: { type } }, res) => {
+        let [OpenTime, CloseTime] = ThisWeek()
+        OpenTime = OpenTime.format()
+        CloseTime = CloseTime.format()
         switch (type) {
             case "TeamProfit":
 
                 break
-            case "TotalPrifitV": //炒股大赛总排行
+            case "TotalProfit": //炒股大赛总排行
                 //缓存炒股大赛总排行
                 let matchTotalProfitReulst = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue totalamount,b.RankValue totalprofit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank_v a ,wf_drivewealth_practice_rank_v b where a.MemberCode = b.MemberCode and a.Type = 11 and b.Type = 10 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
                 res.send({ Status: 0, Explain: "", DataList: matchTotalProfitReulst })
                     //res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:matchTotalProfit")} }`)
                 break
-            case "WeekProfitV": //炒股大赛周排行
+            case "WeekProfit": //炒股大赛周排行
                 //缓存炒股大赛周排行
                 let matchWeekProfitReulst = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue totalamount,b.RankValue totalprofit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank_v a ,wf_drivewealth_practice_rank_v b where a.MemberCode = b.MemberCode and a.Type = 3 and b.Type = 4 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
-                res.send({ Status: 0, Explain: "", DataList: matchWeekProfitReulst })
+                res.send({ Status: 0, Explain: "", DataList: matchWeekProfitReulst, OpenTime, CloseTime })
                     //res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:matchWeekProfit")} }`)
                 break
         }

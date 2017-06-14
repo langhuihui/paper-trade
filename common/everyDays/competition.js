@@ -32,7 +32,7 @@ class Competition extends EveryDay {
                 }
 
             default:
-                mainDB.query("CALL xxx")
+                mainDB.query("CALL PRC_WF_TEAM_RANK")
         }
         return false
     }
