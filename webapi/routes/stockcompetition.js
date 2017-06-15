@@ -286,7 +286,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         if (singleton.isEMPTY(team)) {
             res.send({ Status: -1, Explain: "没有该战队" })
         } else {
-            team.Member = await singleton.selectMainDB("wf_competition_team_member", { TeamId })
+            team.Member = await mainDB.query("select a.*,m.NickName,asset.WeekYield,concat(:picBaseURL,case when isnull(m.HeadImage) or m.HeadImage='' then :defaultHeadImage else m.HeadImage end)HeadImage from wf_competition_team_member a left join wf_member m on a.MemberCode=m.MemberCode left join wf_drivewealth_practice_asset_v asset on a.MemberCode=asset.MemberCode and asset.EndDate = curdate() where a.TeamId=:TeamId", { type: "SELECT", replacements: { TeamId, picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage } })
             team.CanJoin = (await CanJoin(memberCode, TeamId)) == 0
             team.IsOpen = TeamCompetitionIsOpen()
             team.Role = memberCode == team.MemberCode ? 1 : (team.Member.find(m => m.MemberCode == memberCode) ? 2 : 3)
@@ -300,12 +300,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         }
     }));
     /**在线状态 */
-    router.get('/OnlineStatus', ctt, wrap(async({ memberCode }, res) => {
-        let team_member = await singleton.selectMainDB0("wf_competition_team_member", { MemberCode: memberCode })
-        if (singleton.isEMPTY(team_member)) {
-            return res.send({ Status: -1, Explain: "未参加战队" })
-        }
-        let members = await singleton.selectMainDB("wf_competition_team_member", { TeamId: team_member.TeamId })
+    router.get('/OnlineStatus/:TeamId', ctt, wrap(async({ memberCode }, res) => {
+        let members = await singleton.selectMainDB("wf_competition_team_member", { TeamId })
         await Promise.all(members.map(m => {
             let p = new Promise((resolve, reject) => {
                 rongcloud.user.checkOnline(m.MemberCode, 'json', (err, result) => err ? reject(err) : resolve(result))
@@ -360,7 +356,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         if (singleton.isEMPTY(team)) {
             return res.send({ Status: -1, Explain: "你没有创建战队" })
         }
-        let applyList = await mainDB.query("select c.*,m.Nickname NickName from wf_competition_apply c left join wf_member m on c.MemberCode=m.MemberCode  where TeamId=:teamId", { replacements: { teamId: team.Id }, type: "SELECT" })
+        let applyList = await mainDB.query("select c.*,m.Nickname NickName,concat(:picBaseURL,case when isnull(m.HeadImage) or m.HeadImage='' then :defaultHeadImage else m.HeadImage end)HeadImage from wf_competition_apply c left join wf_member m on c.MemberCode=m.MemberCode  where TeamId=:teamId", { replacements: { picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage, teamId: team.Id }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", DataList: applyList })
     }));
     /**接受申请 */
@@ -422,13 +418,15 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 break
             case "TotalProfit": //炒股大赛总排行
                 //缓存炒股大赛总排行
-                DataList = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue totalamount,b.RankValue totalprofit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank_v a ,wf_drivewealth_practice_rank_v b where a.MemberCode = b.MemberCode and a.Type = 11 and b.Type = 10 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
+                DataList = await mainDB.query("select a.*,b.NickName,concat(:picBaseURL,case when isnull(b.HeadImage) or b.HeadImage='' then :defaultHeadImage else b.HeadImage end)HeadImage from wf_drivewealth_practice_rank_v a left join wf_member b on a.MemberCode=b.MemberCode where Type=9 order by a.Rank", { replacements: { picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
+                    //DataList = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue TotalAmount,b.RankValue TodayProfit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank_v a ,wf_drivewealth_practice_rank_v b where a.MemberCode = b.MemberCode and a.Type = 11 and b.Type = 10 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
                 res.send({ Status: 0, Explain: "", DataList })
                     //res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:matchTotalProfit")} }`)
                 break
             case "WeekProfit": //炒股大赛周排行
                 //缓存炒股大赛周排行
-                DataList = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue totalamount,b.RankValue totalprofit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank_v a ,wf_drivewealth_practice_rank_v b where a.MemberCode = b.MemberCode and a.Type = 3 and b.Type = 4 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
+                DataList = await mainDB.query("select a.*,b.NickName,concat(:picBaseURL,case when isnull(b.HeadImage) or b.HeadImage='' then :defaultHeadImage else b.HeadImage end)HeadImage from wf_drivewealth_practice_rank_v a left join wf_member b on a.MemberCode=b.MemberCode where Type=3 order by a.Rank", { replacements: { picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
+                    //DataList = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue TotalAmount,b.RankValue TodayProfit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank_v a ,wf_drivewealth_practice_rank_v b where a.MemberCode = b.MemberCode and a.Type = 3 and b.Type = 4 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
                 res.send({ Status: 0, Explain: "", DataList, OpenTime, CloseTime })
                     //res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:matchWeekProfit")} }`)
                 break
