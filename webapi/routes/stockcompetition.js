@@ -300,7 +300,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         }
     }));
     /**在线状态 */
-    router.get('/OnlineStatus/:TeamId', ctt, wrap(async({ memberCode }, res) => {
+    router.get('/OnlineStatus/:TeamId', ctt, wrap(async({ memberCode, params: { TeamId } }, res) => {
         let members = await singleton.selectMainDB("wf_competition_team_member", { TeamId })
         await Promise.all(members.map(m => {
             let p = new Promise((resolve, reject) => {
