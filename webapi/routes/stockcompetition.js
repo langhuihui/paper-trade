@@ -182,17 +182,15 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let Team = {}
         let UIState = await (async() => {
             let [{ enterCount, teamCount, TeamId }] = await mainDB.query("select a.cnt enterCount,b.cnt teamCount,b.TeamId from (select count(*) cnt from wf_stockcompetitionmember where MemberCode=:memberCode and CommetitionId=:CommetitionId) a ,(select count(*) cnt,TeamId from wf_competition_team_member where MemberCode=:memberCode) b", { replacements: { memberCode, CommetitionId: Competition.Id }, type: "SELECT" })
-            if (enterCount == 0) return IsOpen ? 5 : 1
-            if (teamCount == 0) return IsOpen ? 6 : (CanCreateCount ? 2 : 3)
-            let myTeamMemberCount = 0
             teams.forEach(t => {
                 if (t.Id == TeamId) {
-                    myTeamMemberCount = t.MemberCount
                     Team = t
                 }
-                if (t.MemberCount < 3) CanJoinCount++
+                if (t.Status == 0) CanJoinCount++
             })
-            return IsOpen ? (myTeamMemberCount < 3 ? 7 : 8) : 4
+            if (enterCount == 0) return IsOpen ? 5 : 1
+            if (teamCount == 0) return IsOpen ? 6 : (CanCreateCount ? 2 : 3)
+            return IsOpen ? (Team.Status == 0 ? 7 : 8) : 4
         })()
         res.send({ Status: 0, IsOpen, CanJoinCount, CanCreateCount, UIState, OpenTime: WeekTime[0].format(), CloseTime: WeekTime[1].format(), Team })
     }));
