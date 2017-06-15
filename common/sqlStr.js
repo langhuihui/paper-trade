@@ -6,24 +6,32 @@
 function getNames(value, other) {
     let names = Object.keys(value);
     let argNames = names.map(n => ':' + n);
-    if (other)
-        for (let n in other) {
-            let i = names.indexOf(n)
-            if (other[n]) {
-                if (i != -1) {
-                    argNames[i] = other[n]
+    let others = []
+    if (other) {
+        if (Array.isArray(other)) {
+            others = other
+        } else if (typeof other == "string") {
+            others.push("(" + other + ")")
+        } else
+            for (let n in other) {
+                let i = names.indexOf(n)
+                if (other[n]) {
+                    if (i != -1) {
+                        argNames[i] = other[n]
+                    } else {
+                        names.push(n)
+                        argNames.push(other[n])
+                    }
                 } else {
-                    names.push(n)
-                    argNames.push(other[n])
-                }
-            } else {
-                if (i != -1) {
-                    names.splice(i, 1)
-                    argNames.splice(i, 1)
+                    if (i != -1) {
+                        names.splice(i, 1)
+                        argNames.splice(i, 1)
+                    }
                 }
             }
-        }
-    let equres = names.map((n, i) => n + "=" + argNames[i])
+    }
+
+    let equres = names.map((n, i) => n + "=" + argNames[i]).concat(others)
     names = names.join(",")
     argNames = argNames.join(",")
     return { names, argNames, equres }
