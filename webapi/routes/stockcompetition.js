@@ -244,7 +244,18 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**搜索战队 */
     router.get('/SearchTeam/:str', ctt, wrap(async({ memberCode, params: { str } }, res) => {
-        res.send({ Status: 0, result: await mainDB.query(`select * from wf_competition_team where TeamName like '%${str}%' and Status <>2`, { type: "SELECT" }) })
+        let team_member = await singleton.selectMainDB0("wf_competition_team_member", { MemberCode: memberCode })
+        let canJoin = ""
+        if (!singleton.isEMPTY(team_member)) {
+            canJoin = ",1 CanJoin"
+        }
+        let result = await mainDB.query(`select * ${canJoin} from wf_competition_team where TeamName like '%${str}%' and Status <>2`, { type: "SELECT" })
+        if (!canJoin) {
+            result.forEach(async team => {
+                team.CanJoin = CanJoin(memberCode, team.Id)
+            })
+        }
+        res.send({ Status: 0, result })
     }));
     /**个人状况 */
     router.get('/MyStatus', ctt, wrap(async({ memberCode }, res) => {
@@ -253,7 +264,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         ({ TodayProfit: result.Profit, TodayDefeat: result.Defeat, WeekRank: result.WeekRank, TotalRank: result.TotalRank } = await mainDB.query(`select max(case when type = 1 then RankValue else 0 end) TodayProfit,
         max(case when type = 1 then Defeat else 0 end) TodayDefeat,
         max(case when type = 3 then Rank else 0 end) WeekRank,
-        max(case when type = 11 then Rank else 0 end) TotalRank,
+        max(case when type = 11 then Rank else 0 end) TotalRank
          from wf_drivewealth_practice_rank_v where MemberCode=:memberCode`, { replacements: { memberCode }, type: "SELECT" }));
         result.Title = ((100 - result.Defeat) / 20 >> 0) + 1
         if (!singleton.isEMPTY(stockcompetitionmember)) {
@@ -340,7 +351,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**战队列表 */
     router.get('/TeamList', ctt, wrap(async({ memberCode, query: { searchKey } }, res) => {
-        let teams = await mainDB.query(`select * from wf_competition_team where Status <> 2`, { type: "SELECT" })
+        let teams = await mainDB.query(`select * from wf_competition_team where Status <> 2 order by Id desc`, { type: "SELECT" })
         res.send({ Status: 0, Explain: "", DataList: teams })
     }));
     /**申请列表 */
