@@ -154,7 +154,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**获取我的消息列表 */
     router.get('/Messages', ctt, wrap(async({ memberCode }, res) => {
-        let [result] = await mainDB.query("select Id,Type,Title,Extension,Content,case when Type<>1 then  DATE_FORMAT(SendTime,'%Y-%m-%d %H:%i:%s') else DATE_FORMAT(CreateTime,'%Y-%m-%d %H:%i:%s') end CreateTime,Target from wf_message where (MemberCode=:memberCode or Type<>1) and Status=0 and IsDelete=0 and IsSend<>0 order by Id desc", { replacements: { memberCode } })
+        let [result] = await mainDB.query("select Id,Type,Title,Extension,Content,case when Type<>1 then  SendTime else CreateTime end CreateTime,Target from wf_message where (MemberCode=:memberCode or (Type<>1 and MemberCode is null)) and Status=0 and IsDelete=0 and IsSend<>0 order by Id desc", { replacements: { memberCode } })
         for (let msg of result) {
             if (msg.Extension && msg.Type == 1) {
                 msg.Extension = JSON.parse(msg.Extension)
