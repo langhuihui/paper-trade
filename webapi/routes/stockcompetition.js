@@ -210,7 +210,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         res.send({ Status: 0, result: await mainDB.query(`select * from wf_base_school where SchoolName like '%${str}%'`, { type: "SELECT" }) })
     }));
     /**搜索战队 */
-    router.get('/SearchTeam/:str', ctt, wrap(async({ memberCode, params: { str } }, res) => {
+    router.get('/SearchTeam/:str', ctt, allowAccess(), wrap(async({ memberCode, params: { str } }, res) => {
         let team_member = await singleton.selectMainDB0("wf_competition_team_member", { MemberCode: memberCode })
         let canJoin = ""
         if (!singleton.isEMPTY(team_member)) {
@@ -332,7 +332,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let teams = await mainDB.query(`select *${canJoin} from wf_competition_team where Status <> 2 order by Id desc`, { type: "SELECT" })
         if (!canJoin) {
             await Promise.all(
-                teams.map(team => CanJoin(memberCode, team)).then(result => team.CanJoin = (result == 0 ? 1 : 0))
+                teams.map(team => CanJoin(memberCode, team).then(result => team.CanJoin = (result == 0 ? 1 : 0)))
             )
         }
         res.send({ Status: 0, Explain: "", DataList: teams })
@@ -370,7 +370,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount })
         })
         if (result == 0) {
-            singleton.insertMainDB("wf_message", { Type: 2, Content: team.TeamName + " 队长已同意您的入队申请!", MemberCode: memberCode, Title: "申请已通过", IsSend: 1 }, { CreateTime: "now()" })
+            singleton.insertMainDB("wf_message", { Type: 2, Content: team.TeamName + " 队长已同意您的入队申请!", MemberCode, Title: "申请已通过", IsSend: 1 }, { CreateTime: "now()" })
             sendJpushMessage(MemberCode, "同意申请", "", "", { AlertType: config.jpushType_competition, Type: "accept", team })
         }
         res.send({ Status: result == 0 ? 0 : 500, Explain: result })
@@ -393,7 +393,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         //     return res.send({ Status: 45003, Explain: "人数已满" })
         // }
         await singleton.updateMainDB("wf_competition_apply", { State: 3 }, null, { MemberCode, TeamId: team.Id })
-        singleton.insertMainDB("wf_message", { Type: 2, Content: team.TeamName + " 队长已拒绝您的入队申请！", MemberCode: memberCode, Title: "申请被拒绝", IsSend: 1 }, { CreateTime: "now()" })
+        singleton.insertMainDB("wf_message", { Type: 2, Content: team.TeamName + " 队长已拒绝您的入队申请！", MemberCode, Title: "申请被拒绝", IsSend: 1 }, { CreateTime: "now()" })
         sendJpushMessage(MemberCode, "拒绝申请", "", "", { AlertType: config.jpushType_competition, Type: "refuse", team })
         res.send({ Status: 0, Explain: "" })
     }));
