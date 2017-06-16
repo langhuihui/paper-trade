@@ -219,7 +219,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let result = await mainDB.query(`select * ${canJoin} from wf_competition_team where TeamName like '%${str}%' and Status <>2`, { type: "SELECT" })
         if (!canJoin) {
             await Promise.all(
-                result.map(team => CanJoin(memberCode, team)).then(result => team.CanJoin = (result == 0 ? 1 : 0))
+                result.map(team => CanJoin(memberCode, team).then(result => team.CanJoin = (result == 0 ? 1 : 0)))
             )
         }
         res.send({ Status: 0, result })
@@ -288,7 +288,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let [{ Code }] = await mainDB.query("select * from wf_competition_code where State = 0  order by rand() limit 1", { type: "SELECT" })
         await singleton.updateMainDB("wf_competition_code", { State: 1 }, null, { Code })
         let { insertId } = await singleton.insertMainDB("wf_competition_team", Object.assign(body, { Code, MemberCode: memberCode, MemberCount: 1, Status: 0 }), { CreateTime: "now()" })
-        await singleton.insertMainDB("wf_competition_team_member", { TeamId: insertId, MemberCode: memberCode, Level: 1 }, { CreateTime: "now()" })
+        await singleton.insertMainDB("wf_competition_team_member", { TeamId: insertId, MemberCode: memberCode, Level: 1, Type: 1 }, { CreateTime: "now()" })
         res.send({ Status: 0, Explain: "", Code, TeamId: insertId })
     }));
     /**申请加入战队 */
@@ -310,7 +310,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         if (result != 0) return res.send(result)
         team.MemberCount++;
         result = await singleton.transaction2(t => {
-            singleton.insertMainDB("wf_competition_team_member", { TeamId: team.Id, MemberCode, Level: 2 }, { CreateTime: "now()" }, t)
+            singleton.insertMainDB("wf_competition_team_member", { TeamId: team.Id, MemberCode, Level: 2, Type: 2 }, { CreateTime: "now()" }, t)
             mainDB.query("update wf_competition_apply set State=4 where MemberCode=:MemberCode and TeamId<>:TeamId", { replacements: { MemberCode, TeamId: team.Id }, transaction: t.transaction })
             singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount })
         })
@@ -365,7 +365,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         team.MemberCount++;
         let result = await singleton.transaction2(t => {
             singleton.updateMainDB("wf_competition_apply", { State: 2 }, null, { MemberCode, TeamId: team.Id }, t)
-            singleton.insertMainDB("wf_competition_team_member", { TeamId: team.Id, MemberCode, Level: 2 }, { CreateTime: "now()" }, t)
+            singleton.insertMainDB("wf_competition_team_member", { TeamId: team.Id, MemberCode, Level: 2, Type: 3 }, { CreateTime: "now()" }, t)
             mainDB.query("update wf_competition_apply set State=4 where MemberCode=:MemberCode and TeamId<>:TeamId", { replacements: { MemberCode, TeamId: team.Id }, transaction: t.transaction })
             singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount })
         })

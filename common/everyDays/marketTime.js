@@ -4,7 +4,7 @@ import singleton from '../singleton'
 const { mainDB, redisClient } = singleton
 export default new EveryDay('marketTime', "00:00:00", async function() {
     let usResult = await singleton.selectMainDB("wf_system_opendate_bak", { Type: "us" }, { DealDate: "CurDate()" })
-    let usResult2 = await singleton.selectMainDB("wf_system_opendate_bak", { Type: "us" }, { DealDate: "DATE_ADD(CURDATE(),INTERVAL 1 day" })
+    let usResult2 = await singleton.selectMainDB("wf_system_opendate_bak", { Type: "us" }, { DealDate: "DATE_ADD(CURDATE(),INTERVAL 1 day)" })
     let hsResult = await singleton.selectMainDB("wf_system_opendate_bak", { Type: "hs" }, { DealDate: "CurDate()" })
     let hkResult = await singleton.selectMainDB("wf_system_opendate_bak", { Type: "hk" }, { DealDate: "CurDate()" })
     let usTime = [usResult.length > 0 ? new Date(usResult[0].EndTimePM) : false, usResult2.length > 0 ? new Date(usResult2[0].StartTimeAM) : false]
