@@ -152,45 +152,6 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         } else res.send({ Status: 0, Explain: "", result: { Rank: -1, OpenDate: opendate } }) //默认配置
     }))
 
-    /**报名 */
-    router.post('/Register/:Token', ctt, allowAccess('POST'), wrap(async({ memberCode, body }, res) => {
-        let opendate = "2017-05-08"
-        body.MemberCode = memberCode
-        let [result] = await mainDB.query("select * from wf_stockcompetitionmember where MemberCode=:memberCode ", { replacements: { memberCode } })
-        if (result.length) {
-            res.send({ Status: 0, Explain: "", result: false, OpenDate: opendate }) //默认配置
-        } else {
-            await mainDB.query(...sqlstr.insert2("wf_stockcompetitionmember", body, { CreateTime: "now()" }))
-            let [result] = await mainDB.query("select TotalAmount from wf_drivewealth_practice_asset_v where MemberCode=:memberCode order by AssetId desc limit 1", { replacements: { memberCode } })
-            if (result.length && result[0].TotalAmount == 10000) {
-                res.send({ Status: 0, Explain: "", result: true, OpenDate: opendate })
-            } else {
-                let result = await CreateParactice(memberCode, "")
-                    //await mainDB.query("delete from wf_token where MemberCode=:memberCode ", { replacements: { memberCode } })
-                res.send({ Status: 0, Explain: "", result: true, OpenDate: opendate })
-                setTimeout(5000)
-                let tmpresult = await mainDB.query('select JpushRegID from wf_im_jpush where MemberCode=:MemberCode', { replacements: body, type: "SELECT" })
-                let JpushRegID = tmpresult.length ? tmpresult[0].JpushRegID : ""
-                if (JpushRegID) {
-                    singleton.jpushClient.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(JpushRegID))
-                        .setOptions(null, null, null, Config.apns_production)
-                        .setMessage('嘉维账号重置', '', '', { AlertType: "jpush111", UserId: result.userId, username: result.username, password: result.password })
-                        .send(async(err, res) => {
-                            if (err) {
-                                if (err instanceof JPush.APIConnectionError) {
-                                    console.log(err.message)
-                                } else if (err instanceof JPush.APIRequestError) {
-                                    console.log(err.message)
-                                }
-                            } else {
-
-                            }
-                        })
-                }
-
-            }
-        }
-    }));
     //获取最近的比赛
     router.get('/Competition', (req, res) => res.send({ Status: Competition ? 0 : -1, Competition }));
     router.get('/CompetitionState', (req, res) => res.send({ Status: 0, IsOpen: CompetitionIsOpen() }));
@@ -216,8 +177,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         })()
         res.send({ Status: 0, IsOpen, CanJoinCount, CanCreateCount, UIState, OpenTime: WeekTime[0].format(), CloseTime: WeekTime[1].format(), Team })
     }));
-    /**报名 */
-    router.post('/Register', ctt, wrap(async({ memberCode, body }, res) => {
+
+    let RegisterHandler = wrap(async({ memberCode, body }, res) => {
         body.MemberCode = memberCode
         if (!Competition) {
             return res.send({ Status: -1, Explain: "没有比赛" })
@@ -239,7 +200,11 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 sendJpushMessage(memberCode, '嘉维账号重置', '', '', { AlertType: "jpush111", UserId: result.userId, username: result.username, password: result.password })
             }
         }
-    }));
+    })
+
+    router.post('/Register/:Token', ctt, allowAccess('POST'), RegisterHandler)
+        /**报名 */
+    router.post('/Register', ctt, RegisterHandler);
     /**搜索学校 */
     router.get('/SearchSchool/:str', ctt, wrap(async({ memberCode, params: { str } }, res) => {
         res.send({ Status: 0, result: await mainDB.query(`select * from wf_base_school where SchoolName like '%${str}%'`, { type: "SELECT" }) })
@@ -333,7 +298,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let result = await CanJoin(memberCode, team)
         if (result != 0) return res.send(result)
         await singleton.insertMainDB("wf_competition_apply", { TeamId, MemberCode: memberCode, State: 1 }, { CreateTime: "now()" })
-        sendJpushMessage(team.MemberCode, "收到申请", "", "", { AlertType: config.jpushType_competition, Type: "join", from: (await singleton.selectMainDB0("wf_member", { MemberCode: memberCode })) })
+        let from = await singleton.selectMainDB0("wf_member", { MemberCode: memberCode })
+        sendJpushMessage(team.MemberCode, "收到申请", "", "", { AlertType: config.jpushType_competition, Type: "join", from, team })
         res.send({ Status: 0, Explain: "" })
     }));
     /**使用邀请码加入战队 */
@@ -349,7 +315,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount })
         })
         if (result == 0) {
-            sendJpushMessage(team.MemberCode, "通过邀请码加入", "", "", { AlertType: config.jpushType_competition, Type: "joinByCode", from: (await singleton.selectMainDB0("wf_member", { MemberCode: memberCode })) })
+            let from = await singleton.selectMainDB0("wf_member", { MemberCode: memberCode })
+            sendJpushMessage(team.MemberCode, "通过邀请码加入", "", "", { AlertType: config.jpushType_competition, Type: "joinByCode", from, team })
             res.send({ Status: 0, Explain: "", TeamId: team.Id })
         } else {
             res.send({ Status: 500, Explain: result })
@@ -357,7 +324,17 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**战队列表 */
     router.get('/TeamList', ctt, wrap(async({ memberCode, query: { searchKey } }, res) => {
-        let teams = await mainDB.query(`select * from wf_competition_team where Status <> 2 order by Id desc`, { type: "SELECT" })
+        let team_member = await singleton.selectMainDB0("wf_competition_team_member", { MemberCode: memberCode })
+        let canJoin = ""
+        if (!singleton.isEMPTY(team_member)) {
+            canJoin = ",0 CanJoin"
+        }
+        let teams = await mainDB.query(`select *${canJoin} from wf_competition_team where Status <> 2 order by Id desc`, { type: "SELECT" })
+        if (!canJoin) {
+            await Promise.all(
+                teams.map(team => CanJoin(memberCode, team)).then(result => team.CanJoin = (result == 0 ? 1 : 0))
+            )
+        }
         res.send({ Status: 0, Explain: "", DataList: teams })
     }));
     /**申请列表 */
