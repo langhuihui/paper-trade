@@ -306,7 +306,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     router.post('/JoinTeamByCode/:Code', ctt, wrap(async({ memberCode: MemberCode, params: { Code } }, res) => {
         let team = await singleton.selectMainDB0("wf_competition_team", { Code })
         if (singleton.isEMPTY(team) || team.Status == 2) return res.send({ Status: -1, Explain: "不存在这个战队" })
-        let result = await CanJoin(memberCode, team, true)
+        let result = await CanJoin(MemberCode, team, true)
         if (result != 0) return res.send(result)
         team.MemberCount++;
         result = await singleton.transaction2(t => {
@@ -315,7 +315,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount })
         })
         if (result == 0) {
-            let from = await singleton.selectMainDB0("wf_member", { MemberCode: memberCode })
+            let from = await singleton.selectMainDB0("wf_member", { MemberCode })
             sendJpushMessage(team.MemberCode, "通过邀请码加入", "", "", { AlertType: config.jpushType_competition, Type: "joinByCode", from, team })
             res.send({ Status: 0, Explain: "", TeamId: team.Id })
         } else {
