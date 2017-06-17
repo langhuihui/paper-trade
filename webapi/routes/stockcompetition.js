@@ -153,6 +153,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }))
     router.get('/ClearAll', (req, res) => {
         mainDB.query("CALL WF_CLEAR_COMPETITION()")
+        res.end()
     });
     //获取最近的比赛
     router.get('/Competition', (req, res) => res.send({ Status: Competition ? 0 : -1, Competition }));
@@ -300,7 +301,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let result = await CanJoin(memberCode, team)
         if (result != 0) return res.send(result)
         await singleton.insertMainDB("wf_competition_apply", { TeamId, MemberCode: memberCode, State: 1 }, { CreateTime: "now()" })
-        let from = await singleton.selectMainDB0("wf_member", { MemberCode: memberCode })
+        let [from] = await mainDB.query("select MemberCode,Nickname from wf_member where MemberCode=:memberCode", { replacements: { memberCode }, type: "SELECT" })
         sendJpushMessage(team.MemberCode, "收到申请", "", "", { AlertType: config.jpushType_competition, Type: "join", from, team })
         res.send({ Status: 0, Explain: "" })
     }));
@@ -317,7 +318,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount })
         })
         if (result == 0) {
-            let from = await singleton.selectMainDB0("wf_member", { MemberCode })
+            let [from] = await mainDB.query("select MemberCode,Nickname from wf_member where MemberCode=:MemberCode", { replacements: { MemberCode }, type: "SELECT" })
             sendJpushMessage(team.MemberCode, "通过邀请码加入", "", "", { AlertType: config.jpushType_competition, Type: "joinByCode", from, team })
             res.send({ Status: 0, Explain: "", TeamId: team.Id })
         } else {
