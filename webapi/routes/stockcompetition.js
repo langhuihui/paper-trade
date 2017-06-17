@@ -84,18 +84,18 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     async function CanJoin(MemberCode, { Status, Id: TeamId }, ignoreApply) {
         if (Status == 1) return { Status: 45003, Explain: "人数已满" }
         if (TeamCompetitionIsOpen()) return { Status: 45004, Explain: "组队赛已开始" }
-        let lastApply = await singleton.selectMainDB0("wf_competition_apply", { MemberCode })
-        if (!singleton.isEMPTY(lastApply)) {
-            if (new Date() - new Date(lastApply.CreateTime) < 10 * 60 * 1000) {
-                return { Status: 45002, Explain: "10分钟内不得再次申请" }
-            }
-        }
         let you = await singleton.selectMainDB0("wf_competition_team_member", { TeamId, MemberCode })
         if (!singleton.isEMPTY(you)) return { Status: 45001, Explain: "你已经是该战队成员" }
         if (ignoreApply) return 0
-        let apply = await singleton.selectMainDB0("wf_competition_apply", { MemberCode, TeamId })
-        if (!singleton.isEMPTY(apply)) {
-            return { Status: apply.state, Explain: [, "已申请", "已通过", "已拒绝", "已失效"][apply.state] }
+        let lastApply = await singleton.selectMainDB("wf_competition_apply", { MemberCode })
+        if (lastApply.length) {
+            if (new Date() - new Date(lastApply.CreateTime) < 10 * 60 * 1000) {
+                return { Status: 45002, Explain: "10分钟内不得再次申请" }
+            } else {
+                let apply = lastApply.find(x => x.TeamId == TeamId)
+                if (apply)
+                    return { Status: apply.state, Explain: [, "已申请", "已通过", "已拒绝", "已失效"][apply.state] }
+            }
         }
         return 0
     }
@@ -151,7 +151,9 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 res.send({ Status: 0, Explain: "", result: { Rank: 0, OpenDate: opendate } })
         } else res.send({ Status: 0, Explain: "", result: { Rank: -1, OpenDate: opendate } }) //默认配置
     }))
-
+    router.get('/ClearAll', (req, res) => {
+        mainDB.query("CALL WF_CLEAR_COMPETITION()")
+    });
     //获取最近的比赛
     router.get('/Competition', (req, res) => res.send({ Status: Competition ? 0 : -1, Competition }));
     router.get('/CompetitionState', (req, res) => res.send({ Status: 0, IsOpen: CompetitionIsOpen() }));
