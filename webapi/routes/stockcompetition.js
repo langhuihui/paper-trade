@@ -30,7 +30,10 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }
 
     function ThisWeek() {
-        let now = new Date()
+        function checkPoint() {
+            return CompetitionIsOpen() ? new Date() : new Date(Competition.StartTime)
+        }
+        let now = checkPoint()
         let weekDay = now.getDay()
         let result = []
         if (weekDay == 6 && now.getHours() >= 4 || weekDay == 1 && now < new Date(now.format("yyyy-MM-dd") + " 21:30:00") || weekDay == 0) {
@@ -39,7 +42,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             now.setMinutes(30)
             now.setSeconds(0)
             result[0] = now
-            now = new Date()
+            now = checkPoint()
             now.setDate(now.getDate() - weekDay + 6 + 7)
             now.setHours(4)
             now.setMinutes(0)
@@ -51,7 +54,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             now.setMinutes(30)
             now.setSeconds(0)
             result[0] = now
-            now = new Date()
+            now = checkPoint()
             now.setDate(now.getDate() - weekDay + 6)
             now.setHours(4)
             now.setMinutes(0)
@@ -315,7 +318,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         result = await singleton.transaction2(t => {
             singleton.insertMainDB("wf_competition_team_member", { TeamId: team.Id, MemberCode, Level: 2, Type: 2 }, { CreateTime: "now()" }, t)
             mainDB.query("update wf_competition_apply set State=4 where MemberCode=:MemberCode and TeamId<>:TeamId", { replacements: { MemberCode, TeamId: team.Id }, transaction: t.transaction })
-            singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount })
+            singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount }, null, { Id: team.Id }, t)
         })
         if (result == 0) {
             let [from] = await mainDB.query("select MemberCode,Nickname from wf_member where MemberCode=:MemberCode", { replacements: { MemberCode }, type: "SELECT" })
@@ -370,7 +373,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             singleton.updateMainDB("wf_competition_apply", { State: 2 }, null, { MemberCode, TeamId: team.Id }, t)
             singleton.insertMainDB("wf_competition_team_member", { TeamId: team.Id, MemberCode, Level: 2, Type: 3 }, { CreateTime: "now()" }, t)
             mainDB.query("update wf_competition_apply set State=4 where MemberCode=:MemberCode and TeamId<>:TeamId", { replacements: { MemberCode, TeamId: team.Id }, transaction: t.transaction })
-            singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount })
+            singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount }, null, { Id: team.Id }, t)
         })
         if (result == 0) {
             singleton.insertMainDB("wf_message", { Type: 2, Content: team.TeamName + " 队长已同意您的入队申请!", MemberCode, Title: "申请已通过", IsSend: 1 }, { CreateTime: "now()", SendTime: "now()" })
@@ -405,7 +408,10 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let [OpenTime, CloseTime] = ThisWeek()
         OpenTime = OpenTime.format()
         CloseTime = CloseTime.format()
-        let DataList = null
+        let DataList = []
+        if (!CompetitionIsOpen()) {
+            return res.send({ Status: 0, Explain: "", DataList, OpenTime, CloseTime })
+        }
         switch (type) {
             case "TeamProfit":
                 DataList = await mainDB.query("SELECT a.Rank,a.RankValue,b.* from wf_competition_team_rank a left join wf_competition_team b on b.Id=a.TeamId where a.Type=4", { type: "SELECT" })
@@ -440,5 +446,16 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let result = await singleton.selectMainDB0("wf_competition_affiche", { Id })
         res.send({ Status: 0, Data: result, Explain: "" })
     }));
+    /**收益曲线 */
+    router.get('/ProfitDaily/:memberCode/:startDate', allowAccess(), wrap(async({ params: { memberCode, startDate } }, res) => {
+        startDate = new Date(startDate)
+        let result = await mainDB.query("select TodayProfit*100/TotalAmount profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_drivewealth_practice_assetv where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate }, type: "SELECT" })
+        res.send({ Status: 0, Explain: "", DataList: result })
+    }));
+    /**团队收益曲线 */
+    router.get('/TeamProfitDaily/:TeamId', allowAccess(), wrap(async({ params: { memberCode } }, res) => {
+        let result = await mainDB.query("select TodayProfit*100/TotalAmount profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_drivewealth_practice_assetv where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate }, type: "SELECT" })
+        res.send({ Status: 0, Explain: "", DataList: result })
+    }))
     return router
 }
