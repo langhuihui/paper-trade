@@ -7,9 +7,7 @@ import singleton from '../singleton'
 const { mainDB, redisClient } = singleton
 class Competition extends EveryDay {
     constructor() {
-        this.name = "Competition"
-        this.lastRun = null
-        this.todayIsDone = null
+        super("Competition", null, null)
         this.range = [new Date("2017-6-19 21:30:00"), new Date("2017-6-20 11:00:00")]
     }
     checkAndRun(now) {
