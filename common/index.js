@@ -2,6 +2,7 @@
 import totalAssets from './everyDays/totalAssets'
 import profitRank from './everyDays/profitRank'
 import marketTime from './everyDays/marketTime'
+import competition from './everyDays/competition'
 import singleton from './singleton'
 const { redisClient } = singleton
 // import amqp from 'amqplib'
@@ -20,7 +21,7 @@ const { redisClient } = singleton
 
 //每天执行函数
 let everyDayFuns = [
-    totalAssets, marketTime, profitRank
+    totalAssets, marketTime, profitRank, competition
 ]
 async function initEveryDayFuns() {
     for (let f of everyDayFuns) {

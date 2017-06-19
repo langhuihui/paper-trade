@@ -4,6 +4,7 @@ import Config from '../../config'
 import allowAccess from '../middles/allowAccess'
 import { dwUrls } from '../../common/driveWealth'
 import singleton from '../../common/singleton'
+import Competition from '../../common/everyDays/competition'
 import JPush from 'jpush-sdk'
 module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, mqChannel, wrap, rongcloud }) {
     var Competition = null
@@ -22,7 +23,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     function TeamCompetitionIsOpen() {
         if (Competition) {
             let now = new Date()
-            if (now < new Date(Competition.EndTime) && now > new Date(Competition.StartTime) && now.getDay() > 0 && now.getDay() < 6) {
+            let week = ThisWeek()
+            if (now < new Date(Competition.EndTime) && now > new Date(Competition.StartTime) && now > week[0] && now < week[1]) {
                 return true
             }
         }
@@ -30,6 +32,11 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }
 
     function ThisWeek() {
+        if (Competition.range) {
+            return Competition.range
+        }
+        let addDay = CompetitionIsOpen() ? 7 : 0
+
         function checkPoint() {
             return CompetitionIsOpen() ? new Date() : new Date(Competition.StartTime)
         }
@@ -49,13 +56,13 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             now.setSeconds(0)
             result[1] = now
         } else {
-            now.setDate(now.getDate() - weekDay + 1)
+            now.setDate(now.getDate() - weekDay + 1 + addDay)
             now.setHours(9)
             now.setMinutes(30)
             now.setSeconds(0)
             result[0] = now
             now = checkPoint()
-            now.setDate(now.getDate() - weekDay + 6)
+            now.setDate(now.getDate() - weekDay + 6 + addDay)
             now.setHours(4)
             now.setMinutes(0)
             now.setSeconds(0)
@@ -200,10 +207,12 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             if (drivewealth_practice_asset && drivewealth_practice_asset.TotalAmount == Config.practiceInitFun) {
                 res.send({ Status: 0, Explain: "", Competition })
             } else {
+                if (CompetitionIsOpen()) {
+                    let result = await CreateParactice(memberCode, "")
+                        //await mainDB.query("delete from wf_token where MemberCode=:memberCode ", { replacements: { memberCode } })
+                    sendJpushMessage(memberCode, '嘉维账号重置', '', '', { AlertType: "jpush111", UserId: result.userId, username: result.username, password: result.password })
+                }
                 return res.send({ Status: 0, Explain: "", Competition })
-                let result = await CreateParactice(memberCode, "")
-                    //await mainDB.query("delete from wf_token where MemberCode=:memberCode ", { replacements: { memberCode } })
-                sendJpushMessage(memberCode, '嘉维账号重置', '', '', { AlertType: "jpush111", UserId: result.userId, username: result.username, password: result.password })
             }
         }
     })
@@ -250,7 +259,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 result.Team = await singleton.selectMainDB0("wf_competition_team", { Id: team_member.TeamId })
             }
         }
-        result.Events = await mainDB.query("select * from wf_competition_affiche order by Id desc limit 3", { type: "SELECT" })
+        result.Events = await mainDB.query("select * from wf_competition_affiche where id in (select max(id) from wf_competition_affiche where State=9 group by Type)", { type: "SELECT" })
         res.send({ Status: 0, Explain: "", Data: result })
     }));
     /**战队情况 */
@@ -454,7 +463,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**团队收益曲线 */
     router.get('/TeamProfitDaily/:TeamId', allowAccess(), wrap(async({ params: { memberCode } }, res) => {
-        let result = await mainDB.query("select TodayProfit*100/TotalAmount profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_drivewealth_practice_assetv where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate }, type: "SELECT" })
+        let result = await mainDB.query("select AvgYield profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_competition_team_asset where TeamId=:TeamId ", { replacements: { TeamId }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", DataList: result })
     }))
     return router
