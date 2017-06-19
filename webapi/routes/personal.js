@@ -162,7 +162,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 delete msg.Extension
             }
         }
-        await mainDB.query("delete from wf_message where MemberCode=:memberCode", { replacements: { memberCode } });
+        await mainDB.query("delete from wf_message where MemberCode=:memberCode and Type<>1", { replacements: { memberCode } });
         res.send({ Status: 0, Explain: "", DataList: result })
     }))
 

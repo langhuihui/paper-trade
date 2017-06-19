@@ -209,11 +209,11 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         /**报名 */
     router.post('/Register', ctt, RegisterHandler);
     /**搜索学校 */
-    router.get('/SearchSchool/:str', ctt, wrap(async({ memberCode, params: { str } }, res) => {
+    router.get('/SearchSchool/:str', allowAccess(), wrap(async({ memberCode, params: { str } }, res) => {
         res.send({ Status: 0, result: await mainDB.query(`select * from wf_base_school where SchoolName like '%${str}%'`, { type: "SELECT" }) })
     }));
     /**搜索战队 */
-    router.get('/SearchTeam/:str', ctt, allowAccess(), wrap(async({ memberCode, params: { str } }, res) => {
+    router.get('/SearchTeam/:str', ctt, wrap(async({ memberCode, params: { str } }, res) => {
         let team_member = await singleton.selectMainDB0("wf_competition_team_member", { MemberCode: memberCode })
         let canJoin = ""
         if (!singleton.isEMPTY(team_member)) {
