@@ -256,7 +256,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 result.Team = await singleton.selectMainDB0("wf_competition_team", { Id: team_member.TeamId })
             }
         }
-        result.Events = await mainDB.query("select *,CONCAT(:picBaseURL,'/api/Article/',Id) ContentURL from wf_competition_affiche where id in (select max(id) from wf_competition_affiche where State=9 group by Type)", { replacements: { picBaseURL: config.picBaseURL }, type: "SELECT" })
+        result.Events = await mainDB.query("select *,CONCAT(:picBaseURL,'/api/h5/Article/',Id) ContentURL from wf_competition_affiche where id in (select max(id) from wf_competition_affiche where State=9 group by Type)", { replacements: { picBaseURL: config.picBaseURL }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", Data: result })
     }));
     /**战队情况 */
@@ -445,13 +445,13 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     /**赛事消息 */
     router.get('/Events/:page', ctt, wrap(async({ memberCode, params: { page } }, res) => {
         let pagesize = 20
-        let result = await mainDB.query("select *,CONCAT(:picBaseURL,'/api/Article/',Id) ContentURL from wf_competition_affiche order by Id desc limit :start,:pagesize", { replacements: { start: Number(page) * pagesize, pagesize, picBaseURL: config.picBaseURL }, type: "SELECT" })
+        let result = await mainDB.query("select *,CONCAT(:picBaseURL,'/api/h5/Article/',Id) ContentURL from wf_competition_affiche order by Id desc limit :start,:pagesize", { replacements: { start: Number(page) * pagesize, pagesize, picBaseURL: config.picBaseURL }, type: "SELECT" })
         res.send({ Status: 0, DataList: result, Explain: "" })
     }));
     /**事件详情 */
     router.get('/EventDetail/:Id', ctt, wrap(async({ memberCode, params: { Id } }, res) => {
         let result = await singleton.selectMainDB0("wf_competition_affiche", { Id })
-        result.ContentURL = config.picBaseURL + '/api/Article/' + Id
+        result.ContentURL = config.picBaseURL + '/api/h5/Article/' + Id
         res.send({ Status: 0, Data: result, Explain: "" })
     }));
     /**收益曲线 */
