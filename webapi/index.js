@@ -15,6 +15,10 @@ const { mainDB, redisClient, rongcloud } = singleton
 const app = express();
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
+app.engine('jshtml', require('jshtml-express'));
+app.set('view engine', 'jshtml');
+app.set('views', path.resolve(__dirname, 'views'))
+app.use('/', express.static(path.resolve(__dirname, 'assets')))
 if (Config.test) app.use('/admin', express.static(path.resolve(__dirname, 'web', 'dist')))
 app.use((req, res, next) => {
     if (req.body.Token) delete req.body.Token
@@ -39,6 +43,7 @@ async function startMQ() {
     app.use('/v2.5/Game', require('./routes/stockcompetition')(shareData))
     app.use('/v2.5/PaperTrade', require('./routes/paperTrade')(shareData))
     app.use('/v2.5/Statistics', require('./routes/statistics')(shareData))
+    app.use('/h5', require('./routes/h5')(shareData))
     if (Config.test) app.use('/admin', require('./routes/admin')(shareData))
         /**全局错误处理 */
     app.use((err, req, res, next) => {

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>资讯详情</title>
+    <!--<script>!function (e) { function t(a) { if (i[a]) return i[a].exports; var n = i[a] = { exports: {}, id: a, loaded: !1 }; return e[a].call(n.exports, n, n.exports, t), n.loaded = !0, n.exports } var i = {}; return t.m = e, t.c = i, t.p = "", t(0) } ([function (e, t) { "use strict"; Object.defineProperty(t, "__esModule", { value: !0 }); var i = window; t["default"] = i.flex = function (e, t) { var a = e || 100, n = t || 1, r = i.document, o = navigator.userAgent, d = o.match(/Android[\S\s]+AppleWebkit\/(\d{3})/i), l = o.match(/U3\/((\d+|\.){5,})/i), c = l && parseInt(l[1].split(".").join(""), 10) >= 80, p = navigator.appVersion.match(/(iphone|ipad|ipod)/gi), s = i.devicePixelRatio || 1; p || d && d[1] > 534 || c || (s = 1); var u = 1 / s, m = r.querySelector('meta[name="viewport"]'); m || (m = r.createElement("meta"), m.setAttribute("name", "viewport"), r.head.appendChild(m)), m.setAttribute("content", "width=device-width,user-scalable=no,initial-scale=" + u + ",maximum-scale=" + u + ",minimum-scale=" + u), r.documentElement.style.fontSize = a / 2 * s * n + "px" }, e.exports = t["default"] }]);
+        flex(100, 1);</script>-->
+    <script src="/js/jquery-1.8.3.min.js"></script>
+    <script src="/js/jquery.lazyload.js"></script>
+    <script>
+        ! function(e) {
+            function t(a) {
+                if (i[a]) return i[a].exports;
+                var n = i[a] = {
+                    exports: {},
+                    id: a,
+                    loaded: !1
+                };
+                return e[a].call(n.exports, n, n.exports, t), n.loaded = !0, n.exports
+            }
+
+            var i = {};
+            return t.m = e, t.c = i, t.p = "", t(0)
+        }([function(e, t) {
+            "use strict";
+            Object.defineProperty(t, "__esModule", {
+                value: !0
+            });
+            var i = window;
+            t["default"] = i.flex = function(e, t) {
+                var a = e || 100,
+                    n = t || 1,
+                    r = i.document,
+                    o = navigator.userAgent,
+                    d = o.match(/Android[\S\s]+AppleWebkit\/(\d{3})/i),
+                    l = o.match(/U3\/((\d+|\.){5,})/i),
+                    c = l && parseInt(l[1].split(".").join(""), 10) >= 80,
+                    p = navigator.appVersion.match(/(iphone|ipad|ipod)/gi),
+                    s = i.devicePixelRatio || 1;
+                p || d && d[1] > 534 || c || (s = 1);
+                var u = 1 / s,
+                    m = r.querySelector('meta[name="viewport"]');
+                m || (m = r.createElement("meta"), m.setAttribute("name", "viewport"), r.head.appendChild(m)), m.setAttribute("content", "width=device-width,user-scalable=no,initial-scale=" + u + ",maximum-scale=" + u + ",minimum-scale=" + u), r.documentElement.style.fontSize = a / 2 * s * n + "px"
+            }, e.exports = t["default"]
+        }]);
+        flex(100, 1);
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, STHeiti, 华文黑体, Microsoft YaHei, 微软雅黑, SimSun, 宋体, Helvetica, Tahoma, Arial sans-serif;
+            margin: 0;
+            padding: 0px;
+        }
+        /*自定义*/
+        
+        ul,
+        li,
+        p,
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        dl,
+        dt,
+        dd {
+            margin: 0px;
+            padding: 0px;
+            border: none;
+            list-style: none;
+            font-size: 0.16rem;
+            font-weight: 400;
+        }
+        
+        .lf {
+            float: left;
+        }
+        
+        .rt {
+            float: right;
+        }
+        
+        .article {
+            background-color: #fff;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0 0rem;
+        }
+        
+        .aBody strong,
+        .aBody div {
+            font-size: 0.34rem;
+            color: #000;
+            line-height: 0.6rem;
+            text-align: justify;
+            padding-bottom: 0.3rem;
+            font-weight: 700;
+        }
+        /*正文*/
+        
+        .aBody p {
+            font-size: 0.34rem;
+            color: rgb(74, 74, 74);
+            line-height: 0.6rem;
+            text-align: justify;
+            padding-bottom: 0.3rem;
+        }
+        /*图片*/
+        
+        .aBody p img {
+            /*外边距,宽度,底部对齐,溢出隐藏*/
+            width: 100%;
+            display: block;
+        }
+        /*图片说明*/
+        
+        .aBody .afterimgclass {
+            font-size: 0.24rem;
+            color: rgb(155, 155, 155);
+            line-height: 0.6rem;
+            text-align: center;
+            padding-bottom: 0.3rem;
+        }
+        /*视频*/
+        /*视频属性:1.高度自适应 2.默认不全屏属性为:x-webkit-airplay="true" webkit-playsinline="true"*/
+        
+        .aBody .videoclass {
+            width: 100%;
+        }
+        /*文字右对齐*/
+        
+        .aBody .textRight {
+            text-align: right;
+        }
+        /*文字居中*/
+        
+        .aBody .textCenter {
+            text-align: center;
+        }
+        /*文字左对齐*/
+        
+        .aBody .textLeft {
+            text-align: left;
+        }
+        
+        br {
+            display: none;
+        }
+    </style>
+
+
+</head>
+
+<body>
+    <div class="article">
+        <div class="aBody" id="div_content">
+            @locals.content
+        </div>
+    </div>
+    <script>
+        var imgarr = $("img");
+
+        $(document).ready(function() {
+
+            getTranData();
+            /*		    $("img").lazyload({
+            		    //        threshold: 10,
+            		            effect: "fadeIn"
+            		    //event:"scrollstop"
+            		        });*/
+        })
+
+        function getTranData() {
+            $("#div_content").html($("#div_content").text())
+            $.each($("#div_content").find("img"), function(index, vo) {
+                var tmpsrc = $(vo).attr("dsrc");
+                var tmpstart = tmpsrc.indexOf("http");
+
+                if (tmpstart == -1) {
+                    $(vo).attr("dsrc", "@locals.adminHost" + $(vo).attr("dsrc"));
+                    $(vo).attr("src", "http://share.wolfstreet.tv/wffenxiang/img/LOGO@3x.png");
+                }
+            });
+        }
+
+        $("img").click(function() {
+            document.location = "image://show?url=" + $(this).attr("dsrc");
+        });
+
+
+
+        function getLoc(a) {
+
+            for (var i = 0; i < imgarr.length;) {
+                if (imgarr[i].offsetTop - a < 600) {
+                    imgarr[i].src = $(imgarr[i]).attr("dsrc");
+                    var dfd = $.Deferred();
+                    $(imgarr[i]).load(dfd.resolve)
+                    $.when(dfd).done(function() {
+                        console.log('load compeleted');
+                        document.location = "image://complete";
+                    })
+                    imgarr.splice(i, 1)
+                } else {
+                    i++
+                }
+            }
+
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <title>资讯详情</title>
+    <script src="/js/jquery-1.8.3.min.js"></script>
+    <script src="/js/jquery.lazyload.js"></script>
+    <script>
+        (function(doc, win) {
+            var docEl = doc.documentElement,
+                resizeEvt = 'orientationchange' in window ? 'orientationchange' : 'resize',
+                recalc = function() {
+                    var clientWidth = docEl.clientWidth;
+                    if (!clientWidth) return;
+                    if (clientWidth >= 640) {
+                        docEl.style.fontSize = '100px';
+                    } else {
+                        docEl.style.fontSize = 100 * (clientWidth / 640) + 'px';
+                    }
+                };
+
+            if (!doc.addEventListener) return;
+            win.addEventListener(resizeEvt, recalc, false);
+            doc.addEventListener('DOMContentLoaded', recalc, false);
+        })(document, window);
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            margin: 0;
+            padding: 0px;
+        }
+        /*自定义*/
+        
+        ul,
+        li,
+        p,
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        dl,
+        dt,
+        dd {
+            margin: 0px;
+            padding: 0px;
+            border: none;
+            list-style: none;
+            font-size: 0.16rem;
+            font-weight: 400;
+        }
+        
+        .lf {
+            float: left;
+        }
+        
+        .rt {
+            float: right;
+        }
+        
+        .article {
+            background-color: #fff;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0 0.2rem;
+        }
+        
+        .aBody p {
+            font-size: 0.3rem;
+            color: rgb(74, 74, 74);
+            line-height: 0.6rem;
+            text-align: justify;
+            padding-bottom: 0.3rem;
+        }
+        
+        .aBody strong {
+            font-size: 0.3rem;
+            color: #000;
+            line-height: 0.6rem;
+            text-align: justify;
+            padding-bottom: 0.3rem;
+            font-weight: 700;
+        }
+        
+        .aBody p img {
+            width: 100%;
+        }
+        
+        .aBody img {
+            width: 100%;
+        }
+        
+        .aBody div {
+            font-size: 2.2rem;
+            margin-bottom: 5rem;
+            margin-top: 5rem;
+            display: block;
+        }
+        /*正文*/
+        
+        .aBody .mainclass {
+            font-size: 0.3rem;
+            color: rgb(74, 74, 74);
+            line-height: 0.6rem;
+            text-align: justify;
+            padding-bottom: 0.3rem;
+        }
+        /*图片*/
+        
+        .aBody .imageclass img {
+            /*外边距,宽度,底部对齐,溢出隐藏*/
+            width: 100%;
+            display: block;
+        }
+        /*图片*/
+        
+        .aBody .mainclass img {
+            /*外边距,宽度,底部对齐,溢出隐藏*/
+            width: 100%;
+            display: block;
+        }
+        /*图片*/
+        
+        .aBody .imageclass {
+            /*外边距,宽度,底部对齐,溢出隐藏*/
+            width: 100%;
+            display: block;
+        }
+        /*图片说明*/
+        
+        .aBody .afterimgclass {
+            /*字号,颜色,居中,单词内换行*/
+            font-size: 0.24rem;
+            color: rgb(155, 155, 155);
+            line-height: 0.6rem;
+            text-align: center;
+            padding-bottom: 0.3rem;
+        }
+        /*视频*/
+        /*视频属性:1.高度自适应 2.默认不全屏属性为:x-webkit-airplay="true" webkit-playsinline="true"*/
+        
+        .aBody .videoclass {
+            width: 100%;
+        }
+        /*文字右对齐*/
+        
+        .aBody .textRight {
+            text-align: right;
+        }
+        /*文字居中*/
+        
+        .aBody .textCenter {
+            text-align: center;
+        }
+        /*文字左对齐*/
+        
+        .aBody .textLeft {
+            text-align: left;
+        }
+    </style>
+
+
+</head>
+
+<body>
+    <div class="article">
+        <div class="aBody" id="div_content">
+            @locals.content
+        </div>
+    </div>
+    <script>
+        var imgarr = $("img");
+        $(document).ready(function() {
+            getTranData();
+
+            $("img").lazyload({
+                //        threshold: 10,
+                effect: "fadeIn"
+                    //event:"scrollstop"
+            });
+        })
+
+        function getTranData() {
+            $("#div_content").html($("#div_content").text())
+            $.each($("#div_content").find("img"), function(index, vo) {
+                var tmpsrc = $(vo).attr("dsrc");
+                var tmpstart = tmpsrc.indexOf("http");
+                if (tmpstart == -1) {
+                    $(vo).attr("dsrc", "@locals.adminHost" + $(vo).attr("dsrc"));
+                    $(vo).attr("src", "http://share.wolfstreet.tv/wffenxiang/img/LOGO@3x.png");
+                }
+            });
+        }
+
+        function getLoc(a) {
+
+            for (var i = 0; i < imgarr.length;) {
+                if (imgarr[i].offsetTop - a < 600) {
+                    imgarr[i].src = $(imgarr[i]).attr("dsrc");
+                    var dfd = $.Deferred();
+                    $(imgarr[i]).load(dfd.resolve)
+                    $.when(dfd).done(function() {
+                        console.log('load compeleted');
+                    })
+                    imgarr.splice(i, 1)
+                } else {
+                    i++
+                }
+            }
+
+        }
+        $("img").click(function() {
+            //window.javaListener.fun1FromAndroid(1111111);
+            window.javaListener.fun1FromAndroid($(this).attr("dsrc"));
+        });
+    </script>
+</body>
+
+</html>

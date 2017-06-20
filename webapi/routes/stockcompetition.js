@@ -4,7 +4,7 @@ import Config from '../../config'
 import allowAccess from '../middles/allowAccess'
 import { dwUrls } from '../../common/driveWealth'
 import singleton from '../../common/singleton'
-import Competition from '../../common/everyDays/competition'
+import competition from '../../common/everyDays/competition'
 import JPush from 'jpush-sdk'
 module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, mqChannel, wrap, rongcloud }) {
     var Competition = null
@@ -32,8 +32,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }
 
     function ThisWeek() {
-        if (Competition.range) {
-            return Competition.range
+        if (competition.range) {
+            return competition.range
         }
         let addDay = CompetitionIsOpen() ? 7 : 0
 
@@ -177,13 +177,14 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let WeekTime = ThisWeek()
         let Team = {}
         let UIState = await (async() => {
-            let [{ enterCount, teamCount, TeamId }] = await mainDB.query("select a.cnt enterCount,b.cnt teamCount,b.TeamId from (select count(*) cnt from wf_stockcompetitionmember where MemberCode=:memberCode and CommetitionId=:CommetitionId) a ,(select count(*) cnt,TeamId from wf_competition_team_member where MemberCode=:memberCode) b", { replacements: { memberCode, CommetitionId: Competition.Id }, type: "SELECT" })
+            let [{ enterCount, teamCount, TeamId }] = await mainDB.query("select a.cnt enterCount,b.cnt teamCount,b.TeamId from (select count(*) cnt from wf_stockcompetitionmember where MemberCode=:memberCode and CommetitionId=:CommetitionId) a ,(select count(*) cnt,TeamId from wf_competition_team_member where MemberCode=:memberCode and TeamId in (Select Id from wf_competition_team where Status <>2)) b", { replacements: { memberCode, CommetitionId: Competition.Id }, type: "SELECT" })
             teams.forEach(t => {
                 if (t.Id == TeamId) {
                     Team = t
                 }
                 if (t.Status == 0) CanJoinCount++
-            })
+            });
+            ({ Rank: Team.Rank, RankValue: Team.Profit } = await singleton.selectMainDB0("wf_competition_team_rank", { Type: 4, TeamId }))
             if (enterCount == 0) return IsOpen ? 5 : 1
             if (teamCount == 0) return IsOpen ? 6 : (CanCreateCount ? 2 : 3)
             return IsOpen ? (Team.Status == 0 ? 7 : 8) : 4
@@ -203,17 +204,12 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             body.CommetitionId = Competition.Id
             body.CreateTime = new Date()
             await singleton.insertMainDB("wf_stockcompetitionmember", body)
-            let [drivewealth_practice_asset] = await mainDB.query("select TotalAmount from wf_drivewealth_practice_asset_v where MemberCode=:memberCode order by AssetId desc limit 1", { replacements: { memberCode }, type: "SELECT" })
-            if (drivewealth_practice_asset && drivewealth_practice_asset.TotalAmount == Config.practiceInitFun) {
-                res.send({ Status: 0, Explain: "", Competition })
-            } else {
-                if (CompetitionIsOpen()) {
-                    let result = await CreateParactice(memberCode, "")
-                        //await mainDB.query("delete from wf_token where MemberCode=:memberCode ", { replacements: { memberCode } })
-                    sendJpushMessage(memberCode, '嘉维账号重置', '', '', { AlertType: "jpush111", UserId: result.userId, username: result.username, password: result.password })
-                }
-                return res.send({ Status: 0, Explain: "", Competition })
+            if (CompetitionIsOpen()) {
+                let result = await CreateParactice(memberCode, "")
+                    //await mainDB.query("delete from wf_token where MemberCode=:memberCode ", { replacements: { memberCode } })
+                sendJpushMessage(memberCode, '嘉维账号重置', '', '', { AlertType: "jpush111", UserId: result.userId, username: result.username, password: result.password })
             }
+            return res.send({ Status: 0, Explain: "", Competition })
         }
     })
 
@@ -243,11 +239,12 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     router.get('/MyStatus', ctt, wrap(async({ memberCode }, res) => {
         let result = { Status: 0, IsOpen: CompetitionIsOpen(), OpenTime: Competition.StartTime, CloseTime: Competition.EndTime }
         let stockcompetitionmember = await singleton.selectMainDB0("wf_stockcompetitionmember", { MemberCode: memberCode, CommetitionId: Competition.Id });
-        ({ TodayProfit: result.Profit, TodayDefeat: result.Defeat, WeekRank: result.WeekRank, TotalRank: result.TotalRank } = await mainDB.query(`select max(case when type = 1 then RankValue else 0 end) TodayProfit,
+        ([{ TodayProfit: result.Profit, TodayDefeat: result.Defeat, WeekRank: result.WeekRank, TotalRank: result.TotalRank }] = await mainDB.query(`select max(case when type = 1 then RankValue else 0 end) TodayProfit,
         max(case when type = 1 then Defeat else 0 end) TodayDefeat,
         max(case when type = 3 then Rank else 0 end) WeekRank,
         max(case when type = 11 then Rank else 0 end) TotalRank
          from wf_drivewealth_practice_rank_v where MemberCode=:memberCode`, { replacements: { memberCode }, type: "SELECT" }));
+        if (result.Profit == null) result.Defeat = result.TotalRank = result.WeekRank = result.TodayDefeat = result.Profit = 0
         result.Title = ((100 - result.Defeat) / 20 >> 0) + 1
         if (!singleton.isEMPTY(stockcompetitionmember)) {
             //let {TodayProfit} = await singleton.selectMainDB0("wf_drivewealth_practice_asset_v",{MemberCode: memberCode })
@@ -264,8 +261,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**战队情况 */
     router.get('/TeamStatus/:TeamId', ctt, wrap(async({ memberCode, params: { TeamId } }, res) => {
-        let team = await singleton.selectMainDB0("wf_competition_team", { Id: TeamId })
-        if (singleton.isEMPTY(team)) {
+        let [team] = await mainDB.query("select a.Rank,a.RankValue Profit,b.* from wf_competition_team b left join wf_competition_team_rank a on b.Id=a.TeamId and a.Type=4 where b.Id=:TeamId", { replacements: { TeamId }, type: "SELECT" })
+        if (!team) {
             res.send({ Status: -1, Explain: "没有该战队" })
         } else {
             team.Member = await mainDB.query("select a.*,m.NickName,asset.WeekYield,concat(:picBaseURL,case when isnull(m.HeadImage) or m.HeadImage='' then :defaultHeadImage else m.HeadImage end)HeadImage from wf_competition_team_member a left join wf_member m on a.MemberCode=m.MemberCode left join wf_drivewealth_practice_asset_v asset on a.MemberCode=asset.MemberCode and asset.EndDate = curdate() where a.TeamId=:TeamId", { type: "SELECT", replacements: { TeamId, picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage } })
@@ -423,7 +420,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         }
         switch (type) {
             case "TeamProfit":
-                DataList = await mainDB.query("SELECT a.Rank,a.RankValue,b.* from wf_competition_team_rank a left join wf_competition_team b on b.Id=a.TeamId where a.Type=4", { type: "SELECT" })
+                if (TeamCompetitionIsOpen())
+                    DataList = await mainDB.query("SELECT a.Rank,a.RankValue,b.* from wf_competition_team_rank a left join wf_competition_team b on b.Id=a.TeamId where a.Type=4", { type: "SELECT" })
                 res.send({ Status: 0, Explain: "", DataList, OpenTime, CloseTime })
                 break
             case "TotalProfit": //炒股大赛总排行
@@ -447,12 +445,13 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     /**赛事消息 */
     router.get('/Events/:page', ctt, wrap(async({ memberCode, params: { page } }, res) => {
         let pagesize = 20
-        let result = await mainDB.query("select * from wf_competition_affiche order by Id desc limit :start,:pagesize", { replacements: { start: Number(page) * pagesize, pagesize }, type: "SELECT" })
+        let result = await mainDB.query("select *,CONCAT(:picBaseURL,'/api/Article/',Id) ContentURL from wf_competition_affiche order by Id desc limit :start,:pagesize", { replacements: { start: Number(page) * pagesize, pagesize, picBaseURL: config.picBaseURL }, type: "SELECT" })
         res.send({ Status: 0, DataList: result, Explain: "" })
     }));
     /**事件详情 */
     router.get('/EventDetail/:Id', ctt, wrap(async({ memberCode, params: { Id } }, res) => {
         let result = await singleton.selectMainDB0("wf_competition_affiche", { Id })
+        result.ContentURL = config.picBaseURL + '/api/Article/' + Id
         res.send({ Status: 0, Data: result, Explain: "" })
     }));
     /**收益曲线 */
