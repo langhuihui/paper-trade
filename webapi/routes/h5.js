@@ -7,7 +7,7 @@ module.exports = function({ mainDB, ctt, express, config, wrap }) {
         let article = await singleton.selectMainDB0("wf_competition_affiche", { Id })
         res.locals = {
             adminHost: config.adminHostURL,
-            content: article.Content
+            content: article.Content.replace(/(src=\"[^\"]+\")/g, "src=\"http://share.wolfstreet.tv/wffenxiang/img/LOGO@3x.png\" d$1")
         };
         if (reg_iOS.exec(headers['user-agent']))
             res.render('articleIOS');
