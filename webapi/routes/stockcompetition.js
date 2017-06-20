@@ -256,7 +256,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 result.Team = await singleton.selectMainDB0("wf_competition_team", { Id: team_member.TeamId })
             }
         }
-        result.Events = await mainDB.query("select * from wf_competition_affiche where id in (select max(id) from wf_competition_affiche where State=9 group by Type)", { type: "SELECT" })
+        result.Events = await mainDB.query("select *,CONCAT(:picBaseURL,'/api/Article/',Id) ContentURL from wf_competition_affiche where id in (select max(id) from wf_competition_affiche where State=9 group by Type)", { replacements: { picBaseURL: config.picBaseURL }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", Data: result })
     }));
     /**战队情况 */
