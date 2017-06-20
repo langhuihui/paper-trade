@@ -18,7 +18,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.engine('jshtml', require('jshtml-express'));
 app.set('view engine', 'jshtml');
 app.set('views', path.resolve(__dirname, 'views'))
-app.use('/', express.static(path.resolve(__dirname, 'assets')))
+app.use('/h5', express.static(path.resolve(__dirname, 'assets')))
 if (Config.test) app.use('/admin', express.static(path.resolve(__dirname, 'web', 'dist')))
 app.use((req, res, next) => {
     if (req.body.Token) delete req.body.Token

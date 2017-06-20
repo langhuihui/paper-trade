@@ -32,6 +32,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }
 
     function ThisWeek() {
+        return [new Date("2017-6-20 17:00:00"), new Date("2017-6-20 18:00:00")];
         if (competition.range) {
             return competition.range
         }
