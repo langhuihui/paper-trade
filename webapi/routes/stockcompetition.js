@@ -464,7 +464,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         res.send({ Status: 0, Data: result, Explain: "" })
     }));
     /**收益曲线 */
-    router.get('/ProfitDaily/:memberCode/:startDate', allowAccess(), wrap(async({ params: { startDate } }, res) => {
+    router.get('/ProfitDaily/:memberCode/:startDate', allowAccess(), wrap(async({ params: { memberCode, startDate } }, res) => {
         startDate = new Date(startDate)
         let result = await mainDB.query("select TodayProfit*100/TotalAmount profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_drivewealth_practice_assetv where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", DataList: result })
