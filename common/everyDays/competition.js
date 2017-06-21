@@ -28,7 +28,7 @@ class Competition extends EveryDay {
     checkAndRun(now) {
         this.checkTodayIsDone(now)
         if (this.todayIsDone) return false
-        if (this.currentCompetition.StartTime.split(" ")[0] == now.format("yyyy-MM-dd")) {
+        if (this.currentCompetition && this.currentCompetition.StartTime.split(" ")[0] == now.format("yyyy-MM-dd")) {
             if (now > new Date(this.currentCompetition.StartTime)) {
                 this.resetAllAccount()
                 this.lastRun = now
