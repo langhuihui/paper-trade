@@ -8,6 +8,7 @@ import rongcloudSDK from 'rongcloud-sdk'
 import getStockPrice from '../getSinaData/getPrice'
 import sqlStr from './sqlStr'
 import { dwUrls } from './driveWealth'
+import request from 'request-promise'
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 var _mainDB = null;
@@ -162,6 +163,7 @@ let o = {
             this.sendJpushMessage(memberCode, '嘉维账号重置', '', '', { AlertType: "jpush111", UserId: body.userId, username: body.username, password: body.password })
             return body
         } catch (ex) {
+            console.error(ex)
             return this.CreateParactice(memberCode, Math.floor(Math.random() * 1000 + 1))
         }
     }
