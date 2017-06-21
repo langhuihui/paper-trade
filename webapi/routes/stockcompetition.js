@@ -32,7 +32,6 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }
 
     function ThisWeek() {
-        return [new Date("2017-6-20 17:00:00"), new Date("2017-6-20 18:00:00")];
         if (competition.range) {
             return competition.range
         }
@@ -166,6 +165,15 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         mainDB.query("CALL WF_CLEAR_COMPETITION()")
         res.end()
     });
+    router.get('/UpdateCompetition', async(req, res) => {
+        let result = await mainDB.query("select *,CONCAT(:picBaseURL,Image) Image from wf_competition_record order by Id desc limit 1", { replacements: { picBaseURL: Config.picBaseURL }, type: "SELECT" })
+        Competition = result[0]
+        res.send(Competition)
+    });
+    router.get('/Banner', wrap(async(req, res) => {
+        let result = await singleton.selectMainDB("wf_competition_banner", { Status: 1, State: 1 })
+        res.send({ Status: 0, Explain: "", DataList: result })
+    }));
     //获取最近的比赛
     router.get('/Competition', (req, res) => res.send({ Status: Competition ? 0 : -1, Competition }));
     router.get('/CompetitionState', (req, res) => res.send({ Status: 0, IsOpen: CompetitionIsOpen() }));
@@ -456,13 +464,13 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         res.send({ Status: 0, Data: result, Explain: "" })
     }));
     /**收益曲线 */
-    router.get('/ProfitDaily/:memberCode/:startDate', allowAccess(), wrap(async({ params: { memberCode, startDate } }, res) => {
+    router.get('/ProfitDaily/:memberCode/:startDate', allowAccess(), wrap(async({ params: { startDate } }, res) => {
         startDate = new Date(startDate)
         let result = await mainDB.query("select TodayProfit*100/TotalAmount profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_drivewealth_practice_assetv where MemberCode=:memberCode and EndDate>:startDate", { replacements: { memberCode, startDate }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", DataList: result })
     }));
     /**团队收益曲线 */
-    router.get('/TeamProfitDaily/:TeamId', allowAccess(), wrap(async({ params: { memberCode } }, res) => {
+    router.get('/TeamProfitDaily/:TeamId', allowAccess(), wrap(async({ params: { TeamId } }, res) => {
         let result = await mainDB.query("select AvgYield profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_competition_team_asset where TeamId=:TeamId ", { replacements: { TeamId }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", DataList: result })
     }))
