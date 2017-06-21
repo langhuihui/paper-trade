@@ -1,16 +1,12 @@
-import sqlstr from '../../common/sqlStr'
-import request from 'request-promise'
 import Config from '../../config'
 import allowAccess from '../middles/allowAccess'
-import { dwUrls } from '../../common/driveWealth'
 import singleton from '../../common/singleton'
-import JPush from 'jpush-sdk'
 module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, mqChannel, wrap, rongcloud }) {
     var Competition = null
     var TeamCompetitionRange = null
     updateCompetition()
     async function updateCompetition() {
-        let result = await mainDB.query("select *,CONCAT(:picBaseURL,Image) Image from wf_competition_record order by Id desc limit 1", { replacements: { picBaseURL: Config.picBaseURL }, type: "SELECT" })
+        let result = await mainDB.query("select *,CONCAT(:picBaseURL,Image) Image,CONCAT(:picBaseURL,OriginalImage) OriginalImage from wf_competition_record order by Id desc limit 1", { replacements: { picBaseURL: Config.picBaseURL }, type: "SELECT" })
         Competition = result[0]
         result = await singleton.redisClient.getAsync("teamCompetitionTimetable")
         TeamCompetitionRange = result ? result.split(',').map(x => new Date(x)) : null

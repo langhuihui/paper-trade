@@ -163,7 +163,6 @@ let o = {
             this.sendJpushMessage(memberCode, '嘉维账号重置', '', '', { AlertType: "jpush111", UserId: body.userId, username: body.username, password: body.password })
             return body
         } catch (ex) {
-            console.error(ex)
             return this.CreateParactice(memberCode, Math.floor(Math.random() * 1000 + 1))
         }
     }
