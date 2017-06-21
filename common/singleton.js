@@ -7,6 +7,7 @@ import mongodb from 'mongodb'
 import rongcloudSDK from 'rongcloud-sdk'
 import getStockPrice from '../getSinaData/getPrice'
 import sqlStr from './sqlStr'
+import { dwUrls } from './driveWealth'
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 var _mainDB = null;
