@@ -239,7 +239,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let result = await mainDB.query(`select * ${canJoin} from wf_competition_team where TeamName like '%${str}%' and Status <>2`, { type: "SELECT" })
         if (!canJoin) {
             await Promise.all(
-                result.map(team => CanJoin(memberCode, team).then(result => team.CanJoin = (result == 0 ? 1 : 0)))
+                result.map(team => CanJoin(memberCode, team).then(result => team.CanJoin = (result == 0 ? 1 : (result.Status == 1 ? 2 : 0))))
             )
         }
         res.send({ Status: 0, result })
@@ -284,6 +284,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 if (team.Role == 2) return team.IsOpen ? 6 : 5
                 return team.CanJoin ? 2 : 1
             })()
+            team.ProfitURL = "http://share.wolfstreet.tv/kmap/teamprofit.html?memberCode=" + TeamId
             res.send({ Status: 0, Explain: "", Data: team })
         }
     }));
@@ -353,7 +354,9 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let teams = await mainDB.query(`select *${canJoin} from wf_competition_team where Status <> 2 order by Id desc`, { type: "SELECT" })
         if (!canJoin) {
             await Promise.all(
-                teams.map(team => CanJoin(memberCode, team).then(result => team.CanJoin = (result == 0 ? 1 : 0)))
+                teams.map(team => CanJoin(memberCode, team).then(result => {
+                    team.CanJoin = (result == 0 ? 1 : (result.Status == 1 ? 2 : 0))
+                }))
             )
         }
         res.send({ Status: 0, Explain: "", DataList: teams })
