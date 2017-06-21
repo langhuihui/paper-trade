@@ -4,11 +4,18 @@ import Config from '../../config'
 import allowAccess from '../middles/allowAccess'
 import { dwUrls } from '../../common/driveWealth'
 import singleton from '../../common/singleton'
-import competition from '../../common/everyDays/competition'
 import JPush from 'jpush-sdk'
 module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, mqChannel, wrap, rongcloud }) {
     var Competition = null
-    mainDB.query("select *,CONCAT(:picBaseURL,Image) Image from wf_competition_record order by Id desc limit 1", { replacements: { picBaseURL: Config.picBaseURL }, type: "SELECT" }).then(result => Competition = result[0])
+    var TeamCompetitionRange = null
+    updateCompetition()
+    async function updateCompetition() {
+        let result = await mainDB.query("select *,CONCAT(:picBaseURL,Image) Image from wf_competition_record order by Id desc limit 1", { replacements: { picBaseURL: Config.picBaseURL }, type: "SELECT" })
+        Competition = result[0]
+        result = await singleton.redisClient.getAsync("teamCompetitionTimetable")
+        TeamCompetitionRange = result ? result.split(',').map(x => new Date(x)) : null
+        mqChannel.sendToQueue("common", new Buffer(JSON.stringify({ type: "call", func: "competition.checkRange" })))
+    }
 
     function CompetitionIsOpen() {
         if (Competition) {
@@ -32,8 +39,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }
 
     function ThisWeek() {
-        if (competition.range) {
-            return competition.range
+        if (TeamCompetitionRange) {
+            return TeamCompetitionRange
         }
         let addDay = CompetitionIsOpen() ? 7 : 0
 
@@ -71,26 +78,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         return result;
     }
 
-    async function sendJpushMessage(MemberCode, ...args) {
-        let { JpushRegID } = await singleton.selectMainDB0("wf_im_jpush", { MemberCode })
-        if (JpushRegID) {
-            singleton.jpushClient.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(JpushRegID))
-                .setOptions(null, null, null, Config.apns_production)
-                .setMessage(...args)
-                .send(async(err, res) => {
-                    if (err) {
-                        if (err instanceof JPush.APIConnectionError) {
-                            console.log(err.message)
-                        } else if (err instanceof JPush.APIRequestError) {
-                            console.log(err.message)
-                        }
-                    } else {
 
-                    }
-                })
-        }
-
-    }
     async function CanJoin(MemberCode, { Status, Id: TeamId }, ignoreApply) {
         if (Status == 1) return { Status: 45003, Explain: "人数已满" }
         if (TeamCompetitionIsOpen()) return { Status: 45004, Explain: "组队赛已开始" }
@@ -109,41 +97,6 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         }
         return 0
     }
-    async function CreateParactice(memberCode, randNum) {
-
-        let body = {
-            wlpID: "DW",
-            languageID: "zh_CN",
-            firstName: "f" + memberCode,
-            lastName: "l" + memberCode,
-            emailAddress1: memberCode + "@wolfstreet.tv",
-            username: memberCode + randNum,
-            password: "p" + memberCode,
-            transAmount: 10000
-        }
-        try {
-            ({ userID: body.UserId } = await request({
-                uri: dwUrls.createPractice,
-                method: "POST",
-                body,
-                json: true
-            }))
-            body.MemberCode = memberCode
-            body.IsActivate = false
-            body.username = memberCode + randNum
-            body.tranAmount = 10000
-            await mainDB.query("delete from wf_drivewealth_practice_account where MemberCode=:memberCode", { replacements: { memberCode } })
-            await mainDB.query("delete from wf_drivewealth_practice_asset where MemberCode=:memberCode", { replacements: { memberCode } })
-            await mainDB.query("delete from wf_drivewealth_practice_asset_v where MemberCode=:memberCode", { replacements: { memberCode } })
-            await mainDB.query("delete from wf_drivewealth_practice_rank where MemberCode=:memberCode", { replacements: { memberCode } })
-            await mainDB.query("delete from wf_drivewealth_practice_rank_v where MemberCode=:memberCode", { replacements: { memberCode } })
-            let result = await mainDB.query(...sqlstr.insert2("wf_drivewealth_practice_account", body, { PracticeId: null, CreateTime: "now()", transAmount: null }))
-            return body
-        } catch (ex) {
-            return CreateParactice(memberCode, Math.floor(Math.random() * 1000 + 1))
-        }
-    }
-
     const router = express.Router();
     /**打开首页判断是否登录过,如果登录过则显示排名信息 */
     router.get('/Login/:Token', ctt, allowAccess(), wrap(async({ memberCode }, res) => {
@@ -166,8 +119,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         res.end()
     });
     router.get('/UpdateCompetition', async(req, res) => {
-        let result = await mainDB.query("select *,CONCAT(:picBaseURL,Image) Image from wf_competition_record order by Id desc limit 1", { replacements: { picBaseURL: Config.picBaseURL }, type: "SELECT" })
-        Competition = result[0]
+        await updateCompetition()
+
         res.send(Competition)
     });
     router.get('/Banner', wrap(async(req, res) => {
@@ -213,11 +166,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             body.CommetitionId = Competition.Id
             body.CreateTime = new Date()
             await singleton.insertMainDB("wf_stockcompetitionmember", body)
-            if (CompetitionIsOpen()) {
-                let result = await CreateParactice(memberCode, "")
-                    //await mainDB.query("delete from wf_token where MemberCode=:memberCode ", { replacements: { memberCode } })
-                sendJpushMessage(memberCode, '嘉维账号重置', '', '', { AlertType: "jpush111", UserId: result.userId, username: result.username, password: result.password })
-            }
+            if (CompetitionIsOpen()) singleton.CreateParactice(memberCode, "")
             return res.send({ Status: 0, Explain: "", Competition })
         }
     })
@@ -321,7 +270,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         if (result != 0) return res.send(result)
         await singleton.insertMainDB("wf_competition_apply", { TeamId, MemberCode: memberCode, State: 1 }, { CreateTime: "now()" })
         let [from] = await mainDB.query("select MemberCode,Nickname from wf_member where MemberCode=:memberCode", { replacements: { memberCode }, type: "SELECT" })
-        sendJpushMessage(team.MemberCode, "收到申请", "", "", { AlertType: config.jpushType_competition, Type: "join", from, team })
+        singleton.sendJpushMessage(team.MemberCode, "收到申请", "", "", { AlertType: config.jpushType_competition, Type: "join", from, team })
         res.send({ Status: 0, Explain: "" })
     }));
     /**使用邀请码加入战队 */
@@ -338,7 +287,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         })
         if (result == 0) {
             let [from] = await mainDB.query("select MemberCode,Nickname from wf_member where MemberCode=:MemberCode", { replacements: { MemberCode }, type: "SELECT" })
-            sendJpushMessage(team.MemberCode, "通过邀请码加入", "", "", { AlertType: config.jpushType_competition, Type: "joinByCode", from, team })
+            singleton.sendJpushMessage(team.MemberCode, "通过邀请码加入", "", "", { AlertType: config.jpushType_competition, Type: "joinByCode", from, team })
             res.send({ Status: 0, Explain: "", TeamId: team.Id })
         } else {
             res.send({ Status: 500, Explain: result })
@@ -395,7 +344,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         })
         if (result == 0) {
             singleton.insertMainDB("wf_message", { Type: 2, Content: team.TeamName + " 队长已同意您的入队申请!", MemberCode, Title: "申请已通过", IsSend: 1 }, { CreateTime: "now()", SendTime: "now()" })
-            sendJpushMessage(MemberCode, "同意申请", "", "", { AlertType: config.jpushType_competition, Type: "accept", team })
+            singleton.sendJpushMessage(MemberCode, "同意申请", "", "", { AlertType: config.jpushType_competition, Type: "accept", team })
         }
         res.send({ Status: result == 0 ? 0 : 500, Explain: result })
     }));
@@ -418,7 +367,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         // }
         await singleton.updateMainDB("wf_competition_apply", { State: 3 }, null, { MemberCode, TeamId: team.Id })
         singleton.insertMainDB("wf_message", { Type: 2, Content: team.TeamName + " 队长已拒绝您的入队申请！", MemberCode, Title: "申请被拒绝", IsSend: 1 }, { CreateTime: "now()", SendTime: "now()" })
-        sendJpushMessage(MemberCode, "拒绝申请", "", "", { AlertType: config.jpushType_competition, Type: "refuse", team })
+        singleton.sendJpushMessage(MemberCode, "拒绝申请", "", "", { AlertType: config.jpushType_competition, Type: "refuse", team })
         res.send({ Status: 0, Explain: "" })
     }));
     /**排行榜 */

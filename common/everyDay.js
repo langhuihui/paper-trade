@@ -1,6 +1,5 @@
 class EveryDay {
-    constructor(n, t, f) {
-        this.name = n
+    constructor(t, f) {
         this.callback = f
         this.time = t
         this.lastRun = null

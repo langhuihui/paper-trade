@@ -2,7 +2,7 @@
 import EveryDay from '../everyDay'
 import singleton from '../singleton'
 const { mainDB, redisClient } = singleton
-export default new EveryDay('marketTime', "00:00:00", async function() {
+export default new EveryDay("00:00:00", async function() {
     let usResult = await singleton.selectMainDB("wf_system_opendate_bak", { Type: "us" }, { DealDate: "CurDate()" })
     let usResult2 = await singleton.selectMainDB("wf_system_opendate_bak", { Type: "us" }, { DealDate: "DATE_ADD(CURDATE(),INTERVAL 1 day)" })
     let hsResult = await singleton.selectMainDB("wf_system_opendate_bak", { Type: "hs" }, { DealDate: "CurDate()" })

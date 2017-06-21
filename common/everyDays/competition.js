@@ -7,12 +7,35 @@ import singleton from '../singleton'
 const { mainDB, redisClient } = singleton
 class Competition extends EveryDay {
     constructor() {
-        super("Competition", null, null)
-        this.range = [new Date("2017-6-19 21:30:00"), new Date("2017-6-20 11:00:00")]
+        super(null, null)
+        this.checkRange()
+    }
+    checkRange() {
+        redisClient.get("teamCompetitionTimetable", result => {
+            this.range = result ? result.split(',').map(x => new Date(x)) : null
+        })
+        mainDB.query("select * from wf_competition_record order by Id desc limit 1", { type: "SELECT" }).then(result => {
+            this.currentCompetition = result[0]
+        })
+    }
+    async resetAllAccount() {
+        console.log("执行批量重置嘉维模拟账号")
+        let users = await singleton.selectMainDB("wf_stockcompetitionmember", { CommetitionId: this.currentCompetition.Id })
+        users.forEach(user => {
+            singleton.CreateParactice(user.MemberCode, "")
+        })
     }
     checkAndRun(now) {
         this.checkTodayIsDone(now)
         if (this.todayIsDone) return false
+        if (this.currentCompetition.StartTime.split(" ")[0] == now.format("yyyy-MM-dd")) {
+            if (now > new Date(this.currentCompetition.StartTime)) {
+                this.resetAllAccount()
+                this.lastRun = now
+                this.todayIsDone = true
+                return true
+            }
+        }
         if (this.range) {
             if (now.format("yyyy-MM-dd") == this.range[0].format("yyyy-MM-dd")) {
                 if (now > this.range[0]) {

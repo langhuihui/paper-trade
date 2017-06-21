@@ -13,7 +13,7 @@ async function getProfitInfo(daysAgo, AccountNo, TotalAmount) {
     let profit = TotalAmount - amount
     return { profit, yield: profit * 100 / amount }
 }
-export default new EveryDay('profitRank', "05:00:00", async() => {
+export default new EveryDay("05:00:00", async() => {
     let accounts = await singleton.selectMainDB("wf_street_practice_account", { Status: 1 })
     for (let { MemberCode, AccountNo, Cash, TranAmount }
         of accounts) {

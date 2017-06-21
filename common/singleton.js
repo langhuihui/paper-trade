@@ -112,6 +112,57 @@ let o = {
             await transaction.rollback()
             return ex
         }
+    },
+    async sendJpushMessage(MemberCode, ...args) {
+        let { JpushRegID } = await this.selectMainDB0("wf_im_jpush", { MemberCode })
+        if (JpushRegID) {
+            this.jpushClient.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(JpushRegID))
+                .setOptions(null, null, null, Config.apns_production)
+                .setMessage(...args)
+                .send(async(err, res) => {
+                    if (err) {
+                        if (err instanceof JPush.APIConnectionError) {
+                            console.log(err.message)
+                        } else if (err instanceof JPush.APIRequestError) {
+                            console.log(err.message)
+                        }
+                    } else {
+
+                    }
+                })
+        }
+
+    },
+    async CreateParactice(memberCode, randNum) {
+
+        let body = {
+            wlpID: "DW",
+            languageID: "zh_CN",
+            firstName: "f" + memberCode,
+            lastName: "l" + memberCode,
+            emailAddress1: memberCode + "@wolfstreet.tv",
+            username: memberCode + randNum,
+            password: "p" + memberCode,
+            transAmount: 10000
+        }
+        try {
+            ({ userID: body.UserId } = await request({
+                uri: dwUrls.createPractice,
+                method: "POST",
+                body,
+                json: true
+            }))
+            body.MemberCode = memberCode
+            body.IsActivate = false
+            body.username = memberCode + randNum
+            body.tranAmount = 10000
+            await Promise.all(["account", "asset", "asset_v", "rank", "rank_v"].map(x => this.mainDB.query(`delete from wf_drivewealth_practice_${x} where MemberCode='${memberCode}'`)))
+            let result = await this.insertMainDB("wf_drivewealth_practice_account", body, { PracticeId: null, CreateTime: "now()", transAmount: null })
+            this.sendJpushMessage(memberCode, '嘉维账号重置', '', '', { AlertType: "jpush111", UserId: body.userId, username: body.username, password: body.password })
+            return body
+        } catch (ex) {
+            return this.CreateParactice(memberCode, Math.floor(Math.random() * 1000 + 1))
+        }
     }
 }
 export default o

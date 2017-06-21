@@ -7,7 +7,7 @@ import sqlstr from '../sqlStr'
 import singleton from '../singleton'
 const { mainDB, redisClient } = singleton
 
-export default new EveryDay('totalAssets', "04:30:00", async() => {
+export default new EveryDay("04:30:00", async() => {
     let LastDate = ""
     switch (moment().day()) {
         case 1:
