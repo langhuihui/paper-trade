@@ -22,7 +22,9 @@ async function startMQ() {
         switch (data.type) {
             case "call":
                 let func = data.func.split('.')
-                everyDayFuns[func[0]][func[1]](...data.args)
+                if (data.args)
+                    everyDayFuns[func[0]][func[1]](...data.args)
+                else everyDayFuns[func[0]][func[1]]()
                 break
         }
         channel.ack(msg)
