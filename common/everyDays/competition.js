@@ -77,6 +77,7 @@ class Competition extends EveryDay {
     }
     endCompetition() {
         mainDB.query("update wf_competition_team set Status=2")
+        mainDB.query("update wf_competition_team_member set Status=0")
     }
     run() {
         if (now.getDay() == 1) {
