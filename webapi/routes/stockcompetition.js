@@ -346,8 +346,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         //     mainDB.query("update wf_competition_apply set State=4 where MemberCode=:MemberCode and TeamId<>:TeamId", { replacements: { MemberCode, TeamId: team.Id }, transaction: t.transaction })
         //     singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount }, null, { Id: team.Id }, t)
         // })
-        await db.query("CALL PRC_WF_ACCEPT_JOINTEAM(:memberCode,:MemberCode, @P_RESULT)", { replacements: { memberCode, MemberCode } })
-        let [{ p_result }] = await db.query("select @P_RESULT p_result", { type: "SELECT" })
+        await mainDB.query("CALL PRC_WF_ACCEPT_JOINTEAM(:memberCode,:MemberCode, @P_RESULT)", { replacements: { memberCode, MemberCode } })
+        let [{ p_result }] = await mainDB.query("select @P_RESULT p_result", { type: "SELECT" })
             // if (p_result == 0) {
             //     singleton.insertMainDB("wf_message", { Type: 2, Content: team.TeamName + " 队长已同意您的入队申请!", MemberCode, Title: "申请已通过", IsSend: 1 }, { CreateTime: "now()", SendTime: "now()" })
 
