@@ -30,6 +30,7 @@
         "iconv-lite": "^0.4.15",
         "jpush-sdk": "^3.3.7",
         "jshtml-express": "^0.0.1",
+        "knex": "^0.13.0",
         "less-loader": "^4.0.3",
         "moment": "^2.18.1",
         "moment-timezone": "^0.5.13",

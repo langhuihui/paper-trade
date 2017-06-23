@@ -103,10 +103,8 @@ async function startMQ() {
                 break;
             case "turnOn":
                 console.log("打开股价提醒", data.memberCode)
-                let [ns] = await mainDB.query(someBodySql, { replacements: data })
-                for (let n of ns) {
-                    updateNotify(Object.convertBuffer2Bool(n, "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall"))
-                }
+                let ns = await mainDB.query(someBodySql, { replacements: data, type: "SELECT" })
+                ns.forEach(n => updateNotify(n))
                 break;
         }
         channel.ack(msg)
@@ -133,9 +131,9 @@ startMQ()
 async function getAllNotify() {
     notifies.clear()
     stocksRef.clear()
-    let [ns] = await mainDB.query(jpushRegIDSql)
+    let ns = await mainDB.query(jpushRegIDSql, { type: "SELECT" })
     for (let n of ns) {
-        notifies.set(n.RemindId, Object.convertBuffer2Bool(n, "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall"))
+        notifies.set(n.RemindId, n)
         stocksRef.addSymbol(Config.getQueryName(n))
     }
 }

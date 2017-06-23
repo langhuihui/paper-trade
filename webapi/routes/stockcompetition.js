@@ -48,7 +48,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let result = []
         if (weekDay == 6 && now.getHours() >= 4 || weekDay == 1 && now < new Date(now.format("yyyy-MM-dd") + " 21:30:00") || weekDay == 0) {
             now.setDate(now.getDate() - weekDay + 1 + 7)
-            now.setHours(9)
+            now.setHours(21)
             now.setMinutes(30)
             now.setSeconds(0)
             result[0] = now
@@ -60,7 +60,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             result[1] = now
         } else {
             now.setDate(now.getDate() - weekDay + 1 + addDay)
-            now.setHours(9)
+            now.setHours(21)
             now.setMinutes(30)
             now.setSeconds(0)
             result[0] = now

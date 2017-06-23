@@ -121,7 +121,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     router.get('/Settings', ctt, wrap(async({ memberCode }, res) => {
         let [result] = await mainDB.query("select PriceNotify from wf_system_setting where MemberCode=:memberCode", { replacements: { memberCode } })
         if (result.length)
-            res.send({ Status: 0, Explain: "", Data: Object.convertBuffer2Bool(result[0], "PriceNotify") })
+            res.send({ Status: 0, Explain: "", Data: result[0] })
         else res.send({ Status: 0, Explain: "", Data: { PriceNotify: true } }) //默认配置
     }))
     router.put('/Settings', ctt, wrap(async({ memberCode, body }, res) => {
@@ -306,7 +306,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let result = {}
         if (OtherMemberCode) { //他人的持仓股票
             result = await mainDB.query("select ShowPositionList from wf_member where MemberCode=:MemberCode ", { replacements: { MemberCode: OtherMemberCode }, type: "SELECT" })
-            result = Object.convertBuffer2Bool(result[0], "ShowPositionList")
+            result = result[0]
             if (result.ShowPositionList)
                 result = await mainDB.query("select symbol,openQty,costBasis,marketValue,side,priorClose,availableForTradingQty,avgPrice,mktPrice,unrealizedPL,unrealizedDayPLPercent,unrealizedDayPL from wf_drivewealth_practice_position where MemberCode=:MemberCode ", { replacements: { MemberCode: OtherMemberCode }, type: "SELECT" })
             else
@@ -323,7 +323,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
      */
     router.get('/GetShowPositionListStatus', ctt, wrap(async({ memberCode, query: { OtherMemberCode } }, res) => {
         let result = await mainDB.query("select ShowPositionList from wf_member where MemberCode=:MemberCode ", { replacements: { MemberCode: OtherMemberCode }, type: "SELECT" })
-        result = Object.convertBuffer2Bool(result[0], "ShowPositionList")
+        result = result[0]
         res.send({ Status: 0, Explain: "", ShowPositionList: result.ShowPositionList == true ? 1 : 0 })
     }));
     return router

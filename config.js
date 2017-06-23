@@ -7,6 +7,20 @@ let config = {
     sina_realjs: "http://hq.sinajs.cn/list=",
     netease_realjs: "http://api.money.126.net/data/feed/",
     mysqlconn: "mysql://wftest:WfTestonlytest_20170222@rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com:3306/wolfstreet_test",
+    mysqlConfig: {
+        host: "rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com",
+        port: "3306",
+        user: "wftest",
+        password: "WfTestonlytest_20170222",
+        database: "wolfstreet_test",
+        typeCast(field, next) {
+            if (field.type === "BIT" && field.length === 1) {
+                var bit = field.string();
+                return (bit === null) ? null : (bit.charCodeAt(0) === 1);
+            }
+            return next();
+        }
+    },
     amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@testmq.wolfstreet.tv:10001/test",
     redisConfig: { host: "testapi.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC", db: 1 },
     mongodbconn: "mongodb://wftest:%23W%40f!1189747acd@106.14.155.223:22222/wolfstreet_test",
@@ -62,15 +76,6 @@ Object.deleteProperties = function(obj, ...args) {
     }
     return obj
 };
-/**转换Buffer对象成布尔值 */
-Object.convertBuffer2Bool = function(obj, ...args) {
-    for (let n of args) {
-        if (obj.hasOwnProperty(n)) {
-            obj[n] = obj[n][0] == 1
-        }
-    }
-    return obj
-}
 Array.prototype.remove = function(...item) {
     let _this = this;
     item.forEach(i => {

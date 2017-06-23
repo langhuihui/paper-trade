@@ -18,12 +18,16 @@ var _realDB = null;
 const EMPTY = {};
 rongcloudSDK.init(Config.Rong_Appkey, Config.Rong_Secret);
 let o = {
+    knex: require('knex')({ client: 'mysql', connection: Config.mysqlConfig }),
     get mainDB() {
         if (!_mainDB)
-            _mainDB = new Sequelize(Config.mysqlconn, {
+            _mainDB = new Sequelize(Config.mysqlConfig.database, Config.mysqlConfig.user, Config.mysqlConfig.password, {
+                dialect: "mysql",
+                host: Config.mysqlConfig.host,
+                port: Config.mysqlConfig.port,
                 dialectOptions: {
                     dateStrings: true,
-                    typeCast: true
+                    typeCast: Config.mysqlConfig.typeCast
                 },
                 timezone: '+08:00',
                 logging: (...arg) => console.log(new Date().format(), ...arg)

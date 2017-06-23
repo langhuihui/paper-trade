@@ -19,9 +19,9 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
     router.get('/GetPriceNotify/:SmallType/:SecuritiesNo', ctt, async(req, res) => {
         let replacements = req.params
         replacements.MemberCode = req.memberCode
-        let [result] = await mainDB.query("select * from wf_securities_remind where MemberCode=:MemberCode and SecuritiesNo=:SecuritiesNo and SmallType=:SmallType limit 1", { replacements })
+        let result = await mainDB.query("select * from wf_securities_remind where MemberCode=:MemberCode and SecuritiesNo=:SecuritiesNo and SmallType=:SmallType limit 1", { replacements, type: "SELECT" })
         if (result.length)
-            res.send({ Status: 0, Explain: "", Data: Object.convertBuffer2Bool(result[0], "IsOpenLower", "IsOpenUpper", "IsOpenRise", "IsOpenFall") })
+            res.send({ Status: 0, Explain: "", Data: result[0] })
         else res.send({ Status: 0, Explain: "", Data: { IsOpenLower: false, IsOpenUpper: false, IsOpenRise: false, IsOpenFall: false, LowerLimit: 0, UpperLimit: 0, FallLimit: 0, RiseLimit: 0 } })
     });
     /**修改股价提醒 */
