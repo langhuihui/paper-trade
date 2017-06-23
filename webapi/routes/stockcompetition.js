@@ -81,9 +81,9 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let you = await singleton.selectMainDB0("wf_competition_team_member", { TeamId, MemberCode })
         if (!singleton.isEMPTY(you)) return { Status: 45001, Explain: "你已经是该战队成员" }
         if (ignoreApply) return 0
-        let lastApply = await singleton.selectMainDB("wf_competition_apply", { MemberCode })
+        let lastApply = await mainDB.query("select * from wf_competition_apply where MemberCode:=MemberCode order by CreateTime desc", { replacements: { MemberCode }, type: "SELECT" })
         if (lastApply.length) {
-            if (new Date() - new Date(lastApply.CreateTime) < 10 * 60 * 1000) {
+            if (new Date() - new Date(lastApply[0].CreateTime) < 10 * 60 * 1000) {
                 return { Status: 45002, Explain: "10分钟内不得再次申请" }
             } else {
                 let apply = lastApply.find(x => x.TeamId == TeamId)
