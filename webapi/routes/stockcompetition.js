@@ -346,15 +346,16 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         //     mainDB.query("update wf_competition_apply set State=4 where MemberCode=:MemberCode and TeamId<>:TeamId", { replacements: { MemberCode, TeamId: team.Id }, transaction: t.transaction })
         //     singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount }, null, { Id: team.Id }, t)
         // })
+        if (TeamCompetitionIsOpen()) return res.send({ Status: -4, Explain: "比赛已开始" })
         await mainDB.query("CALL PRC_WF_ACCEPT_JOINTEAM(:memberCode,:MemberCode, @P_RESULT)", { replacements: { memberCode, MemberCode } })
-        let [{ p_result }] = await mainDB.query("select @P_RESULT p_result", { type: "SELECT" })
+        let [{ p_result, Id, TeamName }] = await mainDB.query("select @P_RESULT p_result,@P_TEAMID Id,@P_TEAMNAME TeamName", { type: "SELECT" })
             // if (p_result == 0) {
             //     singleton.insertMainDB("wf_message", { Type: 2, Content: team.TeamName + " 队长已同意您的入队申请!", MemberCode, Title: "申请已通过", IsSend: 1 }, { CreateTime: "now()", SendTime: "now()" })
 
         // } else {
         switch (p_result) {
             case 0:
-                singleton.sendJpushMessage(MemberCode, "同意申请", "", "", { AlertType: config.jpushType_competition, Type: "accept", team })
+                singleton.sendJpushMessage(MemberCode, "同意申请", "", "", { AlertType: config.jpushType_competition, Type: "accept", team: { Id, TeamName } })
                 return res.send({ Status: 0, Explain: "" })
             case -1:
                 return res.send({ Status: -1, Explain: "你没有创建战队" })
