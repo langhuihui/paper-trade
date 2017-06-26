@@ -81,7 +81,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let you = await singleton.selectMainDB0("wf_competition_team_member", { TeamId, MemberCode })
         if (!singleton.isEMPTY(you)) return { Status: 45001, Explain: "你已经是该战队成员" }
         if (ignoreApply) return 0
-        let lastApply = await mainDB.query("select * from wf_competition_apply where MemberCode:=MemberCode order by CreateTime desc", { replacements: { MemberCode }, type: "SELECT" })
+        let lastApply = await mainDB.query("select * from wf_competition_apply where MemberCode=:MemberCode order by CreateTime desc", { replacements: { MemberCode }, type: "SELECT" })
         if (lastApply.length) {
             if (new Date() - new Date(lastApply[0].CreateTime) < 10 * 60 * 1000) {
                 return { Status: 45002, Explain: "10分钟内不得再次申请" }
@@ -256,7 +256,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         if (teamCount >= 100) {
             return res.send({ Status: 45001, Explain: "战队已满" })
         }
-        let [{ Code }] = await mainDB.query("select * from wf_competition_code where State = 0  order by rand() limit 1", { type: "SELECT" })
+        let [{ Code }] = await mainDB.query("select * from wf_competition_code where State = 0 order by rand() limit 1", { type: "SELECT" })
         await singleton.updateMainDB("wf_competition_code", { State: 1 }, null, { Code })
         let { insertId } = await singleton.insertMainDB("wf_competition_team", Object.assign(body, { Code, MemberCode: memberCode, MemberCount: 1, Status: 0 }), { CreateTime: "now()" })
         await singleton.insertMainDB("wf_competition_team_member", { TeamId: insertId, MemberCode: memberCode, Level: 1, Type: 1, Status: 1 }, { CreateTime: "now()" })
@@ -347,7 +347,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         //     singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount }, null, { Id: team.Id }, t)
         // })
         if (TeamCompetitionIsOpen()) return res.send({ Status: -4, Explain: "比赛已开始" })
-        await mainDB.query("CALL PRC_WF_ACCEPT_JOINTEAM(:memberCode,:MemberCode, @P_RESULT)", { replacements: { memberCode, MemberCode } })
+        await mainDB.query("CALL PRC_WF_ACCEPT_JOINTEAM(:memberCode,:MemberCode, @P_RESULT,@P_TEAMID,@P_TEAMNAME)", { replacements: { memberCode, MemberCode } })
         let [{ p_result, Id, TeamName }] = await mainDB.query("select @P_RESULT p_result,@P_TEAMID Id,@P_TEAMNAME TeamName", { type: "SELECT" })
             // if (p_result == 0) {
             //     singleton.insertMainDB("wf_message", { Type: 2, Content: team.TeamName + " 队长已同意您的入队申请!", MemberCode, Title: "申请已通过", IsSend: 1 }, { CreateTime: "now()", SendTime: "now()" })
