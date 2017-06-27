@@ -162,6 +162,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             body.CommetitionId = Competition.Id
             body.CreateTime = new Date()
             await singleton.insertMainDB("wf_stockcompetitionmember", body)
+            await singleton.updateMainDB("wf_member", { SchoolName: body.CollegeName }, null, { MemberCode: memberCode })
             if (CompetitionIsOpen()) singleton.CreateParactice(memberCode, "")
             return res.send({ Status: 0, Explain: "", Competition })
         }
@@ -248,7 +249,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     /**创建战队 */
     router.post('/CreateTeam', ctt, wrap(async({ memberCode, body }, res) => {
         if (TeamCompetitionIsOpen()) return res.send({ Status: -4, Explain: "比赛已开始" })
-        await mainDB.query("CALL PRC_WF_CREATETEAM(:memberCode, :TeamName,:Manifesto,@P_RESULT,@P_CODE,@P_TEAMID)", { replacements: { memberCode, ...body } })
+        await mainDB.query("CALL PRC_WF_CREATETEAM(:memberCode, :TeamName,:Manifesto,@P_RESULT,@P_CODE,@P_TEAMID)", { replacements: {...body, memberCode } })
         let [{ Status, Code, TeamId }] = await mainDB.query("select @P_RESULT Status,@P_CODE Code,@P_TEAMID TeamId", { type: "SELECT" })
         switch (Status) {
             case 0:
@@ -417,12 +418,15 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         CloseTime = CloseTime.format()
         let DataList = []
         if (!CompetitionIsOpen()) {
+
             return res.send({ Status: 0, Explain: "", DataList, OpenTime, CloseTime })
         }
         switch (type) {
             case "TeamProfit":
                 if (TeamCompetitionIsOpen())
-                    DataList = await mainDB.query("SELECT a.Rank,a.RankValue,b.* from wf_competition_team_rank a left join wf_competition_team b on b.Id=a.TeamId where a.Type=4 limit 100", { type: "SELECT" })
+                    DataList = await mainDB.query("SELECT a.Rank,a.RankValue,b.*,(case when b.Status=0 then '未参赛' when b.Status=1 then '比赛中' end) StatusStr from wf_competition_team_rank a left join wf_competition_team b on b.Id=a.TeamId where a.Type=4 limit 100", { type: "SELECT" })
+                else
+                    DataList = await mainDB.query("select TeamName,(case when Status=0 then '组队中' when Status=1 then '已满员') StatusStr from wf_competition_team where Status<2")
                 res.send({ Status: 0, Explain: "", DataList, OpenTime, CloseTime })
                 break
             case "TotalProfit": //炒股大赛总排行
