@@ -38,7 +38,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         if (TeamCompetitionRange) {
             return TeamCompetitionRange
         }
-        let addDay = CompetitionIsOpen() ? 7 : 0
+        let addDay = CompetitionIsOpen() ? 0 : 7
 
         function checkPoint() {
             return CompetitionIsOpen() ? new Date() : new Date(Competition.StartTime)
@@ -171,8 +171,11 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         /**报名 */
     router.post('/Register', ctt, RegisterHandler);
     /**搜索学校 */
-    router.get('/SearchSchool/:str', allowAccess(), wrap(async({ memberCode, params: { str } }, res) => {
+    router.get('/SearchSchool/:str', allowAccess(), wrap(async({ params: { str } }, res) => {
         res.send({ Status: 0, result: await mainDB.query(`select * from wf_base_school where SchoolName like '%${str}%'`, { type: "SELECT" }) })
+    }));
+    router.get('/SearchSchool', allowAccess(), wrap(async(req, res) => {
+        res.send({ Status: 0, result: await mainDB.query(`select * from wf_base_school`, { type: "SELECT" }) })
     }));
     /**搜索战队 */
     router.get('/SearchTeam/:str', ctt, wrap(async({ memberCode, params: { str } }, res) => {
@@ -244,23 +247,40 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**创建战队 */
     router.post('/CreateTeam', ctt, wrap(async({ memberCode, body }, res) => {
-        let [team] = await mainDB.query("select * from wf_competition_team where (TeamName=:TeamName or MemberCode=:memberCode) and Status<>2", { replacements: { TeamName: body.TeamName, memberCode }, type: "SELECT" })
-        if (team) {
-            if (team.TeamName == body.TeamName)
-                return res.send({ Status: 40013, Explain: "战队名称已经存在" })
-            else {
-                return res.send({ Status: 45005, Explain: "您已经创建了战队", team })
-            }
+        if (TeamCompetitionIsOpen()) return res.send({ Status: -4, Explain: "比赛已开始" })
+        await mainDB.query("CALL PRC_WF_CREATETEAM(:memberCode, :TeamName,:Manifesto,@P_RESULT,@P_CODE,@P_TEAMID)", { replacements: { memberCode, ...body } })
+        let [{ Status, Code, TeamId }] = await mainDB.query("select @P_RESULT Status,@P_CODE Code,@P_TEAMID TeamId", { type: "SELECT" })
+        switch (Status) {
+            case 0:
+                return res.send({ Status, Explain: "", Code, TeamId })
+            case 45005:
+                return res.send({ Status, Explain: "您已经创建了战队" })
+            case 45006:
+                return res.send({ Status, Explain: "您已经是某个战队的队员" })
+            case 45001:
+                return res.send({ Status, Explain: "战队已满" })
+            case 43001:
+                return res.send({ Status, Explain: "战队名称已经存在" })
+            case 500:
+                return res.send({ Status, Explain: "服务器错误" })
         }
-        let [{ teamCount }] = await mainDB.query("select count(*) teamCount from wf_competition_team where Status<>2", { type: "SELECT" })
-        if (teamCount >= 100) {
-            return res.send({ Status: 45001, Explain: "战队已满" })
-        }
-        let [{ Code }] = await mainDB.query("select * from wf_competition_code where State = 0 order by rand() limit 1", { type: "SELECT" })
-        await singleton.updateMainDB("wf_competition_code", { State: 1 }, null, { Code })
-        let { insertId } = await singleton.insertMainDB("wf_competition_team", Object.assign(body, { Code, MemberCode: memberCode, MemberCount: 1, Status: 0 }), { CreateTime: "now()" })
-        await singleton.insertMainDB("wf_competition_team_member", { TeamId: insertId, MemberCode: memberCode, Level: 1, Type: 1, Status: 1 }, { CreateTime: "now()" })
-        res.send({ Status: 0, Explain: "", Code, TeamId: insertId })
+        // let [team] = await mainDB.query("select * from wf_competition_team where (TeamName=:TeamName or MemberCode=:memberCode) and Status<>2", { replacements: { TeamName: body.TeamName, memberCode }, type: "SELECT" })
+        // if (team) {
+        //     if (team.TeamName == body.TeamName)
+        //         return res.send({ Status: 40013, Explain: "战队名称已经存在" })
+        //     else {
+        //         return res.send({ Status: 45005, Explain: "您已经创建了战队", team })
+        //     }
+        // }
+        // let [{ teamCount }] = await mainDB.query("select count(*) teamCount from wf_competition_team where Status<>2", { type: "SELECT" })
+        // if (teamCount >= 100) {
+        //     return res.send({ Status: 45001, Explain: "战队已满" })
+        // }
+        // let [{ Code }] = await mainDB.query("select * from wf_competition_code where State = 0 order by rand() limit 1", { type: "SELECT" })
+        // await singleton.updateMainDB("wf_competition_code", { State: 1 }, null, { Code })
+        // let { insertId } = await singleton.insertMainDB("wf_competition_team", Object.assign(body, { Code, MemberCode: memberCode, MemberCount: 1, Status: 0 }), { CreateTime: "now()" })
+        // await singleton.insertMainDB("wf_competition_team_member", { TeamId: insertId, MemberCode: memberCode, Level: 1, Type: 1, Status: 1 }, { CreateTime: "now()" })
+        // res.send({ Status: 0, Explain: "", Code, TeamId: insertId })
     }));
     /**申请加入战队 */
     router.post('/JoinTeam/:TeamId', ctt, wrap(async({ memberCode, params: { TeamId } }, res) => {
