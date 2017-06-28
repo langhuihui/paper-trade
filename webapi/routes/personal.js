@@ -294,8 +294,6 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         else
             res.send({ Status: 0, Explain: "ok" })
     }));
-
-
     /**
      * 获取他人持仓股票
      */
@@ -313,8 +311,6 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         }
         res.send({ Status: 0, Explain: "", DataList: result })
     }));
-
-
     /**
      * 获取他人持仓开关
      */
@@ -322,6 +318,12 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let result = await mainDB.query("select ShowPositionList from wf_member where MemberCode=:MemberCode ", { replacements: { MemberCode: OtherMemberCode }, type: "SELECT" })
         result = result[0]
         res.send({ Status: 0, Explain: "", ShowPositionList: result.ShowPositionList == true ? 1 : 0 })
+    }));
+    /**提示和统计发私信 */
+    router.get('/SendLetter/:MemberCode', ctt, wrap(async({ memberCode, params: { MemberCode } }, res) => {
+        singleton.sendJpushNotify(MemberCode, "你有一条新的消息", "", { AlertType: config.jpushType_sendLetter, MemberCode })
+        singleton.insertMainDB("wf_statistics_privateletter", { LoginId: memberCode, MemberCode }, { StartTime: "now()" })
+        res.send({ Status: 0, Explain: "" })
     }));
     return router
 }

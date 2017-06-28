@@ -38,6 +38,7 @@ let config = {
     jpushType: "jpush108",
     jpushType_paperTrade: "jpush110",
     jpushType_competition: "jpush112",
+    jpushType_sendLetter: "jpush113",
     ajaxOrigin: "*", //跨域访问
     apns_production: false, //ios JPUSH配置
     picBaseURL: "http://apitest.wolfstreet.tv",

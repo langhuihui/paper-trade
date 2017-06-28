@@ -133,11 +133,29 @@ let o = {
                             console.log(err.message)
                         }
                     } else {
-
+                        console.log(res)
                     }
                 })
         }
-
+    },
+    async sendJpushNotify(MemberCode, title, msg, external) {
+        let { JpushRegID } = await this.selectMainDB0("wf_im_jpush", { MemberCode })
+        if (JpushRegID) {
+            this.jpushClient.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(JpushRegID))
+                .setOptions(null, null, null, Config.apns_production)
+                .setNotification(title, JPush.ios(msg, 'sound', 0, false, external), JPush.android(msg, title, 1, external))
+                .send(async(err, res) => {
+                    if (err) {
+                        if (err instanceof JPush.APIConnectionError) {
+                            console.log(err.message)
+                        } else if (err instanceof JPush.APIRequestError) {
+                            console.log(err.message)
+                        }
+                    } else {
+                        console.log(res)
+                    }
+                })
+        }
     },
     async CreateParactice(memberCode, randNum) {
 
