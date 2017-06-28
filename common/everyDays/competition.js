@@ -20,7 +20,7 @@ class Competition extends EveryDay {
     }
     async resetAllAccount() {
         console.log("执行批量重置嘉维模拟账号")
-        let users = await singleton.selectMainDB("wf_stockcompetitionmember", { CommetitionId: this.currentCompetition.Id })
+        let users = await singleton.selectMainDB("wf_stockcompetitionmember", { CompetitionId: this.currentCompetition.Id })
         users.forEach(user => singleton.CreateParactice(user.MemberCode, ""))
     }
     checkAndRun(now) {
