@@ -94,14 +94,11 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let result = mainListCache[memberCode].slice(pageNum * pageSize, (pageNum + 1) * pageSize)
         res.send({ Status: 0, Explain: "", DataList: result })
     }
-    async function homePage(memberCode, res) {
-        let [result] = await mainDB.query("select TotalAmount,TodayProfit,MtmPL,case wf_member.ShowPositionList when 1 then 1 else 0 end as ShowPositionList from wf_member left join wf_drivewealth_practice_asset on wf_drivewealth_practice_asset.MemberCode=wf_member.MemberCode where wf_member.MemberCode=:memberCode order by EndDate desc limit 1", { replacements: { memberCode }, type: "SELECT" })
-        let resultunused = await mainDB.query("select * from wf_drivewealth_practice_order where MemberCode=:memberCode", { replacements: { memberCode }, type: "SELECT" })
-        let Data = { TotalAmount: config.practiceInitFun, TodayProfit: 0, MtmPL: 0, EveryDayURL: _config.EveryDayURL + memberCode, Unused: true }
-        if (resultunused.length) {
-            Data.Unused = false
-        }
-        Object.assign(Data, result)
+    async function homePage(MemberCode, res) {
+        let [result] = await singleton.knex.select('TotalAmount', 'TodayProfit', 'MtmPL', 'ShowPositionList').from('wf_member as m').innerJoin("wf_drivewealth_practice_asset as a", "m.MemberCode", "a.MemberCode").where("m.MemberCode", MemberCode).orderBy("EndDate", "desc")
+        if (result) result.ShowPositionList = result.ShowPositionList ? 1 : 0
+        let [{ ordercount }] = await singleton.knex('wf_drivewealth_practice_order').count("* as ordercount").where({ MemberCode })
+        let Data = { TotalAmount: config.practiceInitFun, ShowPositionList: 1, TodayProfit: 0, MtmPL: 0, EveryDayURL: _config.EveryDayURL + MemberCode, Unused: ordercount > 0, ...result }
         res.send({ Status: 0, Explain: "", Data })
     }
     const router = express.Router();
