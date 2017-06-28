@@ -128,7 +128,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     router.get('/CompetitionState', (req, res) => res.send({ Status: 0, IsOpen: CompetitionIsOpen() }));
     /**组队赛情况 */
     router.get('/TeamCompetitionState', ctt, wrap(async({ memberCode }, res) => {
-        let teams = await mainDB.query(`select * from wf_competition_team where Status <>2`, { type: "SELECT" })
+        let teams = await mainDB.query(`select * from wf_competition_team where Status <2`, { type: "SELECT" })
         let CanJoinCount = 0;
         let CanCreateCount = 100 - teams.length
         let IsOpen = TeamCompetitionIsOpen()
@@ -251,8 +251,8 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     /**创建战队 */
     router.post('/CreateTeam', ctt, wrap(async({ memberCode, body }, res) => {
         if (TeamCompetitionIsOpen()) return res.send({ Status: -4, Explain: "比赛已开始" })
-        await mainDB.query("CALL PRC_WF_CREATETEAM(:memberCode, :TeamName,:Manifesto,@P_RESULT,@P_CODE,@P_TEAMID)", { replacements: {...body, memberCode } })
-        let [{ Status, Code, TeamId }] = await mainDB.query("select @P_RESULT Status,@P_CODE Code,@P_TEAMID TeamId", { type: "SELECT" })
+        let [{ P_RESULT: Status, P_CODE: Code, P_TEAMID: TeamId }] = await mainDB.query("CALL PRC_WF_CREATETEAM(:memberCode, :TeamName,:Manifesto,@P_RESULT,@P_CODE,@P_TEAMID)", { replacements: {...body, memberCode } })
+            //let [{ p_result: Status, Code, TeamId }] = await mainDB.query("select @P_RESULT p_result,@P_CODE Code,@P_TEAMID TeamId", { type: "SELECT" })
         switch (Status) {
             case 0:
                 return res.send({ Status, Explain: "", Code, TeamId })
@@ -267,6 +267,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             case 500:
                 return res.send({ Status, Explain: "服务器错误" })
         }
+        res.send({ Status, Explain: "" });
         // let [team] = await mainDB.query("select * from wf_competition_team where (TeamName=:TeamName or MemberCode=:memberCode) and Status<>2", { replacements: { TeamName: body.TeamName, memberCode }, type: "SELECT" })
         // if (team) {
         //     if (team.TeamName == body.TeamName)
@@ -374,13 +375,11 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         //     singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount }, null, { Id: team.Id }, t)
         // })
         if (TeamCompetitionIsOpen()) return res.send({ Status: -4, Explain: "比赛已开始" })
-        await mainDB.query("CALL PRC_WF_ACCEPT_JOINTEAM(:memberCode,:MemberCode, @P_RESULT,@P_TEAMID,@P_TEAMNAME)", { replacements: { memberCode, MemberCode } })
-        let [{ p_result, Id, TeamName }] = await mainDB.query("select @P_RESULT p_result,@P_TEAMID Id,@P_TEAMNAME TeamName", { type: "SELECT" })
+        let [{ P_RESULT, P_TEAMID: Id, P_TEAMNAME: TeamName }] = await mainDB.query("CALL PRC_WF_ACCEPT_JOINTEAM(:memberCode,:MemberCode, @P_RESULT,@P_TEAMID,@P_TEAMNAME)", { replacements: { memberCode, MemberCode } })
             // if (p_result == 0) {
             //     singleton.insertMainDB("wf_message", { Type: 2, Content: team.TeamName + " 队长已同意您的入队申请!", MemberCode, Title: "申请已通过", IsSend: 1 }, { CreateTime: "now()", SendTime: "now()" })
-
-        // } else {
-        switch (p_result) {
+            // } else {
+        switch (P_RESULT) {
             case 0:
                 singleton.sendJpushMessage(MemberCode, "同意申请", "", "", { AlertType: config.jpushType_competition, Type: "accept", team: { Id, TeamName } })
                 return res.send({ Status: 0, Explain: "" })
@@ -391,7 +390,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             case -3:
                 return res.send({ Status: -3, Explain: "TA已在别的战队中" })
             default:
-                return res.send({ Status: p_result, Explain: [, , "已通过", "已拒绝", "已失效"][p_result] })
+                return res.send({ Status: p_result, Explain: [, , "已通过", "已拒绝", "已失效"][P_RESULT] })
         }
         // }
     }));
@@ -429,7 +428,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 if (TeamCompetitionIsOpen())
                     DataList = await mainDB.query("SELECT 1 IsOpen, a.Rank,a.RankValue,b.*,(case when b.Status=0 then '未参赛' when b.Status=1 then '比赛中' end) StatusStr from wf_competition_team_rank a left join wf_competition_team b on b.Id=a.TeamId where a.Type=4 limit 100", { type: "SELECT" })
                 else
-                    DataList = await mainDB.query("select 0 IsOpen, TeamName,(case when Status=0 then '组队中' when Status=1 then '已满员' end) StatusStr from wf_competition_team where Status<2")
+                    DataList = await mainDB.query("select 0 IsOpen, TeamName,(case when Status=0 then '组队中' when Status=1 then '已满员' end) StatusStr from wf_competition_team where Status<2", { type: "SELECT" })
                 res.send({ Status: 0, Explain: "", DataList, OpenTime, CloseTime })
                 break
             case "TotalProfit": //炒股大赛总排行
@@ -437,7 +436,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 //缓存炒股大赛总排行
                     DataList = await mainDB.query("select 1 Status,1 IsOpen, a.*,b.NickName,concat(:picBaseURL,case when isnull(b.HeadImage) or b.HeadImage='' then :defaultHeadImage else b.HeadImage end)HeadImage from wf_drivewealth_practice_rank_v a left join wf_member b on a.MemberCode=b.MemberCode where Type=9 order by a.Rank limit 100", { replacements: { picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
                 else
-                    DataList = await mainDB.query("select 0 Status,1 IsOpen, wf_stockcompetitionmember.* from wf_stockcompetitionmember where CompetitionId=:CompetitionId", { replacements: { CompetitionId: Competition.Id }, type: "SELECT" })
+                    DataList = await mainDB.query("select 0 Status,0 IsOpen,a.*,b.NickName,concat(:picBaseURL,case when isnull(b.HeadImage) or b.HeadImage='' then :defaultHeadImage else b.HeadImage end)HeadImage from (select * from wf_stockcompetitionmember where CompetitionId=:CompetitionId) a left join wf_member b on a.MemberCode=b.MemberCode", { replacements: { CompetitionId: Competition.Id, picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
                     //DataList = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue TotalAmount,b.RankValue TodayProfit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank_v a ,wf_drivewealth_practice_rank_v b where a.MemberCode = b.MemberCode and a.Type = 11 and b.Type = 10 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
                 res.send({ Status: 0, Explain: "", DataList })
                     //res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:matchTotalProfit")} }`)
@@ -447,7 +446,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 //缓存炒股大赛周排行
                     DataList = await mainDB.query("select 1 Status,1 IsOpen, a.*,b.NickName,concat(:picBaseURL,case when isnull(b.HeadImage) or b.HeadImage='' then :defaultHeadImage else b.HeadImage end)HeadImage from wf_drivewealth_practice_rank_v a left join wf_member b on a.MemberCode=b.MemberCode where Type=3 order by a.Rank limit 100", { replacements: { picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
                 else
-                    DataList = await mainDB.query("select 0 Status,0 IsOpen, wf_stockcompetitionmember.* from wf_stockcompetitionmember where CompetitionId=:CompetitionId", { replacements: { CompetitionId: Competition.Id }, type: "SELECT" })
+                    DataList = await mainDB.query("select 0 Status,0 IsOpen,a.*,b.NickName,concat(:picBaseURL,case when isnull(b.HeadImage) or b.HeadImage='' then :defaultHeadImage else b.HeadImage end)HeadImage from (select * from wf_stockcompetitionmember where CompetitionId=:CompetitionId) a left join wf_member b on a.MemberCode=b.MemberCode", { replacements: { CompetitionId: Competition.Id, picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
                     //DataList = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue TotalAmount,b.RankValue TodayProfit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank_v a ,wf_drivewealth_practice_rank_v b where a.MemberCode = b.MemberCode and a.Type = 3 and b.Type = 4 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage }, type: "SELECT" })
                 res.send({ Status: 0, Explain: "", DataList, OpenTime, CloseTime })
                     //res.set('Content-Type', 'application/json').send(`{ "Status": 0, "Explain": "", "DataList": ${await redisClient.getAsync("RankList:matchWeekProfit")} }`)
