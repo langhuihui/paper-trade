@@ -321,7 +321,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**提示和统计发私信 */
     router.get('/SendLetter/:MemberCode', ctt, wrap(async({ memberCode, params: { MemberCode } }, res) => {
-        singleton.sendJpushNotify(MemberCode, "你有一条新的消息", "", { AlertType: config.jpushType_sendLetter, MemberCode })
+        singleton.sendJpushNotify(MemberCode, "新消息通知", "你有一条新的消息", { AlertType: config.jpushType_sendLetter, MemberCode })
         singleton.insertMainDB("wf_statistics_privateletter", { LoginId: memberCode, MemberCode }, { StartTime: "now()" })
         res.send({ Status: 0, Explain: "" })
     }));

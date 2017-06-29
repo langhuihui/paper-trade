@@ -123,6 +123,11 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         mainDB.query("CALL WF_CLEAR_COMPETITION()")
         res.end()
     });
+    router.get('/ClearAll2', (req, res) => {
+        mainDB.query("truncate table wf_stockcompetitionmember")
+        mainDB.query("CALL WF_CLEAR_COMPETITION()")
+        res.end()
+    })
     router.get('/UpdateCompetition', async(req, res) => {
         await updateCompetition()
 
