@@ -89,7 +89,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         }
         if (ignoreApply) return 0
         let [apply] = await singleton.knex("wf_competition_apply").where({ MemberCode, TeamId: Id })
-        if (apply) return { Status: apply.state, Explain: [, "已申请", "已通过", "已拒绝", "已失效"][apply.state] }
+        if (apply) return { Status: apply.State, Explain: [, "已申请", "已通过", "已拒绝", "已失效"][apply.State] }
             // let lastApply = await mainDB.query("select * from wf_competition_apply where MemberCode=:MemberCode order by CreateTime desc", { replacements: { MemberCode }, type: "SELECT" })
             // if (lastApply.length) {
             //     if (new Date() - new Date(lastApply[0].CreateTime) < 10 * 60 * 1000) {
@@ -185,7 +185,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         res.send({ Status: 0, result: await mainDB.query(`select * from wf_base_school where SchoolName like '%${str}%'`, { type: "SELECT" }) })
     }));
     router.get('/SearchSchool', allowAccess(), wrap(async(req, res) => {
-        res.send({ Status: 0, result: await mainDB.query(`select * from wf_base_school`, { type: "SELECT" }) })
+        res.send({ Status: 0, result: await mainDB.query(`select * from wf_base_school where City='南京市' or City='杭州市'`, { type: "SELECT" }) })
     }));
     /**搜索战队 */
     router.get('/SearchTeam/:str', ctt, wrap(async({ memberCode, params: { str } }, res) => {
@@ -232,7 +232,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         if (!team) {
             res.send({ Status: -1, Explain: "没有该战队" })
         } else {
-            team.Member = await mainDB.query("select a.*,m.NickName,asset.WeekYield,concat(:picBaseURL,case when isnull(m.HeadImage) or m.HeadImage='' then :defaultHeadImage else m.HeadImage end)HeadImage from wf_competition_team_member a left join wf_member m on a.MemberCode=m.MemberCode left join wf_drivewealth_practice_asset_v asset on a.MemberCode=asset.MemberCode and asset.EndDate = curdate() where a.TeamId=:TeamId", { type: "SELECT", replacements: { TeamId, picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage } })
+            team.Member = await mainDB.query("select a.*,m.NickName,asset.WeekYield,concat(:picBaseURL,case when isnull(m.HeadImage) or m.HeadImage='' then :defaultHeadImage else m.HeadImage end)HeadImage from wf_competition_team_member a left join wf_member m on a.MemberCode=m.MemberCode left join wf_drivewealth_practice_asset_v asset on a.MemberCode=asset.MemberCode and asset.EndDate = curdate() where a.TeamId=:TeamId order by a.Level asc", { type: "SELECT", replacements: { TeamId, picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage } })
             team.CanJoinStatus = await CanJoin(memberCode, team)
             if (team.CanJoinStatus != 0) team.CanJoinStatus = team.CanJoinStatus.Status
             team.CanJoin = team.CanJoinStatus == 0
@@ -297,6 +297,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**申请加入战队 */
     router.post('/JoinTeam/:TeamId', ctt, wrap(async({ memberCode, params: { TeamId } }, res) => {
+
         let team = await singleton.selectMainDB0("wf_competition_team", { Id: TeamId })
         if (singleton.isEMPTY(team) || team.Status == 2) return res.send({ Status: -1, Explain: "不存在这个战队" })
         let result = await CanJoin(memberCode, team)
@@ -308,16 +309,38 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             //singleton.sendJpushMessage(team.MemberCode, "收到申请", "", "", { AlertType: config.jpushType_competition, Type: "join", from, team })
         res.send({ Status: 0, Explain: "" })
     }));
-    /**使用邀请码加入战队 */
+    /**使用邀请码加入战队(老) */
     router.post('/JoinTeamByCode/:Code', ctt, wrap(async({ memberCode: MemberCode, params: { Code } }, res) => {
         let team = await singleton.selectMainDB0("wf_competition_team", { Code })
-        if (singleton.isEMPTY(team) || team.Status == 2) return res.send({ Status: -1, Explain: "不存在这个战队" })
+        if (singleton.isEMPTY(team) || team.Status == 2) return res.send({ Status: -1, Explain: "邀请码不正确" })
         let result = await CanJoin(MemberCode, team, true)
         if (result != 0) return res.send(result)
         team.MemberCount++;
         result = await singleton.transaction2(t => {
             singleton.insertMainDB("wf_competition_team_member", { TeamId: team.Id, MemberCode, Level: 2, Type: 2, Status: 1 }, { CreateTime: "now()" }, t)
-            mainDB.query("update wf_competition_apply set State=4 where MemberCode=:MemberCode and TeamId<>:TeamId", { replacements: { MemberCode, TeamId: team.Id }, transaction: t.transaction })
+            singleton.updateMainDB("wf_competition_apply", { State: 4 }, null, { MemberCode }, t)
+            singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount }, null, { Id: team.Id }, t)
+        })
+        if (result == 0) {
+            let [from] = await mainDB.query("select MemberCode,Nickname from wf_member where MemberCode=:MemberCode", { replacements: { MemberCode }, type: "SELECT" })
+            singleton.sendJpushNotify(team.MemberCode, "有人成功入队", from.Nickname + "通过邀请码成功加入了你的战队", { AlertType: config.jpushType_competition, Type: "joinByCode", from, team })
+            singleton.insertMainDB("wf_message", { Target: team.Id, Type: 11, Content: from.Nickname + "通过邀请码成功加入了你的战队", MemberCode: team.MemberCode, Sender: MemberCode, Status: 0, Title: "有人成功加入您的队伍", IsSend: 1 }, { CreateTime: "now()", SendTime: "now()" })
+                //singleton.sendJpushMessage(team.MemberCode, "通过邀请码加入", "", "", { AlertType: config.jpushType_competition, Type: "joinByCode", from, team })
+            res.send({ Status: 0, Explain: "", TeamId: team.Id })
+        } else {
+            res.send({ Status: 500, Explain: result })
+        }
+    }));
+    /**使用邀请码加入战队 */
+    router.post('/JoinTeamByCode/:Id/:Code', ctt, wrap(async({ memberCode: MemberCode, params: { Id, Code } }, res) => {
+        let team = await singleton.selectMainDB0("wf_competition_team", { Id, Code })
+        if (singleton.isEMPTY(team) || team.Status == 2) return res.send({ Status: -1, Explain: "邀请码不正确" })
+        let result = await CanJoin(MemberCode, team, true)
+        if (result != 0) return res.send(result)
+        team.MemberCount++;
+        result = await singleton.transaction2(t => {
+            singleton.insertMainDB("wf_competition_team_member", { TeamId: team.Id, MemberCode, Level: 2, Type: 2, Status: 1 }, { CreateTime: "now()" }, t)
+            singleton.updateMainDB("wf_competition_apply", { State: 4 }, null, { MemberCode }, t)
             singleton.updateMainDB("wf_competition_team", { Status: team.MemberCount == 3 ? 1 : 0, MemberCount: team.MemberCount }, null, { Id: team.Id }, t)
         })
         if (result == 0) {
