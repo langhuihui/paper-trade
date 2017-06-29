@@ -427,7 +427,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         switch (type) {
             case "TeamProfit":
                 if (TeamCompetitionIsOpen())
-                    DataList = await mainDB.query("SELECT 1 IsOpen, a.Rank,a.RankValue,b.*,(case when b.Status=0 then '未参赛' when b.Status=1 then '比赛中' end) StatusStr from wf_competition_team_rank a left join wf_competition_team b on b.Id=a.TeamId where a.Type=4 limit 100", { type: "SELECT" })
+                    DataList = await mainDB.query("SELECT 1 IsOpen, a.Rank,a.RankValue,b.*,(case when b.Status=0 then '未参赛' when b.Status=1 then '比赛中' end) StatusStr from wf_competition_team_rank a left join wf_competition_team b on b.Id=a.TeamId where a.Type=4 order by a.Rank limit 100", { type: "SELECT" })
                 else
                     DataList = await mainDB.query("select 0 IsOpen,Id,TeamName,(case when Status=0 then '组队中' when Status=1 then '已满员' end) StatusStr from wf_competition_team where Status<2", { type: "SELECT" })
                 res.send({ Status: 0, Explain: "", DataList, OpenTime, CloseTime })
