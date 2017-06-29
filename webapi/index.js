@@ -43,6 +43,7 @@ async function startMQ() {
     app.use('/v2.5/Game', require('./routes/stockcompetition')(shareData))
     app.use('/v2.5/PaperTrade', require('./routes/paperTrade')(shareData))
     app.use('/v2.5/Statistics', require('./routes/statistics')(shareData))
+    app.use('/v2.7/User', require('./routes/user')(shareData))
     app.use('/h5', require('./routes/h5')(shareData))
     if (Config.test) app.use('/admin', require('./routes/admin')(shareData))
         /**全局错误处理 */
