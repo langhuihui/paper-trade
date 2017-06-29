@@ -75,22 +75,31 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }
 
 
-    async function CanJoin(MemberCode, { Status, Id: TeamId }, ignoreApply) {
+    async function CanJoin(MemberCode, { Status, Id }, ignoreApply) {
         if (Status == 1) return { Status: 45003, Explain: "人数已满" }
         if (TeamCompetitionIsOpen()) return { Status: 45004, Explain: "组队赛已开始" }
-        let you = await singleton.selectMainDB0("wf_competition_team_member", { TeamId, MemberCode })
-        if (!singleton.isEMPTY(you)) return { Status: 45001, Explain: "你已经是该战队成员" }
-        if (ignoreApply) return 0
-        let lastApply = await mainDB.query("select * from wf_competition_apply where MemberCode=:MemberCode order by CreateTime desc", { replacements: { MemberCode }, type: "SELECT" })
-        if (lastApply.length) {
-            // if (new Date() - new Date(lastApply[0].CreateTime) < 10 * 60 * 1000) {
-            //     return { Status: 45002, Explain: "10分钟内不得再次申请" }
-            // } else {
-            let apply = lastApply.find(x => x.TeamId == TeamId)
-            if (apply)
-                return { Status: apply.state, Explain: [, "已申请", "已通过", "已拒绝", "已失效"][apply.state] }
-                // }
+        let { TeamId, Level } = await singleton.selectMainDB0("wf_competition_team_member", { MemberCode, Status: 1 })
+        if (TeamId) {
+            if (TeamId == Id)
+                return { Status: 45001, Explain: "你已经是该战队成员" }
+            else if (Level == 1)
+                return { Status: 45005, Explain: "您已经创建了战队" }
+            else
+                return { Status: 45006, Explain: "您已经属于某个战队" }
         }
+        if (ignoreApply) return 0
+        let [apply] = await singleton.knex("wf_competition_apply").where({ MemberCode, TeamId: Id })
+        if (apply) return { Status: apply.state, Explain: [, "已申请", "已通过", "已拒绝", "已失效"][apply.state] }
+            // let lastApply = await mainDB.query("select * from wf_competition_apply where MemberCode=:MemberCode order by CreateTime desc", { replacements: { MemberCode }, type: "SELECT" })
+            // if (lastApply.length) {
+            //     if (new Date() - new Date(lastApply[0].CreateTime) < 10 * 60 * 1000) {
+            //         return { Status: 45002, Explain: "10分钟内不得再次申请" }
+            //     } else {
+            //         let apply = lastApply.find(x => x.TeamId == Id)
+            //         if (apply)
+            //             return { Status: apply.state, Explain: [, "已申请", "已通过", "已拒绝", "已失效"][apply.state] }
+            //     }
+            // }
         return 0
     }
     const router = express.Router();
@@ -185,7 +194,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         if (!singleton.isEMPTY(team_member)) {
             canJoin = ",0 CanJoin"
         }
-        let result = await mainDB.query(`select * ${canJoin} from wf_competition_team where TeamName like '%${str}%' and Status <>2`, { type: "SELECT" })
+        let result = await mainDB.query(`select * ${canJoin} from wf_competition_team where TeamName like '%${str}%' and Status <2`, { type: "SELECT" })
         if (!canJoin) {
             await Promise.all(
                 result.map(team => CanJoin(memberCode, team).then(result => team.CanJoin = (result == 0 ? 1 : (result.Status == 1 ? 2 : 0))))
@@ -396,7 +405,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     }));
     /**拒绝申请 */
     router.post('/Refuse/:MemberCode', ctt, wrap(async({ memberCode, params: { MemberCode } }, res) => {
-        let team = await singleton.selectMainDB0("wf_competition_team", { MemberCode: memberCode }, "Status<>2")
+        let team = await singleton.selectMainDB0("wf_competition_team", { MemberCode: memberCode }, "Status<2")
         if (singleton.isEMPTY(team)) {
             return res.send({ Status: -1, Explain: "你没有创建战队" })
         }
@@ -428,7 +437,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 if (TeamCompetitionIsOpen())
                     DataList = await mainDB.query("SELECT 1 IsOpen, a.Rank,a.RankValue,b.*,(case when b.Status=0 then '未参赛' when b.Status=1 then '比赛中' end) StatusStr from wf_competition_team_rank a left join wf_competition_team b on b.Id=a.TeamId where a.Type=4 limit 100", { type: "SELECT" })
                 else
-                    DataList = await mainDB.query("select 0 IsOpen, TeamName,(case when Status=0 then '组队中' when Status=1 then '已满员' end) StatusStr from wf_competition_team where Status<2", { type: "SELECT" })
+                    DataList = await mainDB.query("select 0 IsOpen,Id,TeamName,(case when Status=0 then '组队中' when Status=1 then '已满员' end) StatusStr from wf_competition_team where Status<2", { type: "SELECT" })
                 res.send({ Status: 0, Explain: "", DataList, OpenTime, CloseTime })
                 break
             case "TotalProfit": //炒股大赛总排行
@@ -458,7 +467,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     /**赛事消息 */
     router.get('/Events/:page', ctt, wrap(async({ memberCode, params: { page } }, res) => {
         let pagesize = 20
-        let result = await mainDB.query("select *,CONCAT(:picBaseURL,'/api/h5/Article/',Id) ContentURL from wf_competition_affiche order by Id desc limit :start,:pagesize", { replacements: { start: Number(page) * pagesize, pagesize, picBaseURL: config.picBaseURL }, type: "SELECT" })
+        let result = await mainDB.query("select *,CONCAT(:picBaseURL,'/api/h5/Article/',Id) ContentURL from wf_competition_affiche where State=9 order by Id desc limit :start,:pagesize", { replacements: { start: Number(page) * pagesize, pagesize, picBaseURL: config.picBaseURL }, type: "SELECT" })
         res.send({ Status: 0, DataList: result, Explain: "" })
     }));
     /**事件详情 */
