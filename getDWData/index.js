@@ -12,12 +12,13 @@ var mdbData = new Map()
 const ranka = "wf_ussecurities_rank_a"
 const rankb = "wf_ussecurities_rank_b"
 var mqChannel = null
-
+var ignoreMarket = true
 
 function startGetData() {
     setTimeout(async() => {
         let marketIsOpen = await singleton.marketIsOpen2()
-        if (marketIsOpen.us) {
+        if (marketIsOpen.us || ignoreMarket) {
+            ignoreMarket = false
             console.log(new Date() + "--------getDataTimeout1=" + getDataTimeout1 + "---------------")
             console.log(new Date() + "--------getDWData1 begin---------------")
             await writetoredis()
@@ -37,7 +38,8 @@ function startGetData() {
 function startGetData1() {
     setTimeout(async() => {
         let marketIsOpen = await singleton.marketIsOpen2()
-        if (marketIsOpen.us) {
+        if (marketIsOpen.us || ignoreMarket) {
+            ignoreMarket = false
             console.log(new Date() + "--------getDataTimeout2=" + getDataTimeout2 + "---------------")
             console.log(new Date() + "--------getDWData2 begin---------------")
             await writetoredis2()
