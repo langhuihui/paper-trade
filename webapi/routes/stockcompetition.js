@@ -38,7 +38,6 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         if (TeamCompetitionRange) {
             return TeamCompetitionRange
         }
-        let addDay = CompetitionIsOpen() ? 0 : 7
 
         function checkPoint() {
             return CompetitionIsOpen() ? new Date() : new Date(Competition.StartTime)
@@ -59,13 +58,13 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
             now.setSeconds(0)
             result[1] = now
         } else {
-            now.setDate(now.getDate() - weekDay + 1 + addDay)
+            now.setDate(now.getDate() - weekDay + 1)
             now.setHours(21)
             now.setMinutes(30)
             now.setSeconds(0)
             result[0] = now
             now = checkPoint()
-            now.setDate(now.getDate() - weekDay + 6 + addDay)
+            now.setDate(now.getDate() - weekDay + 6)
             now.setHours(4)
             now.setMinutes(0)
             now.setSeconds(0)
@@ -119,15 +118,18 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 res.send({ Status: 0, Explain: "", result: { Rank: 0, OpenDate: opendate } })
         } else res.send({ Status: 0, Explain: "", result: { Rank: -1, OpenDate: opendate } }) //默认配置
     }))
-    router.get('/ClearAll', (req, res) => {
-        mainDB.query("CALL WF_CLEAR_COMPETITION()")
-        res.end()
-    });
-    router.get('/ClearAll2', (req, res) => {
-        mainDB.query("truncate table wf_stockcompetitionmember")
-        mainDB.query("CALL WF_CLEAR_COMPETITION()")
-        res.end()
-    })
+    if (config.test) {
+        router.get('/ClearAll', (req, res) => {
+            mainDB.query("CALL WF_CLEAR_COMPETITION()")
+            res.end()
+        });
+        router.get('/ClearAll2', (req, res) => {
+            mainDB.query("truncate table wf_stockcompetitionmember")
+            mainDB.query("CALL WF_CLEAR_COMPETITION()")
+            res.end()
+        })
+    }
+
     router.get('/UpdateCompetition', async(req, res) => {
         await updateCompetition()
 
