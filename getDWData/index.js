@@ -6,7 +6,6 @@ import { dwUrls } from '../common/driveWealth'
 import amqp from 'amqplib'
 const { mainDB, redisClient } = singleton
 var getDataTimeout1 = 10000
-var getDataTimeout2 = 15000
 var calculateTimeout = 10000
 var mdbData = new Map()
 const ranka = "wf_ussecurities_rank_a"
@@ -17,17 +16,16 @@ var ignoreMarket2 = true
 
 function startGetData() {
     setTimeout(async() => {
-        let marketIsOpen = await singleton.marketIsOpen2()
-        if (marketIsOpen.us || ignoreMarket) {
+        if (await singleton.marketIsOpen2('us') || ignoreMarket) {
             ignoreMarket = false
-            console.log(new Date() + "--------getDataTimeout1=" + getDataTimeout1 + "---------------")
-            console.log(new Date() + "--------getDWData1 begin---------------")
+                //console.log(new Date() + "--------getDataTimeout1=" + getDataTimeout1 + "---------------")
+                //console.log(new Date() + "--------getDWData1 begin---------------")
             await writetoredis()
             mqChannel.sendToQueue("calcuateUSStockData", new Buffer(JSON.stringify({ cmd: "getData" })))
-            console.log(new Date() + "--------getDWData1 end---------------")
+                //console.log(new Date() + "--------getDWData1 end---------------")
         } else {
-            console.log(new Date() + "--------getDataTimeout1=" + getDataTimeout1 + "---------------")
-            console.log(new Date() + "--------US STOCK NOT OPEN---------------")
+            //console.log(new Date() + "--------getDataTimeout1=" + getDataTimeout1 + "---------------")
+            //console.log(new Date() + "--------US STOCK NOT OPEN---------------")
             getDataTimeout1 = 10000
         }
         startGetData()
@@ -35,39 +33,17 @@ function startGetData() {
 
 }
 
-
-function startGetData1() {
-    setTimeout(async() => {
-        let marketIsOpen = await singleton.marketIsOpen2()
-        if (marketIsOpen.us || ignoreMarket) {
-            ignoreMarket = false
-            console.log(new Date() + "--------getDataTimeout2=" + getDataTimeout2 + "---------------")
-            console.log(new Date() + "--------getDWData2 begin---------------")
-            await writetoredis2()
-            mqChannel.sendToQueue("calcuateUSStockData", new Buffer(JSON.stringify({ cmd: "getData" })))
-            console.log(new Date() + "--------getDWData2 end---------------")
-        } else {
-            console.log(new Date() + "--------getDataTimeout2=" + getDataTimeout2 + "---------------")
-            console.log(new Date() + "--------US STOCK NOT OPEN---------------")
-            getDataTimeout2 = 15000
-        }
-        startGetData1()
-    }, getDataTimeout2);
-
-}
-
 function startcalculateData() {
     setTimeout(async() => {
-        let marketIsOpen = await singleton.marketIsOpen2()
-        if (marketIsOpen.us || ignoreMarket2) {
+        if (await singleton.marketIsOpen2('us') || ignoreMarket2) {
             ignoreMarket2 = false
-            console.log(new Date() + "--------calculateTimeout=" + calculateTimeout + "---------------")
-            console.log(new Date() + "--------calculateData begin---------------")
+                //console.log(new Date() + "--------calculateTimeout=" + calculateTimeout + "---------------")
+                //console.log(new Date() + "--------calculateData begin---------------")
             await calculateData()
-            console.log(new Date() + "--------calculateData end---------------")
+                //console.log(new Date() + "--------calculateData end---------------")
         } else {
-            console.log(new Date() + "--------calculateTimeout=" + calculateTimeout + "---------------")
-            console.log(new Date() + "--------US STOCK NOT OPEN---------------")
+            //console.log(new Date() + "--------calculateTimeout=" + calculateTimeout + "---------------")
+            //console.log(new Date() + "--------US STOCK NOT OPEN---------------")
             calculateTimeout = 10000
         }
         startcalculateData()
@@ -88,7 +64,6 @@ function startcalculateData() {
     }
     if (Config.getDWData) {
         startGetData()
-            //startGetData1()
     }
 })()
 
@@ -135,9 +110,6 @@ async function calculateData() {
     }
 }
 
-
-
-
 /**获取查询股票的代码sina */
 function getQueryName({ QueryUrlCode, SecuritiesNo }) {
     return SecuritiesNo.toUpperCase().replace(".", "$")
@@ -175,25 +147,6 @@ async function writetoredis() {
     let end = new Date()
     console.timeEnd('get dwdata cost time: ');
     getDataTimeout1 = 2000
-    getDataTimeout2 = 2000
-}
-
-/**
- * 将嘉维最新股票数据写入Redis
- */
-async function writetoredis2() {
-    let start = new Date()
-    console.time('get dwdata cost time: ');
-
-    let result = await getDWLastPrice2()
-    result.map(({ symbol, lastTrade }) => {
-        if (symbol != "" && symbol != undefined && lastTrade != "" && lastTrade != undefined) redisClient.hmset("newestUSPriceB", symbol, lastTrade)
-    })
-    await redisClient.setAsync("currentNewestUSPriceKey", "newestUSPriceB");
-    let end = new Date()
-    console.timeEnd('get dwdata cost time: ');
-    getDataTimeout1 = 2000
-    getDataTimeout2 = 2000
 }
 
 /**
@@ -231,41 +184,7 @@ async function getSessionKey() {
     }
     return sessionKey
 }
-/**
- * 从嘉维获取sessionkey
- */
-async function getSessionKey2() {
-    let sessionKey = await redisClient.getAsync("sessionForGetDWDataB")
-    if (!sessionKey) {
-        try {
-            ({ sessionKey } = await request({
-                uri: dwUrls.createSession,
-                //uri: "http://api.drivewealth.io/v1/userSessions",
-                method: "POST",
-                body: {
-                    "appTypeID": "2000",
-                    "appVersion": "0.1",
-                    "username": "36522170",
-                    //"username": "12695763282",
-                    "emailAddress": "36522170@wolfstreet.tv",
-                    //"emailAddress": "12695763@wolfstreet.tv",
-                    "ipAddress": "1.1.1.1",
-                    "languageID": "zh_CN",
-                    "osVersion": "iOS 9.1",
-                    "osType": "iOS",
-                    "scrRes": "1920x1080",
-                    "password": "p36522170"
-                        //"password": "p12695763"
-                },
-                json: true
-            }))
-            await redisClient.setAsync("sessionForGetDWDataB", sessionKey);
-        } catch (ex) {
-            return getSessionKey2()
-        }
-    }
-    return sessionKey
-}
+
 /**
  * 从嘉维获取最新股票价格
  */
@@ -293,35 +212,3 @@ async function getDWLastPrice() {
     }
     return result
 }
-
-/**
- * 从嘉维获取最新股票价格
- */
-async function getDWLastPrice2() {
-    let sessionKey = await getSessionKey2()
-    let result = {}
-    try {
-        result = await request({
-            headers: { 'x-mysolomeo-session-key': sessionKey },
-            method: "GET",
-            //encoding: null,
-            uri: "http://api.drivewealth.net/v1/instruments", //所有股票
-            //uri: "http://api.drivewealth.net/v1/instruments?symbols=" + postdata,//单个股票
-            json: true,
-            timeout: 10000
-        })
-    } catch (ex) {
-        console.log(ex)
-        if (ex.statusCode == 401) {
-            await redisClient.delAsync("sessionForGetDWDataB");
-            return getDWLastPrice2()
-        } else {
-            return getDWLastPrice2()
-        }
-    }
-    return result
-}
-
-
-//startGetData1()
-//startcalculateData()
