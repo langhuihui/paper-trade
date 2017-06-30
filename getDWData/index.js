@@ -199,7 +199,7 @@ async function getDWLastPrice() {
             uri: "http://api.drivewealth.net/v1/instruments", //所有股票
             //uri: "http://api.drivewealth.net/v1/instruments?symbols=" + postdata,//单个股票
             json: true,
-            timeout: 2000
+            timeout: 5000
         })
     } catch (ex) {
         console.log(ex)
