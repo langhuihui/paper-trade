@@ -32,6 +32,5 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
 
         }
     }));
-    router.post()
     return router;
 }
