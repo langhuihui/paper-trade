@@ -13,6 +13,7 @@ const ranka = "wf_ussecurities_rank_a"
 const rankb = "wf_ussecurities_rank_b"
 var mqChannel = null
 var ignoreMarket = true
+var ignoreMarket2 = true
 
 function startGetData() {
     setTimeout(async() => {
@@ -58,7 +59,8 @@ function startGetData1() {
 function startcalculateData() {
     setTimeout(async() => {
         let marketIsOpen = await singleton.marketIsOpen2()
-        if (marketIsOpen.us) {
+        if (marketIsOpen.us || ignoreMarket2) {
+            ignoreMarket2 = false
             console.log(new Date() + "--------calculateTimeout=" + calculateTimeout + "---------------")
             console.log(new Date() + "--------calculateData begin---------------")
             await calculateData()
