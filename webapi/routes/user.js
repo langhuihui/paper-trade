@@ -5,6 +5,7 @@ import uuid from 'node-uuid'
 const OpenIDField = { qq: "QQOpenID", weixin: "WeixinOpenID", weibo: "WeiboOpenID", alipay: "AlipayOpenID" }
 module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mqChannel, redisClient, rongcloud, wrap }) {
     const router = express.Router();
+    /**第三方登录 */
     router.post('/LoginThirdParty', wrap(async({ body }, res) => {
         let { LoginType, OpenID, Nickname, ImageFormat, HeadImage, JpushRegID } = body
         let field = OpenIDField[LoginType]
@@ -29,8 +30,14 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
             mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "changeJpush", data: { MemberCode: user.MemberCode, JpushRegID } })))
             res.send({ Explain: "", RongCloudToken, ...user, ...result, IsAnchor: user.Remark3 == 1, IsAuthor: user.Remark2 == 1, IsBindQQ: user.QQOpenID != null, IsBindWeixin: user.WeixinOpenID != null, IsBindWeibo: user.WeiboOpenID != null, IsBindAlipay: user.AlipayOpenID != null })
         } else {
-
+            //未创建账户
+            return res.send({ Status: -1, Explain: "没有账户" })
         }
+    }));
+    /**绑定手机号码 */
+    router.post('/BindMobile', wrap(async({ body }, res) => {
+        let { CountryCode, Mobile, VerifyCode, LoginPwd } = body
+
     }));
     return router;
 }

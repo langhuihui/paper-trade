@@ -18,24 +18,12 @@ class Competition extends EveryDay {
             this.currentCompetition = result[0]
         })
     }
-    async resetAllAccount() {
-        console.log("执行批量重置嘉维模拟账号")
-        let users = await singleton.selectMainDB("wf_stockcompetitionmember", { CompetitionId: this.currentCompetition.Id })
-        users.forEach(user => singleton.CreateParactice(user.MemberCode, ""))
-    }
+
     checkAndRun(now) {
         this.checkTodayIsDone(now)
         if (this.todayIsDone) return false
         if (this.currentCompetition) {
-            if (this.currentCompetition.StartTime.split(" ")[0] == now.format("yyyy-MM-dd")) {
-                //开赛当天重置所有账号
-                if (now > new Date(this.currentCompetition.StartTime)) {
-                    this.resetAllAccount()
-                    this.lastRun = now
-                    this.todayIsDone = true
-                    return true
-                }
-            } else if (now < new Date(this.currentCompetition.StartTime)) {
+            if (now < new Date(this.currentCompetition.StartTime)) {
                 //比赛前不做任何处理
                 return false
             }
