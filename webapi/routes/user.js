@@ -5,6 +5,10 @@ import uuid from 'node-uuid'
 const OpenIDField = { qq: "QQOpenID", weixin: "WeixinOpenID", weibo: "WeiboOpenID", alipay: "AlipayOpenID" }
 module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mqChannel, redisClient, rongcloud, wrap }) {
     const router = express.Router();
+
+    function CreateNewUser() {
+
+    }
     /**第三方登录 */
     router.post('/LoginThirdParty', wrap(async({ body }, res) => {
         let { LoginType, OpenID, Nickname, ImageFormat, HeadImage, JpushRegID } = body
