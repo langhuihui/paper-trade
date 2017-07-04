@@ -21,6 +21,21 @@ let config = {
             return next();
         }
     },
+    // mysqlconn: "mysql://program_admin:!P%402%23dh%254%5e5Y%26g*4@rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com:3306/wolfstreet",
+    // mysqlConfig: {
+    //     host: "rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com",
+    //     port: "3306",
+    //     user: "program_admin",
+    //     password: "!P@2#dh%4^5Y&g*4",
+    //     database: "wolfstreet",
+    //     typeCast(field, next) {
+    //         if (field.type === "BIT" && field.length === 1) {
+    //             var bit = field.string();
+    //             return (bit === null) ? null : (bit.charCodeAt(0) === 1);
+    //         }
+    //         return next();
+    //     }
+    // },
     amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@testmq.wolfstreet.tv:10001/test",
     redisConfig: { host: "testapi.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC", db: 1 },
     mongodbconn: "mongodb://wftest:%23W%40f!1189747acd@106.14.155.223:22222/wolfstreet_test",

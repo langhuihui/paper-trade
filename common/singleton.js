@@ -120,8 +120,9 @@ let o = {
         }
     },
     async sendJpushMessage(MemberCode, ...args) {
-        let { JpushRegID } = await this.selectMainDB0("wf_im_jpush", { MemberCode })
-        if (JpushRegID) {
+        let [result] = await this.knex("wf_im_jpush").select("JpushRegID").where({ MemberCode }).orderBy("JpushLastLoginTime", "desc").limit(1)
+        if (result) {
+            let { JpushRegID } = result
             this.jpushClient.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(JpushRegID))
                 .setOptions(null, null, null, Config.apns_production)
                 .setMessage(...args)
@@ -139,8 +140,9 @@ let o = {
         }
     },
     async sendJpushNotify(MemberCode, title, msg, external) {
-        let { JpushRegID } = await this.selectMainDB0("wf_im_jpush", { MemberCode })
-        if (JpushRegID) {
+        let [result] = await this.knex("wf_im_jpush").select("JpushRegID").where({ MemberCode }).orderBy("JpushLastLoginTime", "desc").limit(1)
+        if (result) {
+            let { JpushRegID } = result
             this.jpushClient.push().setPlatform(JPush.ALL).setAudience(JPush.registration_id(JpushRegID))
                 .setOptions(null, null, null, Config.apns_production)
                 .setNotification(title, JPush.ios(msg, 'sound', 0, false, external), JPush.android(msg, title, 1, external))
@@ -180,7 +182,7 @@ let o = {
             body.IsActivate = false
             body.username = memberCode + randNum
             body.tranAmount = 10000
-            await Promise.all(["account", "asset", "asset_v", "rank", "rank_v"].map(x => this.mainDB.query(`delete from wf_drivewealth_practice_${x} where MemberCode='${memberCode}'`)))
+            await this.mainDB.query("CALL PRC_WF_CLEAR_DW(:memberCode)", { replacements: { memberCode } })
             let result = await this.insertMainDB("wf_drivewealth_practice_account", body, { PracticeId: null, CreateTime: "now()", transAmount: null })
             this.sendJpushMessage(memberCode, '嘉维账号重置', '', '', { AlertType: "jpush111", UserId: body.userId, username: body.username, password: body.password })
             return body

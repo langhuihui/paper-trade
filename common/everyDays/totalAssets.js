@@ -22,7 +22,8 @@ export default new EveryDay("04:30:00", async() => {
             LastDate = moment().day(2).format('YYYY-MM-DD');
             break;
     }
-    while (true) {
+    let whileFlag = true
+    while (whileFlag) {
         let [result] = await mainDB.query('select wf_drivewealth_practice_account.* from wf_drivewealth_practice_account where `MemberCode`  not in (SELECT `MemberCode` from `wf_drivewealth_practice_asset` WHERE EndDate = CurDate())')
         if (!result.length)
             break
@@ -138,6 +139,9 @@ export default new EveryDay("04:30:00", async() => {
 
             } catch (ex) {
                 console.error(new Date(), ex)
+                if (ex.statusCode == 401) {
+                    whileFlag = false
+                }
                 continue;
             }
         }

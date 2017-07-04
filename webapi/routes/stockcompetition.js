@@ -213,7 +213,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     router.get('/MyStatus', ctt, wrap(async({ memberCode }, res) => {
         let result = { Status: 0, IsOpen: CompetitionIsOpen(), OpenTime: Competition.StartTime, CloseTime: Competition.EndTime }
         let stockcompetitionmember = await singleton.selectMainDB0("wf_stockcompetitionmember", { MemberCode: memberCode, CompetitionId: Competition.Id });
-        ([{ TodayProfit: result.Profit, TodayDefeat: result.Defeat, WeekRank: result.WeekRank, TotalRank: result.TotalRank }] = await mainDB.query(`select max(case when type = 1 then RankValue else 0 end) TodayProfit,
+        ([{ TodayProfit: result.Profit, TodayDefeat: result.Defeat, WeekRank: result.WeekRank, TotalRank: result.TotalRank }] = await mainDB.query(`select max(case when type = 1 then RankValue else null end) TodayProfit,
         max(case when type = 1 then Defeat else 0 end) TodayDefeat,
         max(case when type = 3 then Rank else 0 end) WeekRank,
         max(case when type = 11 then Rank else 0 end) TotalRank
