@@ -230,7 +230,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
                 result.Team = await singleton.selectMainDB0("wf_competition_team", { Id: team_member.TeamId })
             }
         }
-        result.Events = await mainDB.query("select *,CONCAT(:picBaseURL,'/api/h5/Article/',Id) ContentURL from wf_competition_affiche where id in (select max(id) from wf_competition_affiche where State=9 group by Type)", { replacements: { picBaseURL: config.picBaseURL }, type: "SELECT" })
+        result.Events = await mainDB.query("select *,CONCAT(:picBaseURL,'/api/h5/Article/',Id,'?version=1') ContentURL from wf_competition_affiche where id in (select max(id) from wf_competition_affiche where State=9 group by Type)", { replacements: { picBaseURL: config.picBaseURL }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", Data: result })
     }));
     /**战队情况 */
@@ -480,6 +480,11 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     router.get('/TeamProfitDaily/:TeamId', allowAccess(), wrap(async({ params: { TeamId } }, res) => {
         let result = await mainDB.query("select AvgYield profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_competition_team_asset where TeamId=:TeamId ", { replacements: { TeamId }, type: "SELECT" })
         res.send({ Status: 0, Explain: "", DataList: result })
+    }))
+    router.get('/BattleReport/:Id', allowAccess(), wrap(async({ params: { Id } }, res) => {
+        let Data = await singleton.selectMainDB0("");
+        Data.TeamProfitDaily = await mainDB.query("select AvgYield profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_competition_team_asset where TeamId=:TeamId ", { replacements: { TeamId: Data.TeamId }, type: "SELECT" })
+        res.send({ Status: 0, Explain: "", Data })
     }))
     return router
 }

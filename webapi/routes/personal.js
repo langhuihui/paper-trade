@@ -98,7 +98,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let [result] = await singleton.knex.select('TotalAmount', 'TodayProfit', 'MtmPL', 'ShowPositionList').from('wf_member as m').innerJoin("wf_drivewealth_practice_asset as a", "m.MemberCode", "a.MemberCode").where("m.MemberCode", MemberCode).orderBy("EndDate", "desc")
         if (result) result.ShowPositionList = result.ShowPositionList ? 1 : 0
         let [{ ordercount }] = await singleton.knex('wf_drivewealth_practice_order').count("* as ordercount").where({ MemberCode })
-        let Data = { TotalAmount: config.practiceInitFun, ShowPositionList: 1, TodayProfit: 0, MtmPL: 0, EveryDayURL: _config.EveryDayURL + MemberCode, Unused: ordercount > 0, ...result }
+        let Data = { TotalAmount: config.practiceInitFun, ShowPositionList: 1, TodayProfit: 0, MtmPL: 0, EveryDayURL: _config.EveryDayURL + MemberCode, Unused: ordercount == 0, ...result }
         res.send({ Status: 0, Explain: "", Data })
     }
     const router = express.Router();

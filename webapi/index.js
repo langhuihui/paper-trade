@@ -33,6 +33,7 @@ async function startMQ() {
     let ok = await channel.assertQueue('priceNotify')
     shareData.mqChannel = channel
     shareData.realDB = await singleton.getRealDB()
+    app.use('/h5', require('./routes/h5')(shareData))
     app.use('/v2.5/Home', require('./routes/homePage')(shareData))
     app.use('/v2.5/Trade', require('./routes/trade')(shareData))
     app.use('/v2.5/Personal', require('./routes/personal')(shareData))
@@ -44,7 +45,6 @@ async function startMQ() {
     app.use('/v2.5/PaperTrade', require('./routes/paperTrade')(shareData))
     app.use('/v2.5/Statistics', require('./routes/statistics')(shareData))
     app.use('/v2.7/User', require('./routes/user')(shareData))
-    app.use('/h5', require('./routes/h5')(shareData))
     if (Config.test) app.use('/admin', require('./routes/admin')(shareData))
         /**全局错误处理 */
     app.use((err, req, res, next) => {

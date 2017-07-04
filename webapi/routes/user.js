@@ -46,7 +46,8 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
     router.post('/LoginThirdParty', wrap(LoginThirdParty));
     /**绑定手机号码——注册账号 */
     router.post('/Register', wrap(async(req, res) => {
-        let [{ P_Result, ...user }] = await mainDB.query("CALL PRC_WF_CREATE_MEMBER(:DataSource,:PhoneBrand,:PhoneModel,:HeadImage,:NickName,:CountryCode, :Mobile, :VerifyCode, :LoginPwd,@P_Result)", { replacements: req.body })
+        let [result] = await mainDB.query("CALL PRC_WF_CREATE_MEMBER(:DataSource,:PhoneBrand,:PhoneModel,:HeadImage,:NickName,:CountryCode, :Mobile, :VerifyCode, :LoginPwd,@P_Result)", { replacements: req.body })
+        let { P_Result, ...user } = result
         if (P_Result == 0) {
             req.user = user
             if (req.body.LoginType) {
