@@ -482,8 +482,16 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         res.send({ Status: 0, Explain: "", DataList: result })
     }))
     router.get('/BattleReport/:Id', allowAccess(), wrap(async({ params: { Id } }, res) => {
-        let Data = await singleton.selectMainDB0("");
-        Data.TeamProfitDaily = await mainDB.query("select AvgYield profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_competition_team_asset where TeamId=:TeamId ", { replacements: { TeamId: Data.TeamId }, type: "SELECT" })
+        let Data = await singleton.selectMainDB0("wf_competition_report", { Id });
+        if (Data.TeamId) {
+            Data.Member = await mainDB.query("select a.*,m.NickName,asset.WeekYield,concat(:picBaseURL,case when isnull(m.HeadImage) or m.HeadImage='' then :defaultHeadImage else m.HeadImage end)HeadImage from wf_competition_team_member a left join wf_member m on a.MemberCode=m.MemberCode left join wf_drivewealth_practice_asset_v asset on a.MemberCode=asset.MemberCode and asset.EndDate = curdate() where a.TeamId=:TeamId order by asset.WeekYield desc", { type: "SELECT", replacements: { TeamId: Data.TeamId, picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage } })
+            Data.TeamProfitDaily = await mainDB.query("select AvgYield profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_competition_team_asset where TeamId=:TeamId ", { replacements: { TeamId: Data.TeamId }, type: "SELECT" })
+        }
+        if (Data.HeadImage) {
+            Data.HeadImage = config.picBaseURL + Data.HeadImage
+        } else {
+            Data.HeadImage = config.defaultHeadImage
+        }
         res.send({ Status: 0, Explain: "", Data })
     }))
     return router
