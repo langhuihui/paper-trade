@@ -94,6 +94,19 @@ let o = {
         let [result] = await this.mainDB.query(...sqlStr.delete2(table, value, other, option))
         return result
     },
+    callMainDB(name, ...replacements) {
+        let arg = []
+        for (let i = 0; i < replacements.length;) {
+            if (replacements[i][0] == "@") {
+                arg.push(replacements[i])
+                replacements.splice(i, 1)
+            } else {
+                arg.push('?')
+                i++
+            }
+        }
+        return this.mainDB.query(`CALL ${name}(${arg.join(",")})`, { replacements })
+    },
     isEMPTY(value) {
         return value === EMPTY
     },

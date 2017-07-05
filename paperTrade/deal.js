@@ -54,7 +54,7 @@ export default async({ Id: OrderId, Commission, delta, AccountNo, OrdType, Side,
                     TradAble += OrderQty //修改可交易仓位
                     await singleton.updateMainDB("wf_street_practice_positions", { TradAble }, null, { Id: PositionsId }, t)
                 } else {
-                    await singleton.updateMainDB("wf_street_practice_account", { UsableCash: UsableCash + Amount }, null, { Id }, t)
+                    await singleton.updateMainDB("wf_street_practice_account", { UsableCash: UsableCash + Amount }, null, { AccountNo }, t)
                 }
             })
             return result

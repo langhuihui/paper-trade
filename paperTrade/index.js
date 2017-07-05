@@ -175,22 +175,11 @@ setInterval(async() => {
         let { Id, AccountNo, Amount, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, CommissionRate, CommissionLimit } = order
         //拒绝超时订单
         if (new Date(order.EndTime) < new Date()) {
-            let result = await singleton.transaction(async t => {
-                await singleton.updateMainDB("wf_street_practice_order", { execType: 3, Reason: 3 }, null, { Id }, t)
-                let Type = ((OrdType - 1) / 3 >> 0) + 1 //1，2，3=>1做多；4，5，6=>2做空
-                if (Side == "SB" [Type - 1]) {
-                    let { TradAble, Id: PositionsId } = await singleton.selectMainDB0("wf_street_practice_positions", { AccountNo, Type })
-                    TradAble += OrderQty //修改可交易仓位
-                    await singleton.updateMainDB("wf_street_practice_positions", { TradAble }, null, { Id: PositionsId }, t)
-                } else {
-                    let { Id, UsableCash } = await singleton.selectMainDB0("wf_street_practice_account", { AccountNo })
-                    await singleton.updateMainDB("wf_street_practice_account", { UsableCash: UsableCash + Amount }, null, { Id }, t)
-                }
-            })
-            if (result == 0) {
+            let [{ StatusCode }] = await singleton.callMainDB("PRC_PT_TIMEOUT", "@P_RESULT", Id, AccountNo, ((OrdType - 1) / 3 >> 0) + 1, OrderQty, Amount)
+            if (StatusCode == 0) {
                 orders.delete(Id)
                 sendNotify(order)
-            } else console.error(result)
+            } else console.error("拒绝超时订单错误")
             continue
         }
         if (!Config.ptTest)
@@ -220,14 +209,15 @@ setInterval(async() => {
                 break;
         }
         if (trigge) {
-            let x = Object.assign(Object.assign({ delta }, order), { Commission, Price: price })
-            let result = await deal(x)
-            if (result === 0) {
+            //let x = Object.assign(Object.assign({ delta }, order), { Commission, Price: price })
+            ///let result = await deal(x)
+            let [{ StatusCode }] = await singleton.callMainDB("PRC_PT_DEAL", "@P_RESULT", Id, CommissionRate, CommissionLimit, Commission, price)
+            if (StatusCode === 0) {
                 //处理完毕
                 orders.delete(Id)
                 sendNotify(order)
             } else {
-                console.log(new Date(), result)
+                console.log(new Date(), StatusCode)
             }
         }
     }

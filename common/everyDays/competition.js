@@ -58,12 +58,12 @@ class Competition extends EveryDay {
                     }
                     break;
                 case 6:
-                    if (!marketTime.us) {
-                        this.endCompetition()
-                        this.lastRun = now
-                        this.todayIsDone = true
-                        return true
-                    }
+                    // if (!marketTime.us) {
+                    //     this.endCompetition()
+                    //     this.lastRun = now
+                    //     this.todayIsDone = true
+                    //     return true
+                    // }
             }
         return false
     }
