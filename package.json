@@ -26,6 +26,7 @@
         "express": "^4.13.4",
         "express-graphql": "^0.5.3",
         "express-session": "^1.14.2",
+        "gm": "^1.23.0",
         "graphql": "^0.6.0",
         "iconv-lite": "^0.4.15",
         "jpush-sdk": "^3.3.7",

@@ -38,8 +38,8 @@ let config = {
     // },
     amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@testmq.wolfstreet.tv:10001/test",
     redisConfig: { host: "testapi.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC", db: 1 },
-    //mongodbconn: "mongodb://wftest:%23W%40f!1189747acd@106.14.155.223:22222/wolfstreet_test",
-    mongodbconn: "mongodb://wftest:%23W%40f!1189747acd@118.178.88.67:22222/wolfstreet_test",
+    mongodbconn: "mongodb://wftest:%23W%40f!1189747acd@106.14.155.223:22222/wolfstreet_test",
+    //mongodbconn: "mongodb://wftest:%23W%40f!1189747acd@118.178.88.67:22222/wolfstreet_test",
     // redisConfig: { host: "api.wolfstreet.tv", port: 7788, password: "`1qaz2wsx3EDC" },
     // amqpConn: "amqp://dexter:Wolfstreet%2A%2306%23@mq.wolfstreet.tv:10001",
     // mysqlconn: "mysql://program_admin:!P%402%23dh%254%5e5Y%26g*4@rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com:3306/wolfstreet",
@@ -65,6 +65,7 @@ let config = {
         appsHost: "https://apps.drivewealth.com",
         reportsHost: "https://reports.drivewealth.net"
     },
+    uploadFilePath: "/",
     practiceInitFun: 10000, //模拟交易起始资金
     randmax: 1, //每日增长系数
     getDWData: true, //是否获取嘉维数据

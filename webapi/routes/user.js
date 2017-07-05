@@ -2,6 +2,7 @@ import sqlstr from '../../common/sqlStr'
 import singleton from '../../common/singleton'
 import _config from '../config'
 import uuid from 'node-uuid'
+import gm from 'gm'
 const OpenIDField = { qq: "QQOpenID", weixin: "WeixinOpenID", weibo: "WeiboOpenID", alipay: "AlipayOpenID" }
 module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mqChannel, redisClient, rongcloud, wrap }) {
     const router = express.Router();
@@ -21,8 +22,8 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
                         else resolve(JSON.parse(resultText))
                     })
                 });
-                let [result] = await mainDB.query(`CALL PRC_WF_LOGIN(:MemberCode,:JpushRegID,:JpushIMEI,:JpushDeviceID,:JpushVersion,:JpushPlatform,:ClientVersion,@P_RESULT,@P_TOKEN)`, { replacements: body })
-                mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "changeJpush", data: { MemberCode: user.MemberCode, JpushRegID } })))
+                let [result] = await mainDB.query(`CALL PRC_WF_LOGIN(:MemberCode,:JpushRegID,:JpushIMEI,:JpushDeviceID,:JpushVersion,:JpushPlatform,:ClientVersion,@P_RESULT,@P_TOKEN)`, { replacements: { JpushIMEI: null, JpushDeviceID: null, ClientVersion: null, ...body } })
+                mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "changeJpush", data: { MemberCode: user.MemberCode, JpushRegID: body.JpushRegID } })))
                 res.send({ Explain: "", RongCloudToken, ...user, ...result, IsAnchor: user.Remark3 == 1, IsAuthor: user.Remark2 == 1, IsBindQQ: user.QQOpenID != null, IsBindWeixin: user.WeixinOpenID != null, IsBindWeibo: user.WeiboOpenID != null, IsBindAlipay: user.AlipayOpenID != null })
             }
         } else {
@@ -37,7 +38,7 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
             return res.send({ Status: 40009, Explain: "没有该登录类型" })
         }
         if (!user) {
-            user = await mainDB.query(`select a.*,(SELECT b.Rank FROM wf_member_rank b where b.UpperValue>=a.RankValue LIMIT 1) as Rank from wf_member a where ${field} ='${OpenID}'`, { type: "SELECT" })
+            ([user] = await mainDB.query(`select a.*,(SELECT b.Rank FROM wf_member_rank b where b.UpperValue>=a.RankValue LIMIT 1) as Rank from wf_member a where ${field} ='${OpenID}'`, { type: "SELECT" }))
         }
         _Login({ body, user }, res)
     }
@@ -52,10 +53,15 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
     router.post('/LoginThirdParty', wrap(LoginThirdParty));
     /**绑定手机号码——注册账号 */
     router.post('/Register', wrap(async(req, res) => {
-        let [result] = await mainDB.query("CALL PRC_WF_CREATE_MEMBER(:DataSource,:PhoneBrand,:PhoneModel,:HeadImage,:NickName,:CountryCode, :Mobile, :VerifyCode, :LoginPwd,@P_Result)", { replacements: req.body })
+
+        let [result] = await mainDB.query("CALL PRC_WF_CREATE_MEMBER(:DataSource,:PhoneBrand,:PhoneModel,:ImageFormat,:NickName,:CountryCode, :Mobile, :VerifyCode, :LoginPwd,@P_Result)", { replacements: req.body })
         let { P_Result, ...user } = result
         if (P_Result == 0) {
             req.user = user
+            if (req.body.HeadImage) {
+                let buffer = new Buffer(req.body.HeadImage, "base64")
+                gm(buffer, 'head.' + req.body.ImageFormat).write(config.uploadFilePath + user.HeadImage)
+            }
             if (req.body.LoginType) {
                 Login(req, res)
             } else {
