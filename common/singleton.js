@@ -97,7 +97,7 @@ let o = {
     callMainDB(name, ...replacements) {
         let arg = []
         for (let i = 0; i < replacements.length;) {
-            if (replacements[i][0] == "@") {
+            if (typeof replacements[i] == "string" && replacements[i][0] == "@") {
                 arg.push(replacements[i])
                 replacements.splice(i, 1)
             } else {

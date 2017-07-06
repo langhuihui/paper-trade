@@ -54,24 +54,51 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
     /**绑定手机号码——注册账号 */
     router.post('/Register', wrap(async(req, res) => {
 
-        let [result] = await mainDB.query("CALL PRC_WF_CREATE_MEMBER(:DataSource,:PhoneBrand,:PhoneModel,:ImageFormat,:NickName,:CountryCode, :Mobile, :VerifyCode, :LoginPwd,@P_Result)", { replacements: req.body })
+        let [result] = await mainDB.query("CALL PRC_WF_CREATE_MEMBER(:DataSource,:PhoneBrand,:PhoneModel,:ImageFormat,:Nickname,:CountryCode, :Mobile, :VerifyCode, :LoginPwd,@P_Result)", { replacements: req.body })
         let { P_Result, ...user } = result
-        if (P_Result == 0) {
-            req.user = user
-            if (req.body.HeadImage) {
-                let buffer = new Buffer(req.body.HeadImage, "base64")
-                gm(buffer, 'head.' + req.body.ImageFormat).write(config.uploadFilePath + user.HeadImage)
-            }
-            if (req.body.LoginType) {
-                Login(req, res)
-            } else {
-                let field = OpenIDField[req.body.LoginType]
-                await singleton.updateMainDB("wf_member", {
-                    [field]: req.body.OpenID
-                }, null, { MemberCode: user.MemberCode })
-                LoginThirdParty(req, res)
-            }
+        switch (P_Result) {
+            case 0:
+                req.user = user
+                if (req.body.HeadImage) {
+                    let buffer = new Buffer(req.body.HeadImage, "base64")
+                    gm(buffer, 'head.' + req.body.ImageFormat).write(config.uploadFilePath + user.HeadImage)
+                }
+                if (!req.body.LoginType) {
+                    Login(req, res)
+                } else {
+                    let field = OpenIDField[req.body.LoginType]
+                    await singleton.updateMainDB("wf_member", {
+                        [field]: req.body.OpenID
+                    }, null, { MemberCode: user.MemberCode })
+                    LoginThirdParty(req, res)
+                }
+                break
+            case 1:
+                req.user = user
+                if (!user.HeadImage) {
+                    if (req.body.HeadImage) {
+                        let buffer = new Buffer(req.body.HeadImage, "base64")
+                        user.HeadImage = "/images/head/" + user.MemberCode + "." + req.body.ImageFormat
+                        gm(buffer, 'head.' + req.body.ImageFormat).write(config.uploadFilePath + user.HeadImage)
+                    } else {
+                        user.HeadImage = config.defaultHeadImage
+                    }
+                }
+                if (!req.body.LoginType)
+                    res.send({ Status: 1 })
+                else {
+                    let field = OpenIDField[req.body.LoginType]
+                    await singleton.updateMainDB("wf_member", {
+                        [field]: req.body.OpenID,
+                        HeadImage: user.HeadImage
+                    }, null, { MemberCode: user.MemberCode })
+                    LoginThirdParty(req, res)
+                }
+                break;
+            default:
+                res.send({ Status: P_Result })
         }
+
     }));
     return router;
 }

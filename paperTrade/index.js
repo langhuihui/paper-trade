@@ -169,9 +169,9 @@ async function sendNotify(order) {
         })
 }
 setInterval(async() => {
-
     let marketIsOpen = Config.ptTest ? null : await singleton.marketIsOpen()
     for (let order of orders.values()) {
+
         let { Id, AccountNo, Amount, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, CommissionRate, CommissionLimit } = order
         //拒绝超时订单
         if (new Date(order.EndTime) < new Date()) {
