@@ -14,5 +14,20 @@ module.exports = function({ mainDB, ctt, express, config, wrap }) {
         else
             res.render('articleAndroid');
     });
+    router.get('/BattleReport/:Id', wrap(async({ params: { Id }, headers }, res) => {
+        Id = Number(Id)
+        let Data = await singleton.selectMainDB0("wf_competition_report", { Id });
+        if (Data.TeamId) {
+            Data.Member = await mainDB.query("select NickName,WeekYield,concat(:picBaseURL,case when isnull(HeadImage) or HeadImage='' then :defaultHeadImage else HeadImage end)HeadImage from wf_competition_report where TeamId=:TeamId and Period=:Period order by WeekYield desc", { type: "SELECT", replacements: { TeamId: Data.TeamId, Period: Data.Period, picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage } })
+            Data.TeamProfitDaily = await mainDB.query("select AvgYield profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_competition_team_asset where TeamId=:TeamId ", { replacements: { TeamId: Data.TeamId }, type: "SELECT" })
+        }
+        if (Data.HeadImage) {
+            Data.HeadImage = config.picBaseURL + Data.HeadImage
+        } else {
+            Data.HeadImage = config.defaultHeadImage
+        }
+        res.locals = Data
+        res.render('battleReport');
+    }))
     return router
 }

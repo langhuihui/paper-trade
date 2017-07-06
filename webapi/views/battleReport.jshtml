@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Access-Control-Allow-Origin" content="*">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="white">
+    <meta name="apple-touch-fullscreen" content="yes">
+    <meta http-equiv="expires" content="0">
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
+    <title>每周战报</title>
+    <link type="text/css" rel="stylesheet" href="../style/idangerous.swiper.css">
+    <link type="text/css" rel="stylesheet" href="../style/loading.css" />
+    <link type="text/css" rel="stylesheet" href="../style/dynamic.css" />
+    <script type="text/javascript">
+        //微信去掉下方刷新栏
+        if (navigator.userAgent.indexOf('MicroMessenger') >= 0) {
+            document.addEventListener('WeixinJSBridgeReady', function() {
+                WeixinJSBridge.call('hideToolbar');
+            });
+        }
+    </script>
+
+    <style>
+        * {
+            font-family: "microsoft yahei", Arial, Helvetica, sans-serif;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            text-shadow: none;
+            backface-visibility: visible;
+            -webkit-backface-visibility: visible;
+            /* Chrome 和 Safari */
+            -moz-backface-visibility: visible;
+            /* Firefox */
+            -ms-backface-visibility: visible;
+        }
+        
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            font-size: 18px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        
+        .cx {
+            font-size: 14px;
+        }
+        
+        .cd {
+            font-size: 18px;
+        }
+        
+        @@media (min-width: 400px) {
+            html, body {
+                width: 100%;
+                height: 100%;
+                font-size: 22px;
+                margin: 0 auto;
+                overflow: hidden;
+            }
+            .cx {
+                font-size: 16px;
+            }
+            .cd {
+                font-size: 22px;
+            }
+        }
+        
+        a {
+            text-decoration: none;
+        }
+        
+        body {
+            -webkit-user-select: none !important;
+            -moz-user-select: none;
+            /* Firefox all */
+            -ms-user-select: none;
+            /* IE 10+ */
+            /* No support for these yet, use at own risk */
+            -o-user-select: none;
+            user-select: none;
+        }
+        
+        .swiper-container {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            -webkit-perspective: 1200px;
+            -moz-perspective: 1200px;
+            -ms-perspective: 1200px;
+            perspective: 1200px;
+        }
+        
+        .swiper-wrapper,
+        .swiper-slide {
+            width: 100% !important;
+            height: 100% !important;
+            -webkit-transform-style: preserve-3d;
+            -moz-transform-style: preserve-3d;
+            -ms-transform-style: preserve-3d;
+            transform-style: preserve-3d;
+        }
+        
+        .swiper-slide {
+            position: relative;
+        }
+        
+        .gray {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            background-position: center 50%;
+            overflow: hidden;
+        }
+        
+        .gray0 {
+            background: #fff;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            z-index: 999999999;
+        }
+        
+        .gray1 {
+            background-image: url(../image/bg1.jpg);
+        }
+        
+        .gray2 {
+            background-image: url(../image/bg2.jpg);
+        }
+        
+        .gray3 {
+            background-image: url(../image/bg3.jpg);
+        }
+        
+        .gray4 {
+            background-image: url(../image/bg4.jpg);
+        }
+        
+        .gray5 {
+            background-image: url(../image/bg5.jpg);
+        }
+        
+        .gray6 {
+            background-image: url(../image/bg6.jpg);
+        }
+        
+        .gray7 {
+            background-image: url(../image/bg1.jpg);
+        }
+        
+        .setImg {
+            position: absolute;
+            width: 100%;
+            height: auto !important;
+            opacity: 0;
+            top: 0;
+        }
+        
+        .player-tip {
+            float: left;
+            color: #7ED9EE;
+            font-size: 11px;
+            line-height: 24px;
+            margin-right: 5px;
+        }
+        
+        .audio {
+            position: fixed;
+            z-index: 5;
+            right: 10px;
+            opacity: 1;
+            top: 20px;
+        }
+        
+        .player-button {
+            display: block;
+            float: left;
+            width: 32px;
+            height: 32px;
+            background: url(image/music.png) top center no-repeat;
+            background-size: cover;
+            cursor: pointer;
+        }
+        
+        .music {
+            background: url(image/music_center.png) center center no-repeat;
+            position: absolute;
+            left: 0px;
+            top: 0px;
+            width: 32px;
+            height: 32px;
+            z-index: 100;
+            background-size: 100%;
+        }
+        
+        .playst {
+            background: url(image/play-start.png) top center no-repeat;
+            background-size: auto 100%;
+        }
+        
+        .upBg {
+            position: fixed;
+            left: 50%;
+            margin-left: -0.4em;
+            bottom: 10px;
+            z-index: 3;
+        }
+        /*底部箭头跳动*/
+        
+        .goUpDown {
+            width: 1em !important;
+            z-index: 1;
+            animation: fadeInUp infinite 1.5s ease-in-out;
+            -webkit-animation: fadeInUp infinite 1.5s ease-in-out;
+        }
+        /*播放按钮*/
+        
+        .play-div span {
+            position: absolute;
+            left: -60px;
+            top: 10px;
+            text-shadow: 1px 1px 1px #000;
+            letter-spacing: 2px;
+            opacity: 0;
+            -webkit-transition: all .2s linear;
+            -webkit-transform: translateX(-20px)
+        }
+        
+        .play-div span.z-show {
+            opacity: 0;
+            -webkit-transform: translateX(0px);
+            -webkit-animation: txtHidden 1s linear;
+        }
+        
+        .gray_div,
+        .gray_text {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center top;
+        }
+        
+        .gray_div {
+            z-index: 9
+        }
+        
+        .gray_text {
+            z-index: 10;
+        }
+        /*初始定位*/
+        
+        .c {
+            color: #FFFFFF;
+        }
+        
+        .c1 {
+            color: #fec703;
+        }
+        
+        .c2 {
+            color: #ed4388;
+        }
+        
+        .c3 {
+            color: #4ef3c0;
+        }
+        
+        .main1_1 {
+            width: 100%;
+            height: auto;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .main1_1 img {
+            width: 100%;
+        }
+        
+        .main1_2 {
+            width: 100%;
+            height: auto;
+            position: absolute;
+            bottom: 10%;
+            left: 0;
+        }
+        
+        .main1_2 img {
+            width: 100%;
+        }
+        
+        .tx {
+            position: absolute;
+            top: 11.7%;
+            left: 27.5%;
+            overflow: hidden;
+        }
+        
+        .tx img {
+            width: 100%;
+        }
+        
+        .name {
+            width: 100%;
+            height: 12%;
+            text-align: center;
+            position: absolute;
+            left: 0;
+            bottom: 7%;
+        }
+        
+        .main2_1 {
+            width: 100%;
+            height: auto;
+            position: absolute;
+            text-align: center;
+            left: 0;
+            top: 16.5%;
+        }
+        
+        .main2_2 {
+            width: 100%;
+            height: auto;
+            position: absolute;
+            text-align: center;
+            left: 0;
+            top: 25%;
+        }
+        
+        .main2_3 {
+            width: 47.4%;
+            height: auto;
+            text-align: center;
+            position: absolute;
+            left: 42.6%;
+            top: 34.5%;
+        }
+        
+        .main2_4 {
+            width: 65%;
+            height: auto;
+            position: absolute;
+            left: 17.5%;
+            top: 48%;
+        }
+        
+        .main2_5 {
+            width: 47.4%;
+            height: auto;
+            text-align: center;
+            position: absolute;
+            left: 42.6%;
+            top: 61.5%;
+        }
+        
+        .main2_6 {
+            width: 65%;
+            height: auto;
+            position: absolute;
+            left: 17.5%;
+            top: 75.5%;
+        }
+        
+        .main3_1 {
+            width: 100%;
+            height: auto;
+            position: absolute;
+            top: 30%;
+            left: 0;
+        }
+        
+        .main3_1 img {
+            width: 100%;
+        }
+        
+        .main3_2 {
+            width: 100%;
+            height: auto;
+            position: absolute;
+            top: 30%;
+            left: 0;
+        }
+        
+        .main3_2 img {
+            width: 100%;
+        }
+        
+        .main3_3 {
+            width: 72%;
+            height: auto;
+            position: absolute;
+            top: 66%;
+            left: 20%;
+            font-size: 14px;
+            text-align: left;
+            opacity: 0.5;
+        }
+        
+        .main3_3 span {
+            float: right;
+        }
+        
+        .main4_1 {
+            width: 22%;
+            text-align: center;
+            height: auto;
+            position: absolute;
+            left: 16%;
+            top: 29.5%;
+        }
+        
+        .main4_2 {
+            width: 44%;
+            text-align: center;
+            height: auto;
+            position: absolute;
+            left: 42%;
+            top: 28%;
+        }
+        
+        .main4_3 {
+            width: 22%;
+            text-align: center;
+            height: auto;
+            position: absolute;
+            left: 17%;
+            top: 71.5%;
+        }
+        
+        .main4_4 {
+            width: 44%;
+            text-align: center;
+            height: auto;
+            position: absolute;
+            left: 42%;
+            top: 70%;
+        }
+        
+        .main5_1 {
+            width: 100%;
+            height: auto;
+            position: absolute;
+            text-align: center;
+            left: 0;
+            top: 15.5%;
+        }
+        
+        .main5_2 {
+            width: 45%;
+            height: auto;
+            position: absolute;
+            text-align: center;
+            left: 41%;
+            top: 30%;
+        }
+        
+        .main5_3 {
+            width: 45%;
+            height: auto;
+            position: absolute;
+            text-align: center;
+            left: 41%;
+            top: 49%;
+        }
+        
+        .main5_4 {
+            width: 45%;
+            height: auto;
+            position: absolute;
+            text-align: center;
+            left: 41%;
+            top: 69%;
+        }
+        
+        .main6_1 {
+            width: 100%;
+            height: auto;
+            position: absolute;
+            text-align: center;
+            left: 0;
+            top: 16%;
+        }
+        
+        .main6_2 {
+            width: 31%;
+            height: auto;
+            position: absolute;
+            text-align: center;
+            left: 15.5%;
+            top: 28%
+        }
+        
+        .main6_3 {
+            width: 31%;
+            height: auto;
+            position: absolute;
+            text-align: center;
+            left: 55%;
+            top: 28%
+        }
+        
+        .main6_4 {
+            width: 90%;
+            height: auto;
+            position: absolute;
+            top: 56%;
+            left: 5%;
+        }
+        
+        .main6_4 img {
+            width: 100%;
+        }
+        
+        .main6_5 {
+            width: 90%;
+            height: auto;
+            position: absolute;
+            top: 56%;
+            left: 5%;
+        }
+        
+        .main6_5 img {
+            width: 100%;
+        }
+        
+        .main6_6 {
+            width: 64%;
+            height: auto;
+            position: absolute;
+            top: 88%;
+            left: 23%;
+            font-size: 14px;
+            text-align: left;
+        }
+        
+        .main6_6 span {
+            float: right;
+        }
+        
+        .main7 {
+            width: 100%;
+            height: auto;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        
+        .main7 img {
+            width: 100%;
+        }
+        
+        .main7_1 {
+            position: absolute;
+            top: 16.2%;
+            left: 32.2%;
+            overflow: hidden;
+        }
+        
+        .main7_2 {
+            width: 100%;
+            text-align: center;
+            position: absolute;
+            left: 0;
+            top: 46.5%;
+        }
+        
+        .main7_3 {
+            width: 84%;
+            position: absolute;
+            left: 8%;
+            top: 58%;
+            font-size: 16px;
+        }
+        
+        .main7_4 {
+            width: 84%;
+            position: absolute;
+            left: 8%;
+            top: 71%;
+            font-size: 16px;
+        }
+        
+        .main7_5 {
+            width: 84%;
+            position: absolute;
+            left: 8%;
+            top: 84.3%;
+            font-size: 16px;
+        }
+        
+        .l {
+            float: left;
+        }
+        
+        .r {
+            float: right;
+        }
+        
+        .mc {
+            width: 10%;
+            text-align: center;
+        }
+        
+        .txx {
+            width: 12.5%;
+            overflow: hidden;
+        }
+        
+        .mc_name {
+            width: 37%;
+            margin-left: 3%;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            -o-text-overflow: ellipsis;
+            overflow: hidden;
+            -moz-binding: url('ellipsis.xml#ellipsis');
+        }
+        
+        .top {
+            width: 8%;
+            position: absolute;
+            left: 9%;
+            top: -20%;
+        }
+        /*执行需要 .swiper-slide-visible 当前页*/
+        
+        .swiper-slide-visible .tx {
+            -webkit-animation: flipInX 1.2s 0.7s ease both;
+        }
+        
+        .swiper-slide-visible .name {
+            -webkit-animation: flipInX 1.2s 0.7s ease both;
+        }
+        /*.swiper-slide-visible .main2_2{-webkit-animation:fadeIn 1.2s 0.7s ease both;}
+.swiper-slide-visible .main2_3{-webkit-animation:fadeInRight 1.2s 1.5s ease both;}
+.swiper-slide-visible .main2_4{-webkit-animation:fadeInLeft 1.2s 1.5s ease both;}
+.swiper-slide-visible .main2_5{-webkit-animation:fadeInRight 1.2s 1.5s ease both;}
+.swiper-slide-visible .main2_6{-webkit-animation:fadeInLeft 1.2s 1.5s ease both;}*/
+        
+        .swiper-slide-visible .main3_2 {
+            -webkit-animation: fadeInUp 1.2s 0.7s ease both;
+        }
+        
+        .swiper-slide-visible .main4_1 {
+            -webkit-animation: fadeIn 1.2s 0.7s ease both;
+        }
+        
+        .swiper-slide-visible .main4_2 {
+            -webkit-animation: fadeInRight 1.2s 0.7s ease both;
+        }
+        
+        .swiper-slide-visible .main4_3 {
+            -webkit-animation: fadeIn 1.2s 0.7s ease both;
+        }
+        
+        .swiper-slide-visible .main4_4 {
+            -webkit-animation: fadeInRight 1.2s 0.7s ease both;
+        }
+        /*.swiper-slide-visible .main5_2{-webkit-animation:fadeIn 1.2s 0.7s ease both;}
+.swiper-slide-visible .main5_3{-webkit-animation:fadeIn 1.2s 0.7s ease both;}
+.swiper-slide-visible .main5_4{-webkit-animation:fadeIn 1.2s 0.7s ease both;}*/
+        
+        .swiper-slide-visible .main6_2 {
+            -webkit-animation: fadeIn 1.2s 0.7s ease both;
+        }
+        
+        .swiper-slide-visible .main6_3 {
+            -webkit-animation: fadeIn 1.2s 0.7s ease both;
+        }
+        
+        .swiper-slide-visible .main6_5 {
+            -webkit-animation: fadeInUp 1.2s 1.5s ease both;
+        }
+        
+        .swiper-slide-visible .main7_1 {
+            -webkit-animation: fadeIn 1.2s 0.7s ease both;
+        }
+        
+        .swiper-slide-visible .main7_2 {
+            -webkit-animation: fadeIn 1.2s 0.7s ease both;
+        }
+        
+        .swiper-slide-visible .main7_3 {
+            -webkit-animation: fadeIn 1.2s 0.7s ease both;
+        }
+        
+        .swiper-slide-visible .main7_4 {
+            -webkit-animation: fadeIn 1.2s 0.7s ease both;
+        }
+        
+        .swiper-slide-visible .main7_5 {
+            -webkit-animation: fadeIn 1.2s 0.7s ease both;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div id="westarsloading">
+        <!-- loading -->
+        <div id="mainld">
+            <div class="spinner">
+                <div class="spinner-container container1">
+                    <div class="circle1"></div>
+                    <div class="circle2"></div>
+                    <div class="circle3"></div>
+                    <div class="circle4"></div>
+                </div>
+                <div class="spinner-container container2">
+                    <div class="circle1"></div>
+                    <div class="circle2"></div>
+                    <div class="circle3"></div>
+                    <div class="circle4"></div>
+                </div>
+                <div class="spinner-container container3">
+                    <div class="circle1"></div>
+                    <div class="circle2"></div>
+                    <div class="circle3"></div>
+                    <div class="circle4"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- main -->
+    <div class="swiper-container" id="swiper-container">
+        <div class="swiper-wrapper" id="scene">
+            <div class="swiper-slide">
+                <div class="gray gray1">
+                    <div class="main1_1"><img src="@('../image/main1_1_'+locals.Period+'.jpg')" /></div>
+                    <div class="main1_2">
+                        <img src="../image/main1_2.jpg" />
+                        <div class="tx"><img src="@locals.HeadImage" title="HeadImage" /></div>
+                        <div class="name c">@locals.Nickname</div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="swiper-slide">
+                <div class="gray gray2">
+                    <div class="main2_1 c">@locals.DefeatTitle</div>
+                    <div class="main2_2 c">击败沃夫街<span class="c1"><span id="Defeat">@locals.Defeat</span>%</span>的选手</div>
+                    <div class="main2_3 c cx">美股资产总额<br><span class="c2 cd">$<span id="myTargetElement">@locals.RankValue</span></span>
+                    </div>
+                    <div class="main2_4 c cx">@locals.DefeatTitle</div>
+                    <div class="main2_5 c cx">本周交易次数<br><span class="c1 cd"><span id="myTargetElement1">@locals.DealCnt</span>次</span>
+                    </div>
+                    <div class="main2_6 c cx">@locals.DealTitle</div>
+                </div>
+            </div>
+
+            <div class="swiper-slide">
+                <div class="gray gray3">
+                    <div class="main3_1"><img src="../image/qxtbg.png" /></div>
+                    <div class="main3_2"><img src="../image/qxtqg.png" /></div>
+                    <div class="main3_3 c">7/3<span>7/7</div>
+		</div>
+    </div>
+    
+    
+    <div class="swiper-slide">
+		<div class="gray gray4">
+             <div class="main4_1 c2"><span>@locals.MaxYield</span>%</div>
+                    <div class="main4_2 c cx"><span class="c1" id="MaxSecuritiesName">@locals.MaxSecuritiesName</span><br>股票代码：<span id="MaxSecuritiesNo">@locals.MaxSecuritiesNo</span></div>
+                    <div class="main4_3 c3"><span>@locals.MinYield</span>%</div>
+                    <div class="main4_4 c cx"><span class="c1" id="MinSecuritiesName">@locals.MinSecuritiesName</span><br>股票代码：<span id="MinSecuritiesNo">@locals.MinSecuritiesNo</span></div>
+                </div>
+            </div>
+            <div class="swiper-slide">
+                <div class="gray gray5">
+                    <div class="main5_1 c">这周你的发布</div>
+                    <div class="main5_2 c">被评论<br><span class="c1"><span id="myTargetElement2" title="CommentCnt">@locals.CommentCnt</span>次</span>
+                    </div>
+                    <div class="main5_3 c">被点赞<br><span class="c3"><span id="myTargetElement3" title="LikeCnt">@locals.LikeCnt</span>次</span>
+                    </div>
+                    <div class="main5_4 c">关注度<br><span class="c2">+<span id="myTargetElement4" title="ConcernCnt">@locals.ConcernCnt</span>次</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="swiper-slide">
+                <div class="gray gray6">
+                    <div class="main6_1 c">@locals.TeamName</div>
+                    <div class="main6_2 c">战队收益率<br><span class="c2">@(locals.TeamYield+'%')</span></div>
+                    <div class="main6_3 c">本周排名<br><span class="c1">@('Top'+locals.TeamRank)</span></div>
+                    <div class="main6_4"><img src="../image/qxtbg.png" /></div>
+                    <div class="main6_5"><img src="../image/qxtqg.png" /></div>
+                    <div class="main6_6 c">7/3<span>7/7</div>
+		</div>
+    </div>
+    
+    <div class="swiper-slide">
+		<div class="gray gray7">
+            <div class="main7">
+            	<img src="../image/bg7.jpg" />
+                <div class="main7_1"><img src="@locals.Member[0].HeadImage" /></div>
+                <div class="main7_2 c">@locals.Member[0].NickName</div>
+                <div class="main7_3 c">
+                	<div class="mc l c1">1</div>
+                    <div class="txx l"><div class="top"><img src="../image/top.png" /></div><img src="@locals.Member[0].HeadImage" /></div>
+                    <div class="mc_name l">@locals.Member[0].NickName</div>
+                    <div class="syl">收益率：@(locals.Member[0].WeekYield)%</div>
+                </div>
+                <div class="main7_4 c">
+                	<div class="mc l">2</div>
+                    <div class="txx l"><img src="@locals.Member[1].HeadImage" /></div>
+                    <div class="mc_name l">@locals.Member[1].NickName</div>
+                    <div class="syl">收益率：@(locals.Member[1].WeekYield)%</div>
+                </div>
+                <div class="main7_5 c">
+                	<div class="mc l">3</div>
+                    <div class="txx l"><img src="@locals.Member[2].HeadImage" /></div>
+                    <div class="mc_name l">@locals.Member[2].NickName</div>
+                    <div class="syl">收益率：@(locals.Member[2].WeekYield)%</div>
+                </div>
+                
+            </div>
+		</div>
+    </div>
+
+       
+        
+  </div>
+</div>
+
+<div class="upBg"> <img class="goUpDown" src="../image/up.png"/> </div>
+
+
+<script type="text/javascript" src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+<script src="../js/jquery-2.1.1.min.js"></script> 
+<script type="text/javascript" src="../js/countUp.min.js"></script>
+<script src="../js/idangerous.swiper.min.js"></script>
+<script src="../js/idangerous.swiper.progress.min.js"></script> 
+
+<script src="../js/index.js"></script>
+<script src="../js/calculator.js"></script>
+
+
+<script>
+var w=document.documentElement.clientWidth;
+var h=document.documentElement.clientHeight;
+var l=(w*0.45)+"px";
+var l1=(w*0.225)+"px";
+var l2=(w*0.349)+"px";
+var l3=(w*0.1745)+"px";
+$(".tx").css({"width":l});
+$(".tx").css({"height":l});
+$(".tx").css({"border-radius":l1});
+$(".main7_1").css({"width":l2});
+$(".main7_1").css({"height":l2});
+$(".main7_1").css({"border-radius":l3});
+var txxw=$(".txx").width();
+var txxw1=(txxw/2)+"px";
+$(".txx").css({"height":txxw});
+$(".txx").css({"border-radius":txxw1});
+$(".mc").css({"line-height":txxw+"px"});
+$(".mc_name").css({"line-height":txxw+"px"});
+$(".mc_name").css({"height":txxw+"px"});
+$(".syl").css({"line-height":txxw+"px"});
+</script>
+
+
+</body>
+</html>

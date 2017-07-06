@@ -53,15 +53,16 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
     router.post('/LoginThirdParty', wrap(LoginThirdParty));
     /**绑定手机号码——注册账号 */
     router.post('/Register', wrap(async(req, res) => {
-
-        let [result] = await mainDB.query("CALL PRC_WF_CREATE_MEMBER(:DataSource,:PhoneBrand,:PhoneModel,:ImageFormat,:Nickname,:CountryCode, :Mobile, :VerifyCode, :LoginPwd,@P_Result)", { replacements: req.body })
-        let { P_Result, ...user } = result
-        switch (P_Result) {
+        let [result] = await mainDB.query("CALL PRC_WF_CREATE_MEMBER(:DataSource,:PhoneBrand,:PhoneModel,:ImageFormat,:Nickname,:CountryCode, :Mobile, :VerifyCode, :LoginPwd,@P_RESULT)", { replacements: req.body })
+        let { P_RESULT, ...user } = result
+        switch (P_RESULT) {
             case 0:
                 req.user = user
                 if (req.body.HeadImage) {
                     let buffer = new Buffer(req.body.HeadImage, "base64")
-                    gm(buffer, 'head.' + req.body.ImageFormat).write(config.uploadFilePath + user.HeadImage)
+                    gm(buffer, 'head.' + req.body.ImageFormat).write(config.uploadFilePath + user.HeadImage, function(...arg) {
+                        console.log(arg)
+                    })
                 }
                 if (!req.body.LoginType) {
                     Login(req, res)
@@ -79,7 +80,9 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
                     if (req.body.HeadImage) {
                         let buffer = new Buffer(req.body.HeadImage, "base64")
                         user.HeadImage = "/images/head/" + user.MemberCode + "." + req.body.ImageFormat
-                        gm(buffer, 'head.' + req.body.ImageFormat).write(config.uploadFilePath + user.HeadImage)
+                        gm(buffer, 'head.' + req.body.ImageFormat).write(config.uploadFilePath + user.HeadImage, function(...arg) {
+                            console.log(arg)
+                        })
                     } else {
                         user.HeadImage = config.defaultHeadImage
                     }
@@ -96,7 +99,7 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
                 }
                 break;
             default:
-                res.send({ Status: P_Result })
+                res.send({ Status: P_RESULT })
         }
 
     }));
