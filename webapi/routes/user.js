@@ -2,7 +2,8 @@ import sqlstr from '../../common/sqlStr'
 import singleton from '../../common/singleton'
 import _config from '../config'
 import uuid from 'node-uuid'
-import gm from 'gm'
+import fs from 'fs'
+//const gm = require('gm').subClass({ imageMagick: true })
 const OpenIDField = { qq: "QQOpenID", weixin: "WeixinOpenID", weibo: "WeiboOpenID", alipay: "AlipayOpenID" }
 module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mqChannel, redisClient, rongcloud, wrap }) {
     const router = express.Router();
@@ -60,9 +61,12 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
                 req.user = user
                 if (req.body.HeadImage) {
                     let buffer = new Buffer(req.body.HeadImage, "base64")
-                    gm(buffer, 'head.' + req.body.ImageFormat).write(config.uploadFilePath + user.HeadImage, function(...arg) {
+                    fs.writeFile(config.uploadFilePath + user.HeadImage, buffer, function(...arg) {
                         console.log(arg)
-                    })
+                    });
+                    // gm(buffer, 'head.' + req.body.ImageFormat).write(config.uploadFilePath + user.HeadImage, function(...arg) {
+                    //     console.log(arg)
+                    // })
                 }
                 if (!req.body.LoginType) {
                     Login(req, res)
@@ -80,9 +84,9 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
                     if (req.body.HeadImage) {
                         let buffer = new Buffer(req.body.HeadImage, "base64")
                         user.HeadImage = "/images/head/" + user.MemberCode + "." + req.body.ImageFormat
-                        gm(buffer, 'head.' + req.body.ImageFormat).write(config.uploadFilePath + user.HeadImage, function(...arg) {
+                        fs.writeFile(config.uploadFilePath + user.HeadImage, buffer, function(...arg) {
                             console.log(arg)
-                        })
+                        });
                     } else {
                         user.HeadImage = config.defaultHeadImage
                     }
