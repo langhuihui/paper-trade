@@ -10,7 +10,7 @@ const { mainDB, redisClient } = singleton
 export default new EveryDay("04:30:00", async() => {
     let weekDay = moment().day();
     let LastDate = moment().day(weekDay < 2 ? -5 : 2).format('YYYY-MM-DD');
-    let whileFlag = true
+    let round = 0
 
     async function createAsset({ UserId, MemberCode, username, password, emailAddress1 }) {
         try {
@@ -101,16 +101,14 @@ export default new EveryDay("04:30:00", async() => {
 
         } catch (ex) {
             console.error(new Date(), ex)
-                // if (ex.statusCode == 401) {
-                //     whileFlag = false
-                // }
         }
     }
-    while (whileFlag) {
+    while (round < 10) {
         let [result] = await mainDB.query('select wf_drivewealth_practice_account.* from wf_drivewealth_practice_account where `MemberCode`  not in (SELECT `MemberCode` from `wf_drivewealth_practice_asset` WHERE EndDate = CurDate())')
         if (!result.length)
             break
         await Promise.all(result.map(data => createAsset(data)))
+        round++
     }
 
     //活动期间将真数据插入wf_drivewealth_practice_asset_v

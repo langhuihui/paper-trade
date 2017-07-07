@@ -467,7 +467,12 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     /**事件详情 */
     router.get('/EventDetail/:Id', ctt, wrap(async({ memberCode, params: { Id } }, res) => {
         let result = await singleton.selectMainDB0("wf_competition_affiche", { Id })
-        result.ContentURL = config.picBaseURL + '/api/h5/Article/' + Id
+        if (result.Type == 2) {
+            let { Id: reportId } = await singleton.selectMainDB0("wf_competition_report", { MemberCode: memberCode, Period: Number(result.Content) })
+            result.ContentURL = config.shareHostURL + '/nodeh5/BattleReport/' + reportId
+        } else {
+            result.ContentURL = config.picBaseURL + '/api/h5/Article/' + Id
+        }
         res.send({ Status: 0, Data: result, Explain: "" })
     }));
     /**收益曲线 */
