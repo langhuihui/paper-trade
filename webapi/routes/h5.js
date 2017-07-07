@@ -1,7 +1,9 @@
 import singleton from '../../common/singleton'
+import Wechat from 'wechat-jssdk'
 const reg_iOS = /\(i[^;]+;( U;)? CPU.+Mac OS X/
 module.exports = function({ mainDB, ctt, express, config, wrap }) {
     const router = express.Router();
+    const wx = new Wechat({ wechatRedirectUrl: "", wechatToken: "", appId: config.jssdk_appId, appSecret: config.jssdk_appSecret });
     router.get('/Article/:Id', async function({ params: { Id }, headers }, res) {
         Id = Number(Id)
         let article = await singleton.selectMainDB0("wf_competition_affiche", { Id })
@@ -30,6 +32,8 @@ module.exports = function({ mainDB, ctt, express, config, wrap }) {
             Data.HeadImage = config.defaultHeadImage
         }
         res.locals = Data
+        let signatureData = await wx.jssdk.getSignature(req.query.url)
+        res.signatureData = signatureData
         res.render('battleReport');
     }))
     return router

@@ -15,6 +15,7 @@
     <link type="text/css" rel="stylesheet" href="../style/idangerous.swiper.css">
     <link type="text/css" rel="stylesheet" href="../style/loading.css" />
     <link type="text/css" rel="stylesheet" href="../style/dynamic.css" />
+    <script src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
     <script type="text/javascript">
         //微信去掉下方刷新栏
         if (navigator.userAgent.indexOf('MicroMessenger') >= 0) {
@@ -22,6 +23,15 @@
                 WeixinJSBridge.call('hideToolbar');
             });
         }
+        alert('@signatureData')
+        wx.config({
+            debug: false,
+            appId: '',
+            timestamp: '',
+            nonceStr: '',
+            signature: '',
+            jsApiList: ['onMenuShareTimeline', 'onMenuShareAppMessage']
+        });
     </script>
     <script src="../js/echarts.min.js"></script>
     <style>

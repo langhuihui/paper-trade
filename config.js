@@ -6,6 +6,8 @@ let config = {
     Rong_Secret: "zpKgSmbS28gUh",
     sina_realjs: "http://hq.sinajs.cn/list=",
     netease_realjs: "http://api.money.126.net/data/feed/",
+    jssdk_appId: "wxa2598b6baa4cc41e",
+    jssdk_appSecret: "e89d6dc75c6a7ea85e39c835da86af14",
     mysqlconn: "mysql://wftest:WfTestonlytest_20170222@rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com:3306/wolfstreet_test",
     mysqlConfig: {
         host: "rm-bp157512ad9bic209o.mysql.rds.aliyuncs.com",
