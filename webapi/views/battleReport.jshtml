@@ -23,7 +23,7 @@
             });
         }
     </script>
-
+    <script src="../js/echarts.min.js"></script>
     <style>
         * {
             font-family: "microsoft yahei", Arial, Helvetica, sans-serif;
@@ -705,6 +705,19 @@
         .swiper-slide-visible .main7_5 {
             -webkit-animation: fadeIn 1.2s 0.7s ease both;
         }
+        
+        #echart1,
+        #echart2 {
+            width: 100%;
+            height: 300px;
+            position: absolute;
+            top: 30%;
+            left: 0;
+        }
+        
+        #echart2 {
+            top: 46.5%;
+        }
     </style>
 
 </head>
@@ -765,16 +778,15 @@
 
             <div class="swiper-slide">
                 <div class="gray gray3">
-                    <div class="main3_1"><img src="../image/qxtbg.png" /></div>
-                    <div class="main3_2"><img src="../image/qxtqg.png" /></div>
-                    <div class="main3_3 c">7/3<span>7/7</div>
-		</div>
-    </div>
-    
-    
-    <div class="swiper-slide">
-		<div class="gray gray4">
-             <div class="main4_1 c2"><span>@locals.MaxYield</span>%</div>
+                    <div id="echart1"></div>
+                    <!--<div class="main3_3 c">7/3<span>7/7</div>-->
+                </div>
+            </div>
+
+
+            <div class="swiper-slide">
+                <div class="gray gray4">
+                    <div class="main4_1 c2"><span>@locals.MaxYield</span>%</div>
                     <div class="main4_2 c cx"><span class="c1" id="MaxSecuritiesName">@locals.MaxSecuritiesName</span><br>股票代码：<span id="MaxSecuritiesNo">@locals.MaxSecuritiesNo</span></div>
                     <div class="main4_3 c3"><span>@locals.MinYield</span>%</div>
                     <div class="main4_4 c cx"><span class="c1" id="MinSecuritiesName">@locals.MinSecuritiesName</span><br>股票代码：<span id="MinSecuritiesNo">@locals.MinSecuritiesNo</span></div>
@@ -791,88 +803,236 @@
                     </div>
                 </div>
             </div>
+            @if(locals.TeamId){
+
 
             <div class="swiper-slide">
                 <div class="gray gray6">
                     <div class="main6_1 c">@locals.TeamName</div>
                     <div class="main6_2 c">战队收益率<br><span class="c2">@(locals.TeamYield+'%')</span></div>
                     <div class="main6_3 c">本周排名<br><span class="c1">@('Top'+locals.TeamRank)</span></div>
-                    <div class="main6_4"><img src="../image/qxtbg.png" /></div>
+                    <div id="echart2"></div>
+                    <!--<div class="main6_4"><img src="../image/qxtbg.png" /></div>
                     <div class="main6_5"><img src="../image/qxtqg.png" /></div>
-                    <div class="main6_6 c">7/3<span>7/7</div>
-		</div>
-    </div>
-    
-    <div class="swiper-slide">
-		<div class="gray gray7">
-            <div class="main7">
-            	<img src="../image/bg7.jpg" />
-                <div class="main7_1"><img src="@locals.Member[0].HeadImage" /></div>
-                <div class="main7_2 c">@locals.Member[0].NickName</div>
-                <div class="main7_3 c">
-                	<div class="mc l c1">1</div>
-                    <div class="txx l"><div class="top"><img src="../image/top.png" /></div><img src="@locals.Member[0].HeadImage" /></div>
-                    <div class="mc_name l">@locals.Member[0].NickName</div>
-                    <div class="syl">收益率：@(locals.Member[0].WeekYield)%</div>
+                    <div class="main6_6 c">7/3<span>7/7</div>-->
                 </div>
-                <div class="main7_4 c">
-                	<div class="mc l">2</div>
-                    <div class="txx l"><img src="@locals.Member[1].HeadImage" /></div>
-                    <div class="mc_name l">@locals.Member[1].NickName</div>
-                    <div class="syl">收益率：@(locals.Member[1].WeekYield)%</div>
-                </div>
-                <div class="main7_5 c">
-                	<div class="mc l">3</div>
-                    <div class="txx l"><img src="@locals.Member[2].HeadImage" /></div>
-                    <div class="mc_name l">@locals.Member[2].NickName</div>
-                    <div class="syl">收益率：@(locals.Member[2].WeekYield)%</div>
-                </div>
-                
             </div>
-		</div>
+
+            <div class="swiper-slide">
+                <div class="gray gray7">
+                    <div class="main7">
+                        <img src="../image/bg7.jpg" />
+                        <div class="main7_1"><img src="@locals.Member[0].HeadImage" /></div>
+                        <div class="main7_2 c">@locals.Member[0].NickName</div>
+                        <div class="main7_3 c">
+                            <div class="mc l c1">1</div>
+                            <div class="txx l">
+                                <div class="top"><img src="../image/top.png" /></div><img src="@locals.Member[0].HeadImage" /></div>
+                            <div class="mc_name l">@locals.Member[0].NickName</div>
+                            <div class="syl">收益率：@(locals.Member[0].WeekYield)%</div>
+                        </div>
+                        <div class="main7_4 c">
+                            <div class="mc l">2</div>
+                            <div class="txx l"><img src="@locals.Member[1].HeadImage" /></div>
+                            <div class="mc_name l">@locals.Member[1].NickName</div>
+                            <div class="syl">收益率：@(locals.Member[1].WeekYield)%</div>
+                        </div>
+                        <div class="main7_5 c">
+                            <div class="mc l">3</div>
+                            <div class="txx l"><img src="@locals.Member[2].HeadImage" /></div>
+                            <div class="mc_name l">@locals.Member[2].NickName</div>
+                            <div class="syl">收益率：@(locals.Member[2].WeekYield)%</div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            }
+
+        </div>
     </div>
 
-       
-        
-  </div>
-</div>
-
-<div class="upBg"> <img class="goUpDown" src="../image/up.png"/> </div>
+    <div class="upBg"> <img class="goUpDown" src="../image/up.png" /> </div>
 
 
-<script type="text/javascript" src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
-<script src="../js/jquery-2.1.1.min.js"></script> 
-<script type="text/javascript" src="../js/countUp.min.js"></script>
-<script src="../js/idangerous.swiper.min.js"></script>
-<script src="../js/idangerous.swiper.progress.min.js"></script> 
+    <script type="text/javascript" src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+    <script src="../js/jquery-2.1.1.min.js"></script>
+    <script type="text/javascript" src="../js/countUp.min.js"></script>
+    <script src="../js/idangerous.swiper.min.js"></script>
+    <script src="../js/idangerous.swiper.progress.min.js"></script>
 
-<script src="../js/index.js"></script>
-<script src="../js/calculator.js"></script>
+    <script src="../js/index.js"></script>
+    <script src="../js/calculator.js"></script>
 
 
-<script>
-var w=document.documentElement.clientWidth;
-var h=document.documentElement.clientHeight;
-var l=(w*0.45)+"px";
-var l1=(w*0.225)+"px";
-var l2=(w*0.349)+"px";
-var l3=(w*0.1745)+"px";
-$(".tx").css({"width":l});
-$(".tx").css({"height":l});
-$(".tx").css({"border-radius":l1});
-$(".main7_1").css({"width":l2});
-$(".main7_1").css({"height":l2});
-$(".main7_1").css({"border-radius":l3});
-var txxw=$(".txx").width();
-var txxw1=(txxw/2)+"px";
-$(".txx").css({"height":txxw});
-$(".txx").css({"border-radius":txxw1});
-$(".mc").css({"line-height":txxw+"px"});
-$(".mc_name").css({"line-height":txxw+"px"});
-$(".mc_name").css({"height":txxw+"px"});
-$(".syl").css({"line-height":txxw+"px"});
-</script>
+    <script>
+        var w = document.documentElement.clientWidth;
+        var h = document.documentElement.clientHeight;
+        var l = (w * 0.45) + "px";
+        var l1 = (w * 0.225) + "px";
+        var l2 = (w * 0.349) + "px";
+        var l3 = (w * 0.1745) + "px";
+        $(".tx").css({
+            "width": l
+        });
+        $(".tx").css({
+            "height": l
+        });
+        $(".tx").css({
+            "border-radius": l1
+        });
+        $(".main7_1").css({
+            "width": l2
+        });
+        $(".main7_1").css({
+            "height": l2
+        });
+        $(".main7_1").css({
+            "border-radius": l3
+        });
+        var txxw = $(".txx").width();
+        var txxw1 = (txxw / 2) + "px";
+        $(".txx").css({
+            "height": txxw
+        });
+        $(".txx").css({
+            "border-radius": txxw1
+        });
+        $(".mc").css({
+            "line-height": txxw + "px"
+        });
+        $(".mc_name").css({
+            "line-height": txxw + "px"
+        });
+        $(".mc_name").css({
+            "height": txxw + "px"
+        });
+        $(".syl").css({
+            "line-height": txxw + "px"
+        });
+        var myChart = echarts.init(document.getElementById('echart1'));
 
+        function drawPic(arrDemo, data2) {
+            var option = {
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        var valueName2 = '收益';
+                        var value2 = params[1].value;
+                        /*if (value1 && value2) {*/
+                        return name + "<br/>" + valueName2 + ":" + value2;
+                        /* }*/
+                    },
+                    backgroundColor: 'rgba(0, 0, 0, 0.3)'
+
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    /*坐标轴两边留白策略*/
+                    data: arrDemo,
+                    axisLine: {
+                        lineStyle: {
+                            color: '#8392A5'
+                        }
+                    },
+                    /*坐标轴轴线*/
+                    splitLine: {
+                        /*坐标轴在grid中的分隔线*/
+                        show: true,
+                        lineStyle: {
+                            color: '#f6f6f6',
+                            type: 'dotted'
+                        }
+                    },
+                    axisLabel: {
+                        show: true,
+                        interval: 0
+                    },
+                    axisTick: {
+                        show: true
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    scale: 'true',
+                    axisTick: {
+                        show: false
+                    },
+                    axisLabel: {
+                        formatter: '{value}%'
+                    },
+                    splitNumber: 2,
+                    axisLine: {
+                        lineStyle: {
+                            color: '#8392A5'
+                        }
+                    },
+                },
+                animation: false,
+                series: [{
+                    /*折线图*/
+                    type: 'line',
+                    smooth: true,
+                    data: data2,
+                    symbol: 'none',
+                    areaStyle: {
+                        normal: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+                                offset: 0,
+                                color: 'rgb(255, 158, 68)'
+                            }, {
+                                offset: 1,
+                                color: 'rgba(255, 255, 255,0)'
+                            }])
+                        }
+                    },
+                    itemStyle: {
+                        normal: {
+                            color: '#FF1F64',
+                            lineStyle: {
+                                color: 'rgba(255, 158, 68,0)'
+                            }
+                        }
+                    }
+                }]
+            };
+
+            var xCenter = parseInt(arrDemo.length / 2);
+            option.xAxis.splitLine.interval = function(index, value) {
+
+                if (value == arrDemo[0] || value == arrDemo[arrDemo.length - 1] || value == arrDemo[xCenter]) {
+                    return true;
+                } else return false;
+            }
+            option.xAxis.axisTick.interval = function(index, value) {
+                if (value == arrDemo[0] || value == arrDemo[arrDemo.length - 1] || value == arrDemo[xCenter]) {
+                    return true;
+                } else return false;
+            }
+            option.xAxis.axisLabel.formatter = function(value, index) {
+                if (value == arrDemo[0] || value == arrDemo[arrDemo.length - 1] || value == arrDemo[xCenter]) {
+                    return value.substring(4, 6) + "/" + value.substring(6, 8);
+                }
+            };
+            //window.onresize = myChart.resize();
+
+            return option
+        }
+        myChart.setOption(drawPic(@(JSON.stringify(locals.ProfitDaily.map(d => d.date))), @(JSON.stringify(locals.ProfitDaily.map(d => d.profit)))));
+        window.onresize = myChart.resize()
+
+
+        //myChart2.setOption(drawPic(@(JSON.stringify(locals.TeamProfitDaily.map(d=>d.date))), @(JSON.stringify(locals.TeamProfitDaily.map(d=>d.profit)))));
+    </script>
+    @if(locals.TeamProfitDaily) {
+    <script>
+        var myChart2 = echarts.init(document.getElementById('echart2'));
+        myChart2.setOption(drawPic(@(JSON.stringify(locals.TeamProfitDaily.map(d => d.date))), @(JSON.stringify(locals.TeamProfitDaily.map(d => d.profit)))));
+    </script>
+    }
 
 </body>
+
 </html>

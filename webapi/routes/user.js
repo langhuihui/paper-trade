@@ -54,6 +54,29 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
     router.post('/LoginThirdParty', wrap(LoginThirdParty));
     /**绑定手机号码——注册账号 */
     router.post('/Register', wrap(async(req, res) => {
+        let field = OpenIDField[req.body.LoginType]
+        if (req.body.LoginType) {
+            let user = await singleton.selectMainDB0("wf_member", {
+                [field]: req.body.OpenID
+            })
+            let { MemberCode, Mobile } = user
+            if (MemberCode) {
+                if (Mobile) {
+                    return res.send({ Status: 1 })
+                }
+                let [{ P_RESULT }] = await mainDB.query("CALL PRC_WF_BIND_MOBILE(:MemberCode,:CountryCode,:Mobile, :VerifyCode, :LoginPwd,@P_RESULT)", { replacements: { MemberCode, ...req.body } })
+                switch (P_RESULT) {
+                    case 0:
+                        user.CountryCode = req.body.CountryCode
+                        user.Mobile = req.body.Mobile
+                        user.LoginPwd = req.body.LoginPwd
+                        req.user = user
+                        return LoginThirdParty(req, res)
+                    default:
+                        return res.send({ Status: P_RESULT })
+                }
+            }
+        }
         let [result] = await mainDB.query("CALL PRC_WF_CREATE_MEMBER(:DataSource,:PhoneBrand,:PhoneModel,:ImageFormat,:Nickname,:CountryCode, :Mobile, :VerifyCode, :LoginPwd,@P_RESULT)", { replacements: req.body })
         let { P_RESULT, ...user } = result
         switch (P_RESULT) {
@@ -94,7 +117,6 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
                 if (!req.body.LoginType)
                     res.send({ Status: 1 })
                 else {
-                    let field = OpenIDField[req.body.LoginType]
                     await singleton.updateMainDB("wf_member", {
                         [field]: req.body.OpenID,
                         HeadImage: user.HeadImage
