@@ -30,7 +30,6 @@ module.exports = function({ mainDB, ctt, express, config, wrap }) {
             Data.HeadImage = config.defaultHeadImage
         }
         res.locals = Data
-        console.log(Data)
         res.render('battleReport');
     }))
     return router

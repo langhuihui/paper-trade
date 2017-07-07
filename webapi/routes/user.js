@@ -72,6 +72,8 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
                         user.LoginPwd = req.body.LoginPwd
                         req.user = user
                         return LoginThirdParty(req, res)
+                    case 40005:
+                        return res.send({ Status: 40005, Explain: "验证码过期" })
                     default:
                         return res.send({ Status: P_RESULT })
                 }
@@ -123,6 +125,9 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
                     }, null, { MemberCode: user.MemberCode })
                     LoginThirdParty(req, res)
                 }
+                break;
+            case 40005:
+                res.send({ Status: 40005, Explain: "验证码过期" })
                 break;
             default:
                 res.send({ Status: P_RESULT })
