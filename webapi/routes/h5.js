@@ -16,7 +16,13 @@ module.exports = function({ mainDB, ctt, express, config, wrap }) {
         else
             res.render('articleAndroid');
     });
-    router.get('/BattleReport/:Id', wrap(async({ params: { Id }, headers }, res) => {
+    router.get('/get-signature', function(req, res) {
+        console.log(req)
+        wx.jssdk.getSignature(req.url).then(function(signatureData) {
+            res.json(signatureDate);
+        });
+    });
+    router.get('/BattleReport/:Id', wrap(async({ url, params: { Id }, headers }, res) => {
         Id = Number(Id)
         let Data = await singleton.selectMainDB0("wf_competition_report", { Id });
         let startDate = new Date(new Date("2017-7-4 00:00:00").setDate(4 + (Data.Period - 1) * 7));
@@ -32,8 +38,10 @@ module.exports = function({ mainDB, ctt, express, config, wrap }) {
             Data.HeadImage = config.defaultHeadImage
         }
         res.locals = Data
-        let signatureData = await wx.jssdk.getSignature(req.query.url)
-        res.signatureData = signatureData
+        let accessToken = wx.jssdk.getAccessToken()
+        wx.jssdk.getJsApiTicket(accessToken)
+
+        res.locals.signatureData = await wx.jssdk.getSignature(url)
         res.render('battleReport');
     }))
     return router

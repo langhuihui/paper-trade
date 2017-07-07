@@ -23,7 +23,7 @@
                 WeixinJSBridge.call('hideToolbar');
             });
         }
-        alert('@signatureData')
+        console.log(@locals.signatureData)
         wx.config({
             debug: false,
             appId: '',
