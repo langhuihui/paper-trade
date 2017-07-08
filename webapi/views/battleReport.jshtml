@@ -1032,9 +1032,6 @@
         }
         myChart.setOption(drawPic(@(JSON.stringify(locals.ProfitDaily.map(d => d.date))), @(JSON.stringify(locals.ProfitDaily.map(d => d.profit)))));
         window.onresize = myChart.resize()
-
-
-        //myChart2.setOption(drawPic(@(JSON.stringify(locals.TeamProfitDaily.map(d=>d.date))), @(JSON.stringify(locals.TeamProfitDaily.map(d=>d.profit)))));
     </script>
     @if(locals.TeamProfitDaily) {
     <script>
