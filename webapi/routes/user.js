@@ -23,7 +23,7 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
                         else resolve(JSON.parse(resultText))
                     })
                 });
-                let [result] = await mainDB.query(`CALL PRC_WF_LOGIN(:MemberCode,:JpushRegID,:JpushIMEI,:JpushDeviceID,:JpushVersion,:JpushPlatform,:ClientVersion)`, { replacements: { JpushIMEI: null, JpushDeviceID: null, ClientVersion: null, ...body } })
+                let [result] = await mainDB.query(`CALL PRC_WF_LOGIN(:MemberCode,:JpushRegID,:JpushIMEI,:JpushDeviceID,:JpushVersion,:JpushPlatform)`, { replacements: { JpushIMEI: null, JpushDeviceID: null, ClientVersion: null, ...body } })
                 mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "changeJpush", data: { MemberCode: user.MemberCode, JpushRegID: body.JpushRegID } })))
                 res.send({ Explain: "", RongCloudToken, ...user, ...result, IsAnchor: user.Remark3 == 1, IsAuthor: user.Remark2 == 1, IsBindQQ: user.QQOpenID != null, IsBindWeixin: user.WeixinOpenID != null, IsBindWeibo: user.WeiboOpenID != null, IsBindAlipay: user.AlipayOpenID != null })
             }
