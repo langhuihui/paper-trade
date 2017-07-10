@@ -83,6 +83,7 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
         let { P_RESULT, ...user } = result
         switch (P_RESULT) {
             case 0:
+                await singleton.CreateParactice(user.MemberCode)
                 req.user = user
                 if (req.body.HeadImage) {
                     let buffer = new Buffer(req.body.HeadImage, "base64")
