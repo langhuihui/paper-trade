@@ -1,9 +1,22 @@
 import singleton from '../../common/singleton'
-import Wechat from 'wechat-jssdk'
+import WechatAPI from 'wechat-api';
 const reg_iOS = /\(i[^;]+;( U;)? CPU.+Mac OS X/
 module.exports = function({ mainDB, ctt, express, config, wrap }) {
     const router = express.Router();
-    const wx = new Wechat({ wechatRedirectUrl: "", wechatToken: "", appId: config.jssdk_appId, appSecret: config.jssdk_appSecret });
+    const wechat = new WechatAPI(config.jssdk_appId, config.jssdk_appSecret);
+    const getWechatJsConfig = function(url) {
+        var param = {
+            debug: false,
+            jsApiList: ['onMenuShareTimeline', 'onMenuShareAppMessage'],
+            url: url
+        };
+        return new Promise(function(resolve, reject) {
+            wechat.getJsConfig(param, function(err, data) {
+                if (err) return reject(err);
+                resolve(data);
+            });
+        })
+    }
     router.get('/Article/:Id', async function({ params: { Id }, headers }, res) {
         Id = Number(Id)
         let article = await singleton.selectMainDB0("wf_competition_affiche", { Id })
@@ -37,18 +50,20 @@ module.exports = function({ mainDB, ctt, express, config, wrap }) {
             Data.Member = await mainDB.query("select NickName,WeekYield,concat(:picBaseURL,case when isnull(HeadImage) or HeadImage='' then :defaultHeadImage else HeadImage end)HeadImage from wf_competition_report where TeamId=:TeamId and Period=:Period order by WeekYield desc", { type: "SELECT", replacements: { TeamId: Data.TeamId, Period: Data.Period, picBaseURL: config.picBaseURL, defaultHeadImage: config.defaultHeadImage } })
             Data.TeamProfitDaily = await mainDB.query("select AvgYield profit,DATE_FORMAT(EndDate,'%Y%m%d') as date from wf_competition_team_asset where TeamId=:TeamId ", { replacements: { TeamId: Data.TeamId }, type: "SELECT" })
         }
+        if (!Data.MinSecuritiesName) Data.MinSecuritiesNo = Data.MinSecuritiesName = "无"
         if (Data.HeadImage) {
             Data.HeadImage = config.picBaseURL + Data.HeadImage
         } else {
             Data.HeadImage = config.defaultHeadImage
         }
         res.locals = Data
-        var fullUrl = protocol + '://' + req.get('host') + originalUrl;
-        let signatureData = await wx.jssdk.getSignature(fullUrl);
+        var fullUrl = config.shareHostURL + originalUrl
+        fullUrl = fullUrl.replace('h5', 'nodeh5')
+        let signatureData = await getWechatJsConfig(fullUrl);
         signatureData.appId = config.jssdk_appId;
         signatureData.title = `第${Data.Period}周战报`;
         signatureData.description = `沃夫界模拟交易大赛${Data.Period}第${Data.Period}周战报`;
-        signatureData.imgUrl = "https://ss1.baidu.com/6ONXsjip0QIZ8tyhnq/it/u=209550616,2032489593&fm=80&w=179&h=119&img.JPEG";
+        signatureData.imgUrl = Data.HeadImage;
         signatureData.link = fullUrl;
         res.locals.signatureData = signatureData;
         res.render('battleReport');
