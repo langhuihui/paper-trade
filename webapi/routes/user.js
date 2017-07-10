@@ -23,7 +23,7 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
                         else resolve(JSON.parse(resultText))
                     })
                 });
-                let [result] = await mainDB.query(`CALL PRC_WF_LOGIN(:MemberCode,:JpushRegID,:JpushIMEI,:JpushDeviceID,:JpushVersion,:JpushPlatform,:ClientVersion,@P_RESULT,@P_TOKEN)`, { replacements: { JpushIMEI: null, JpushDeviceID: null, ClientVersion: null, ...body } })
+                let [result] = await mainDB.query(`CALL PRC_WF_LOGIN(:MemberCode,:JpushRegID,:JpushIMEI,:JpushDeviceID,:JpushVersion,:JpushPlatform,:ClientVersion)`, { replacements: { JpushIMEI: null, JpushDeviceID: null, ClientVersion: null, ...body } })
                 mqChannel.sendToQueue("priceNotify", new Buffer(JSON.stringify({ cmd: "changeJpush", data: { MemberCode: user.MemberCode, JpushRegID: body.JpushRegID } })))
                 res.send({ Explain: "", RongCloudToken, ...user, ...result, IsAnchor: user.Remark3 == 1, IsAuthor: user.Remark2 == 1, IsBindQQ: user.QQOpenID != null, IsBindWeixin: user.WeixinOpenID != null, IsBindWeibo: user.WeiboOpenID != null, IsBindAlipay: user.AlipayOpenID != null })
             }
@@ -64,7 +64,7 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
                 if (Mobile) {
                     return res.send({ Status: 1 })
                 }
-                let [{ P_RESULT }] = await mainDB.query("CALL PRC_WF_BIND_MOBILE(:MemberCode,:CountryCode,:Mobile, :VerifyCode, :LoginPwd,@P_RESULT)", { replacements: { MemberCode, ...req.body } })
+                let [{ P_RESULT }] = await mainDB.query("CALL PRC_WF_BIND_MOBILE(:MemberCode,:CountryCode,:Mobile, :VerifyCode, :LoginPwd)", { replacements: { MemberCode, ...req.body } })
                 switch (P_RESULT) {
                     case 0:
                         user.CountryCode = req.body.CountryCode
@@ -79,10 +79,11 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
                 }
             }
         }
-        let [result] = await mainDB.query("CALL PRC_WF_CREATE_MEMBER(:DataSource,:PhoneBrand,:PhoneModel,:ImageFormat,:Nickname,:CountryCode, :Mobile, :VerifyCode, :LoginPwd,@P_RESULT)", { replacements: req.body })
+        let [result] = await mainDB.query("CALL PRC_WF_CREATE_MEMBER(:DataSource,:PhoneBrand,:PhoneModel,:ImageFormat,:Nickname,:CountryCode, :Mobile, :VerifyCode, :LoginPwd)", { replacements: req.body })
         let { P_RESULT, ...user } = result
         switch (P_RESULT) {
             case 0:
+                await singleton.CreateParactice(user.MemberCode)
                 req.user = user
                 if (req.body.HeadImage) {
                     let buffer = new Buffer(req.body.HeadImage, "base64")

@@ -175,7 +175,7 @@ setInterval(async() => {
         let { Id, AccountNo, Amount, OrdType, Side, OrderQty, Price, SecuritiesType, SecuritiesNo, CommissionRate, CommissionLimit } = order
         //拒绝超时订单
         if (new Date(order.EndTime) < new Date()) {
-            let [{ StatusCode }] = await singleton.callMainDB("PRC_PT_TIMEOUT", "@P_RESULT", Id, AccountNo, ((OrdType - 1) / 3 >> 0) + 1, OrderQty, Amount)
+            let [{ StatusCode }] = await singleton.callMainDB("PRC_PT_TIMEOUT", Id, AccountNo, ((OrdType - 1) / 3 >> 0) + 1, OrderQty, Amount)
             if (StatusCode == 0) {
                 orders.delete(Id)
                 sendNotify(order)
@@ -211,7 +211,7 @@ setInterval(async() => {
         if (trigge) {
             //let x = Object.assign(Object.assign({ delta }, order), { Commission, Price: price })
             ///let result = await deal(x)
-            let [{ StatusCode }] = await singleton.callMainDB("PRC_PT_DEAL", "@P_RESULT", Id, CommissionRate, CommissionLimit, Commission, price)
+            let [{ StatusCode }] = await singleton.callMainDB("PRC_PT_DEAL", Id, CommissionRate, CommissionLimit, Commission, price)
             if (StatusCode === 0) {
                 //处理完毕
                 orders.delete(Id)

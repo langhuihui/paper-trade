@@ -424,6 +424,14 @@
             float: right;
         }
         
+        .main3_x {
+            width: 62%;
+            height: auto;
+            position: absolute;
+            top: 19%;
+            left: 19%;
+        }
+        
         .main4_1 {
             width: 22%;
             text-align: center;
@@ -790,6 +798,7 @@
                 <div class="gray gray3">
                     <div id="echart1"></div>
                     <!--<div class="main3_3 c">7/3<span>7/7</div>-->
+                    <div class="main3_x c cx">@locals.ProfitTitle</div>
                 </div>
             </div>
 
