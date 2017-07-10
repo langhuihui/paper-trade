@@ -22,7 +22,8 @@ module.exports = function({ mainDB, ctt, express, config, wrap }) {
             res.json(signatureDate);
         });
     });
-    router.get('/BattleReport/:Id', wrap(async({ url, params: { Id }, headers }, res) => {
+    router.get('/BattleReport/:Id', wrap(async(req, res) => {
+        let { url, protocol, originalUrl, params: { Id }, headers } = req
         Id = Number(Id)
         let Data = await singleton.selectMainDB0("wf_competition_report", { Id });
         let startDate = new Date(new Date("2017-7-4 00:00:00").setDate(4 + (Data.Period - 1) * 7));
@@ -42,11 +43,14 @@ module.exports = function({ mainDB, ctt, express, config, wrap }) {
             Data.HeadImage = config.defaultHeadImage
         }
         res.locals = Data
-
-        // let accessToken = wx.jssdk.getAccessToken()
-        // wx.jssdk.getJsApiTicket(accessToken)
-
-        // res.locals.signatureData = await wx.jssdk.getSignature(url)
+        var fullUrl = protocol + '://' + req.get('host') + originalUrl;
+        let signatureData = await wx.jssdk.getSignature(fullUrl);
+        signatureData.appId = config.jssdk_appId;
+        signatureData.title = "测试标题";
+        signatureData.description = "测试描述";
+        signatureData.imgUrl = "https://ss1.baidu.com/6ONXsjip0QIZ8tyhnq/it/u=209550616,2032489593&fm=80&w=179&h=119&img.JPEG";
+        signatureData.link = fullUrl;
+        res.locals.signatureData = signatureData;
         res.render('battleReport');
     }))
     return router

@@ -23,14 +23,44 @@
                 WeixinJSBridge.call('hideToolbar');
             });
         }
-        console.log(@locals.signatureData)
+        console.log(@JSON.stringify(locals.signatureData))
         wx.config({
-            debug: false,
-            appId: '',
-            timestamp: '',
-            nonceStr: '',
-            signature: '',
+            debug: true,
+            appId: '@locals.signatureData.appId',
+            timestamp: @locals.signatureData.timestamp,
+            nonceStr: '@locals.signatureData.nonceStr',
+            signature: '@locals.signatureData.signature',
             jsApiList: ['onMenuShareTimeline', 'onMenuShareAppMessage']
+        });
+        wx.ready(function() {
+            wx.onMenuShareAppMessage({
+                title: '@locals.signatureData.title',
+                desc: '@locals.signatureData.description',
+                link: '@locals.signatureData.link',
+                imgUrl: '@locals.signatureData.imgUrl',
+                type: 'link', // 分享类型,music、video或link，不填默认为link
+                dataUrl: '', // 如果type是music或video，则要提供数据链接，默认为空
+                success: function() {
+                    // 用户确认分享后执行的回调函数
+                },
+                cancel: function() {
+                    // 用户取消分享后执行的回调函数
+                }
+            });
+            //分享到朋友圈
+            wx.onMenuShareTimeline({
+                title: '@locals.signatureData.title',
+                desc: '@locals.signatureData.description',
+                link: '@locals.signatureData.link',
+                imgUrl: '@locals.signatureData.imgUrl',
+                success: function() {
+                    // 用户确认分享后执行的回调函数
+                    /*                    alert('分享成功');*/
+                },
+                cancel: function() {
+                    // 用户取消分享后执行的回调函数
+                }
+            });
         });
     </script>
     <script src="../js/echarts.min.js"></script>
@@ -806,70 +836,77 @@
             <div class="swiper-slide">
                 <div class="gray gray4">
                     <div class="main4_1 c2"><span>@locals.MaxYield</span>%</div>
-                    <div class="main4_2 c cx"><span class="c1" id="MaxSecuritiesName">@locals.MaxSecuritiesName</span><br>股票代码：<span id="MaxSecuritiesNo">@locals.MaxSecuritiesNo</span></div>
+                    <div class="main4_2 c cx">
+                        @if(locals.MaxSecuritiesName){
+                        <span class="c1" id="MaxSecuritiesName">@locals.MaxSecuritiesName</span><br>股票代码：<span id="MaxSecuritiesNo">@locals.MaxSecuritiesNo</span> }else{
+                        <span class="c1" id="MaxSecuritiesName">如果不是偷懒<br>那你一定是巴菲特</span> }
+                    </div>
                     <div class="main4_3 c3"><span>@locals.MinYield</span>%</div>
-                    <div class="main4_4 c cx"><span class="c1" id="MinSecuritiesName">@locals.MinSecuritiesName</span><br>股票代码：<span id="MinSecuritiesNo">@locals.MinSecuritiesNo</span></div>
+                    <div class="main4_4 c cx">
+                        @if(locals.MinSecuritiesName){
+                        <span class="c1" id="MinSecuritiesName">@locals.MinSecuritiesName</span><br>股票代码：<span id="MinSecuritiesNo">@locals.MinSecuritiesNo</span></div>}else{
+                    <span class="c1" id="MinSecuritiesName">无</span><br>股票代码：<span id="MinSecuritiesNo">无</span></div>}
+            </div>
+        </div>
+        <div class="swiper-slide">
+            <div class="gray gray5">
+                <div class="main5_1 c">这周你的发布</div>
+                <div class="main5_2 c">被评论<br><span class="c1"><span id="myTargetElement2" title="CommentCnt">@locals.CommentCnt</span>次</span>
+                </div>
+                <div class="main5_3 c">被点赞<br><span class="c3"><span id="myTargetElement3" title="LikeCnt">@locals.LikeCnt</span>次</span>
+                </div>
+                <div class="main5_4 c">关注度<br><span class="c2">+<span id="myTargetElement4" title="ConcernCnt">@locals.ConcernCnt</span>次</span>
                 </div>
             </div>
-            <div class="swiper-slide">
-                <div class="gray gray5">
-                    <div class="main5_1 c">这周你的发布</div>
-                    <div class="main5_2 c">被评论<br><span class="c1"><span id="myTargetElement2" title="CommentCnt">@locals.CommentCnt</span>次</span>
-                    </div>
-                    <div class="main5_3 c">被点赞<br><span class="c3"><span id="myTargetElement3" title="LikeCnt">@locals.LikeCnt</span>次</span>
-                    </div>
-                    <div class="main5_4 c">关注度<br><span class="c2">+<span id="myTargetElement4" title="ConcernCnt">@locals.ConcernCnt</span>次</span>
-                    </div>
-                </div>
-            </div>
-            @if(locals.TeamId){
+        </div>
+        @if(locals.TeamId){
 
 
-            <div class="swiper-slide">
-                <div class="gray gray6">
-                    <div class="main6_1 c">@locals.TeamName</div>
-                    <div class="main6_2 c">战队收益率<br><span class="c2">@(locals.TeamYield+'%')</span></div>
-                    <div class="main6_3 c">本周排名<br><span class="c1">@('Top'+locals.TeamRank)</span></div>
-                    <div id="echart2"></div>
-                    <!--<div class="main6_4"><img src="../image/qxtbg.png" /></div>
+        <div class="swiper-slide">
+            <div class="gray gray6">
+                <div class="main6_1 c">@locals.TeamName</div>
+                <div class="main6_2 c">战队收益率<br><span class="c2">@(locals.TeamYield+'%')</span></div>
+                <div class="main6_3 c">本周排名<br><span class="c1">@('Top'+locals.TeamRank)</span></div>
+                <div id="echart2"></div>
+                <!--<div class="main6_4"><img src="../image/qxtbg.png" /></div>
                     <div class="main6_5"><img src="../image/qxtqg.png" /></div>
                     <div class="main6_6 c">7/3<span>7/7</div>-->
-                </div>
             </div>
-
-            <div class="swiper-slide">
-                <div class="gray gray7">
-                    <div class="main7">
-                        <img src="../image/bg7.jpg" />
-                        <div class="main7_1"><img src="@locals.Member[0].HeadImage" /></div>
-                        <div class="main7_2 c">@locals.Member[0].NickName</div>
-                        <div class="main7_3 c">
-                            <div class="mc l c1">1</div>
-                            <div class="txx l">
-                                <div class="top"><img src="../image/top.png" /></div><img src="@locals.Member[0].HeadImage" /></div>
-                            <div class="mc_name l">@locals.Member[0].NickName</div>
-                            <div class="syl">收益率：@(locals.Member[0].WeekYield)%</div>
-                        </div>
-                        <div class="main7_4 c">
-                            <div class="mc l">2</div>
-                            <div class="txx l"><img src="@locals.Member[1].HeadImage" /></div>
-                            <div class="mc_name l">@locals.Member[1].NickName</div>
-                            <div class="syl">收益率：@(locals.Member[1].WeekYield)%</div>
-                        </div>
-                        <div class="main7_5 c">
-                            <div class="mc l">3</div>
-                            <div class="txx l"><img src="@locals.Member[2].HeadImage" /></div>
-                            <div class="mc_name l">@locals.Member[2].NickName</div>
-                            <div class="syl">收益率：@(locals.Member[2].WeekYield)%</div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-            }
-
         </div>
+
+        <div class="swiper-slide">
+            <div class="gray gray7">
+                <div class="main7">
+                    <img src="../image/bg7.jpg" />
+                    <div class="main7_1"><img src="@locals.Member[0].HeadImage" /></div>
+                    <div class="main7_2 c">@locals.Member[0].NickName</div>
+                    <div class="main7_3 c">
+                        <div class="mc l c1">1</div>
+                        <div class="txx l">
+                            <div class="top"><img src="../image/top.png" /></div><img src="@locals.Member[0].HeadImage" /></div>
+                        <div class="mc_name l">@locals.Member[0].NickName</div>
+                        <div class="syl">收益率：@(locals.Member[0].WeekYield)%</div>
+                    </div>
+                    <div class="main7_4 c">
+                        <div class="mc l">2</div>
+                        <div class="txx l"><img src="@locals.Member[1].HeadImage" /></div>
+                        <div class="mc_name l">@locals.Member[1].NickName</div>
+                        <div class="syl">收益率：@(locals.Member[1].WeekYield)%</div>
+                    </div>
+                    <div class="main7_5 c">
+                        <div class="mc l">3</div>
+                        <div class="txx l"><img src="@locals.Member[2].HeadImage" /></div>
+                        <div class="mc_name l">@locals.Member[2].NickName</div>
+                        <div class="syl">收益率：@(locals.Member[2].WeekYield)%</div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        }
+
+    </div>
     </div>
 
     <div class="upBg"> <img class="goUpDown" src="../image/up.png" /> </div>

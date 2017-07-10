@@ -234,7 +234,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let battleReport = result.Events.find(e => e.Type == 2)
         if (battleReport) {
             let { Id: reportId } = await singleton.selectMainDB0("wf_competition_report", { MemberCode: memberCode, Period: Number(battleReport.Content) })
-            battleReport.ContentURL = config.shareHostURL + '/nodeh5/BattleReport/' + reportId
+            battleReport.ContentURL = config.shareHostURL + '/nodeh5/BattleReport/' + reportId + "?version=1"
         }
         res.send({ Status: 0, Explain: "", Data: result })
     }));
@@ -466,7 +466,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
     /**赛事消息 */
     router.get('/Events/:page', ctt, wrap(async({ memberCode, params: { page } }, res) => {
         let pagesize = 20
-        let result = await mainDB.query("select *,(case when Type=2 then CONCAT(:shareHost,'/nodeh5/BattleReport/',(select Id from wf_competition_report where MemberCode=:memberCode and Period=wf_competition_affiche.Content)) else CONCAT(:picBaseURL,'/api/h5/Article/',Id) end) ContentURL from wf_competition_affiche where State=9 order by Id desc limit :start,:pagesize", { replacements: { start: Number(page) * pagesize, pagesize, picBaseURL: config.picBaseURL, shareHost: config.shareHostURL, memberCode }, type: "SELECT" })
+        let result = await mainDB.query("select *,(case when Type=2 then CONCAT(:shareHost,'/nodeh5/BattleReport/',(select Id from wf_competition_report where MemberCode=:memberCode and Period=wf_competition_affiche.Content),'?version=1') else CONCAT(:picBaseURL,'/api/h5/Article/',Id) end) ContentURL from wf_competition_affiche where State=9 order by Id desc limit :start,:pagesize", { replacements: { start: Number(page) * pagesize, pagesize, picBaseURL: config.picBaseURL, shareHost: config.shareHostURL, memberCode }, type: "SELECT" })
         res.send({ Status: 0, DataList: result, Explain: "" })
     }));
     /**事件详情 */
@@ -474,7 +474,7 @@ module.exports = function({ express, mainDB, ctt, config, checkEmpty, checkNum, 
         let result = await singleton.selectMainDB0("wf_competition_affiche", { Id })
         if (result.Type == 2) {
             let { Id: reportId } = await singleton.selectMainDB0("wf_competition_report", { MemberCode: memberCode, Period: Number(result.Content) })
-            result.ContentURL = config.shareHostURL + '/nodeh5/BattleReport/' + reportId
+            result.ContentURL = config.shareHostURL + '/nodeh5/BattleReport/' + reportId + "?version=1"
         } else {
             result.ContentURL = config.picBaseURL + '/api/h5/Article/' + Id
         }
