@@ -133,7 +133,6 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
             default:
                 res.send({ Status: P_RESULT })
         }
-
     }));
     return router;
 }
