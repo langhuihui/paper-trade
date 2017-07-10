@@ -46,8 +46,8 @@ module.exports = function({ mainDB, ctt, express, config, wrap }) {
         var fullUrl = protocol + '://' + req.get('host') + originalUrl;
         let signatureData = await wx.jssdk.getSignature(fullUrl);
         signatureData.appId = config.jssdk_appId;
-        signatureData.title = "测试标题";
-        signatureData.description = "测试描述";
+        signatureData.title = `第${Data.Period}周战报`;
+        signatureData.description = `沃夫界模拟交易大赛${Data.Period}第${Data.Period}周战报`;
         signatureData.imgUrl = "https://ss1.baidu.com/6ONXsjip0QIZ8tyhnq/it/u=209550616,2032489593&fm=80&w=179&h=119&img.JPEG";
         signatureData.link = fullUrl;
         res.locals.signatureData = signatureData;
