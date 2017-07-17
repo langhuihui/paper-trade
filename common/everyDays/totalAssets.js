@@ -11,7 +11,7 @@ export default new EveryDay("04:30:00", async() => {
     let weekDay = moment().day();
     let LastDate = moment().day(weekDay < 2 ? -5 : 2).format('YYYY-MM-DD');
     let round = 0
-
+    let e401 = 0
     async function createAsset({ UserId, MemberCode, username, password, emailAddress1 }) {
         try {
             let { sessionKey, accounts } = await request({
@@ -100,7 +100,11 @@ export default new EveryDay("04:30:00", async() => {
             }
 
         } catch (ex) {
-            console.error(new Date(), ex)
+            if (ex.statusCode == 401) {
+                e401++
+            } else {
+                console.error(new Date(), ex)
+            }
         }
     }
     while (round < 10) {
@@ -109,6 +113,8 @@ export default new EveryDay("04:30:00", async() => {
             break
         await Promise.all(result.map(data => createAsset(data)))
         round++
+        console.log("第" + round + "轮：" + e401)
+        e401 = 0
     }
 
     //活动期间将真数据插入wf_drivewealth_practice_asset_v
