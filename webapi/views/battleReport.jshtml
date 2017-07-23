@@ -837,13 +837,15 @@
                 <div class="gray gray4">
                     <div class="main4_1 c2"><span>@locals.MaxYield</span>%</div>
                     <div class="main4_2 c cx">
-                        @if(locals.MaxSecuritiesName){
-                        <span class="c1" id="MaxSecuritiesName">@locals.MaxSecuritiesName</span><br>股票代码：<span id="MaxSecuritiesNo">@locals.MaxSecuritiesNo</span> }else{
-                        <span class="c1" id="MaxSecuritiesName">如果不是偷懒<br>那你一定是巴菲特</span> }
+                        @if(locals.MaxSecuritiesName){ var t = "股票代码：";var t1="如果不是偷懒";var t2="那你一定是巴菲特"
+                        <span class="c1" id="MaxSecuritiesName">@locals.MaxSecuritiesName</span><br/>@t<span id="MaxSecuritiesNo">@locals.MaxSecuritiesNo</span> }else{
+                        <span class="c1" id="MaxSecuritiesName">@t1<br/>@t2</span> }
                     </div>
                     <div class="main4_3 c3"><span>@locals.MinYield</span>%</div>
                     <div class="main4_4 c cx">
-                        <span class="c1" id="MinSecuritiesName">@locals.MinSecuritiesName</span><br>股票代码：<span id="MinSecuritiesNo">@locals.MinSecuritiesNo</span>
+                        @if(locals.MinSecuritiesName){ var nothing = "无";var t = "股票代码："
+                        <span class="c1" id="MinSecuritiesName">@locals.MinSecuritiesName</span><br/>@t<span id="MinSecuritiesNo">@locals.MinSecuritiesNo</span> }else{
+                        <span class="c1" id="MinSecuritiesName">@nothing</span><br/>@t<span id="MinSecuritiesNo">@nothing</span> }
                     </div>
                 </div>
             </div>

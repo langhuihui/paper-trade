@@ -46,6 +46,7 @@ module.exports = function({ config, mainDB, realDB, ctt, express, checkEmpty, mq
     async function Login({ body, user }, res) {
         if (!user) {
             ([user] = await mainDB.query(`select a.*,(SELECT b.Rank FROM wf_member_rank b where b.UpperValue>=a.RankValue LIMIT 1) as Rank from wf_member a where (Mobile=:UserName or Email=:UserName or MemberCode=:UserName) and LoginPwd=:LoginPwd limit 1`, { type: "SELECT", replacements: body }));
+            if (!user) return res.send({ Status: 40006, Explain: "用户名或密码不正确" })
         }
         _Login({ body, user }, res)
     }
