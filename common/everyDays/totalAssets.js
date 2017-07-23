@@ -154,7 +154,7 @@ export default new EveryDay("04:30:00", async() => {
     await mainDB.query('CALL PRC_WF_PRACTICE_RANK_V();')
 
     if (weekDay == 6) {
-        singleton.callMainDB("PRC_WF_COMEPTITION_REPORT", moment().weeksInYear() - moment("20170708", "YYYMMDD").weeksInYear() + 1)
+        singleton.callMainDB("PRC_WF_COMPETITION_REPORT", moment().weeksInYear() - moment("20170708", "YYYMMDD").weeksInYear() + 1)
     }
     //缓存炒股大赛总排行
     let [matchTotalProfitReulst] = await mainDB.query("SELECT c.*,wf_member.NickName,concat(:picBaseURL,case when isnull(wf_member.HeadImage) or wf_member.HeadImage='' then :defaultHeadImage else wf_member.HeadImage end)HeadImage FROM (SELECT a.RankValue totalamount,b.RankValue totalprofit,a.MemberCode,a.Rank from wf_drivewealth_practice_rank_v a ,wf_drivewealth_practice_rank_v b where a.MemberCode = b.MemberCode and a.Type = 11 and b.Type = 10 limit 100)c left join wf_member on wf_member.MemberCode=c.MemberCode ORDER BY c.rank ", { replacements: { picBaseURL: Config.picBaseURL, defaultHeadImage: Config.defaultHeadImage } })
