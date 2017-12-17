@@ -2,6 +2,7 @@ require('babel-register')(require('./babelconfig'));
 const singleton = require('./common/singleton').default
 const JPush = require('jpush-sdk');
 const repl = require('repl');
+const dwUrls = require('./common/driveWealth').default
 var replServer = repl.start({ prompt: '> ' });
 replServer.defineCommand('resetDw', {
     help: '重置嘉维模拟账号',
@@ -38,3 +39,29 @@ replServer.defineCommand('jpushMessage', {
         }
     }
 });
+replServer.defineCommand('showdw', {
+    help: "嘉维模拟账号",
+    async action(arg) {
+        let oldcode = arg.substr(0, 8)
+        let { sessionKey, accounts } = await request({
+            uri: dwUrls.createSession,
+            method: "POST",
+            body: {
+                "appTypeID": "2000",
+                "appVersion": "0.1",
+                username: arg,
+                "emailAddress": oldcode + "@wolfstreet.tv",
+                "ipAddress": "1.1.1.1",
+                "languageID": "zh_CN",
+                "osVersion": "iOS 9.1",
+                "osType": "iOS",
+                "scrRes": "1920x1080",
+                password: "p" + oldcode
+            },
+            timeout: 10000,
+            json: true
+        })
+        console.log(accounts)
+        let [{ userID, cash, accountNo, accountID }] = accounts
+    }
+})

@@ -1,8 +1,10 @@
 |文件夹|说明
 |:---|---
+|choiceness|精选
 |getSinaData|实时获取新浪数据存入redis中
 |homePageGenerator|首页生成服务
 |priceNotify|股价提醒系统
+|paperTrade|模拟交易
 |choiceness|精选列表数据实时计算
 |webapi|服务器API接口
 |common|通用文件夹，定时任务检测
